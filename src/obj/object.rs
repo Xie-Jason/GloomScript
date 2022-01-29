@@ -2,6 +2,7 @@ use std::any::{Any};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Deref};
 use std::rc::{Rc, Weak};
+use crate::exec::executor::Executor;
 
 #[derive(Clone)]
 pub struct GloomObjRef{
@@ -38,6 +39,11 @@ impl GloomObjRef {
     pub fn addr_eqs(&self, other : &GloomObjRef) -> bool{
         Rc::ptr_eq(&self.obj,&other.obj)
     }
+
+    #[inline]
+    pub fn drop_by_exec(&self, exec : &Executor){
+        self.obj.drop_by_exec(exec)
+    }
 }
 
 impl Debug for GloomObjRef {
@@ -49,6 +55,7 @@ impl Debug for GloomObjRef {
 pub trait Object : Debug {
     fn obj_type(&self) -> ObjectType;
     fn as_any(&self) -> &dyn Any;
+    fn drop_by_exec(&self, exec: &Executor);
 }
 
 pub enum ObjectType {

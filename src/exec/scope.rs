@@ -1,5 +1,4 @@
 use std::mem::{ManuallyDrop, MaybeUninit};
-use std::ops::{Deref, DerefMut};
 use crate::obj::object::{GloomObjRef};
 use crate::obj::slot::Slot;
 

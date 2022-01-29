@@ -9,16 +9,11 @@ pub struct Table {
 }
 
 impl Table {
-    pub fn new(size : u16) -> Table {
-        let layout = match Layout::from_size_align(size as usize * size_of::<MaybeUninit<Slot>>(), size_of::<Slot>()){
-            Ok(layout) => layout,
-            Err(err) => {
-                panic!("{}",err)
-            }
-        };
+    pub fn new(len : u16) -> Table {
+        let layout = Layout::array::<MaybeUninit<Slot>>(len as usize).unwrap();
         unsafe {
             let ptr : *mut MaybeUninit<Slot> = alloc::alloc(layout) as *mut MaybeUninit<Slot>;
-            for i in 0..size {
+            for i in 0..len {
                 ptr.add(i as usize).write(MaybeUninit::new(Slot::Null))
             }
             Table {
@@ -27,12 +22,7 @@ impl Table {
         }
     }
     pub fn dealloc(&mut self, len: u16){
-        let layout = match Layout::from_size_align(len as usize * size_of::<MaybeUninit<Slot>>(), size_of::<Slot>()){
-            Ok(layout) => layout,
-            Err(err) => {
-                panic!("{}",err)
-            }
-        };
+        let layout = Layout::array::<MaybeUninit<Slot>>(len as usize).unwrap();
         unsafe {
             alloc::dealloc(self.ptr as *mut u8,layout)
         }
@@ -71,6 +61,4 @@ impl Table {
             std::slice::from_raw_parts_mut(self.ptr, len as usize)
         }
     }
-
-
 }

@@ -4,8 +4,9 @@ use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use hashbrown::HashMap;
 use crate::builtin::classes::BuiltinClass;
+use crate::exec::executor::Executor;
 use crate::exec::result::GloomResult;
-use crate::obj::func::{BuiltinFn, GloomFunc, Param, ReturnType};
+use crate::obj::func::{GloomFunc, Param, ReturnType};
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
@@ -25,6 +26,8 @@ impl Object for GloomString {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
+    fn drop_by_exec(&self, _ : &Executor) {}
 }
 
 impl GloomString {

@@ -140,8 +140,6 @@ pub enum Var{
     StaticBool(u16,u8),
     StaticRef(u16),
 
-    MySelf,
-
     Class(u16),
     Enum(u16),
     Interface(u16),
@@ -154,7 +152,6 @@ impl Var {
     pub fn name(&self) -> Rc<String> {
         match self{
             Var::Name(name) => name.clone(),
-            Var::MySelf => Rc::new(String::from("self")),
             var => panic!("{:?}",var)
         }
     }
@@ -402,8 +399,7 @@ pub enum SyntaxType{
     Break,
     Return,
     Match,
-    Chain,
-    Func
+    Chain
 }
 
 impl Debug for SyntaxType {
@@ -420,8 +416,7 @@ impl Debug for SyntaxType {
             SyntaxType::Break => "break",
             SyntaxType::Return => "return",
             SyntaxType::Match => "match",
-            SyntaxType::Chain => "chain operation",
-            SyntaxType::Func => "func",
+            SyntaxType::Chain => "chain operation"
         })
     }
 }

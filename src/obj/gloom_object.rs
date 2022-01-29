@@ -8,7 +8,7 @@ use crate::obj::types::BasicType;
 use std::any::Any;
 use std::fmt::{Debug, Formatter};
 use std::mem::ManuallyDrop;
-use std::ops::Deref;
+use crate::exec::executor::Executor;
 
 pub struct GloomObject {
     pub table: Table,
@@ -21,6 +21,12 @@ impl Object for GloomObject {
     }
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn drop_by_exec(&self, exec: &Executor) {
+        for idx in self.class.inner().ref_index_iter() {
+            exec.drop_object(self.table.slot(*idx).get_ref());
+        }
     }
 }
 

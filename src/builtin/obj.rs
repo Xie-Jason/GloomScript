@@ -2,6 +2,7 @@ use std::any::Any;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use crate::builtin::classes::BuiltinClass;
+use crate::exec::executor::Executor;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 
@@ -22,6 +23,7 @@ impl Object for BuiltinClassObj {
     fn as_any(&self) -> &dyn Any {
         self
     }
+    fn drop_by_exec(&self, _ : &Executor) {}
 }
 
 impl BuiltinClassObj {

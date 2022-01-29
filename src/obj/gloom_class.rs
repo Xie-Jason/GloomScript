@@ -1,11 +1,11 @@
 use std::any::Any;
-use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
 use std::slice::Iter;
 use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
+use crate::exec::executor::Executor;
 use crate::frontend::ast::{Statement};
 use crate::frontend::index::SlotIndexer;
 use crate::obj::func::{GloomFunc, Param, ReturnType};
@@ -211,6 +211,7 @@ impl Object for GloomClassObj {
     fn as_any(&self) -> &dyn Any {
         self
     }
+    fn drop_by_exec(&self, _ : &Executor) {}
 }
 
 impl Debug for GloomClassObj {

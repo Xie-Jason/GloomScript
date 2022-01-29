@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use std::mem::ManuallyDrop;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref};
 use crate::builtin::array::{GloomArray, RawArray};
 use crate::builtin::boxed::{GloomChar, GloomInt, GloomNum};
 use crate::builtin::classes::BuiltinClass;
@@ -33,7 +33,7 @@ impl Drop for Executor {
         // drop static table
         let table = &self.static_table.table;
         for idx in self.static_table.drop_vec.iter() {
-            self.drop_object(table.take_slot_ref(*idx));
+            self.drop_object_manually(table.take_slot_ref(*idx));
         }
     }
 }
@@ -136,7 +136,7 @@ impl Executor {
                                         Var::LocalRef(slot_idx) => {
                                             let manually_drop_ref
                                                 = local.replace_ref(*slot_idx,value.assert_into_ref());
-                                            self.drop_object(manually_drop_ref);
+                                            self.drop_object_manually(manually_drop_ref);
                                         }
                                         Var::StaticInt(slot_idx,sub_idx) =>
                                             self.static_table.write_int(*slot_idx, *sub_idx, value.assert_int()),
@@ -149,7 +149,7 @@ impl Executor {
                                         Var::StaticRef(slot_idx) => {
                                             let manually_drop_ref
                                                 = self.static_table.replace_ref(*slot_idx, value.assert_into_ref());
-                                            self.drop_object(manually_drop_ref);
+                                            self.drop_object_manually(manually_drop_ref);
                                         }
                                         _ => panic!()
                                     }
@@ -261,7 +261,7 @@ impl Executor {
                                                             let option =
                                                                 obj.write_field(slot_idx, sub_idx, assign_value, *field_type);
                                                             if let Some(rf) = option {
-                                                                self.drop_object(rf);
+                                                                self.drop_object(rf.deref());
                                                             }
                                                         }
                                                         LeftValueOp::PlusEq(expr) => {
@@ -271,7 +271,7 @@ impl Executor {
                                                             let option
                                                                 = obj.write_field(slot_idx, sub_idx,new_value, *field_type);
                                                             if let Some(rf) = option {
-                                                                self.drop_object(rf);
+                                                                self.drop_object(rf.deref());
                                                             }
                                                         }
                                                         LeftValueOp::SubEq(expr) => {
@@ -281,7 +281,7 @@ impl Executor {
                                                             let option
                                                                 = obj.write_field(slot_idx, sub_idx,new_value, *field_type);
                                                             if let Some(rf) = option {
-                                                                self.drop_object(rf);
+                                                                self.drop_object(rf.deref());
                                                             }
                                                         }
                                                         LeftValueOp::PlusOne => {
@@ -290,7 +290,7 @@ impl Executor {
                                                             let option
                                                                 = obj.write_field(slot_idx, sub_idx,new_value, *field_type);
                                                             if let Some(rf) = option {
-                                                                self.drop_object(rf);
+                                                                self.drop_object(rf.deref());
                                                             }
                                                         }
                                                         LeftValueOp::SubOne => {
@@ -299,7 +299,7 @@ impl Executor {
                                                             let option
                                                                 = obj.write_field(slot_idx, sub_idx,new_value, *field_type);
                                                             if let Some(rf) = option {
-                                                                self.drop_object(rf);
+                                                                self.drop_object(rf.deref());
                                                             }
                                                         }
                                                     }
@@ -729,7 +729,7 @@ impl Executor {
                         }
                     }
                     for idx in if_branch.drop_vec.iter() {
-                        self.drop_object(local.take_ref(*idx));
+                        self.drop_object_manually(local.take_ref(*idx));
                     }
                 }
                 GloomResult::ValueVoid
@@ -752,7 +752,7 @@ impl Executor {
                         break GloomResult::ValueVoid;
                     }
                     for idx in while_loop.drop_vec.iter() {
-                        self.drop_object(local.take_ref(*idx));
+                        self.drop_object_manually(local.take_ref(*idx));
                     }
                 };
                 result
@@ -822,52 +822,16 @@ impl Executor {
         )
     }
 
-    #[inline]
-    pub fn drop_object(&self, mut rf : ManuallyDrop<GloomObjRef>){
+    pub fn drop_object_manually(&self, mut rf : ManuallyDrop<GloomObjRef>){
         if rf.deref().count() == 1 {
-            match rf.deref().obj_type() {
-                ObjectType::Class => {
-                    let object = rf.downcast::<GloomObject>();
-                    let class = object.class.inner();
-                    // 调用成员变量的drop方法 call drop fn of fields
-                    for idx in class.ref_index_iter() {
-                        let field = object.table.take_slot_ref(*idx);
-                        self.drop_object(field);
-                    }
-                    // 调用本对象的drop方法 call drop fn of this object
-                    if class.fn_drop_idx < u16::MAX {
-                        let func = class.funcs.get(class.fn_drop_idx as usize).unwrap().inner();
-                        func.call(
-                            self,
-                            GloomArgs::new(vec![
-                                Value::Ref(GloomObjRef::clone(rf.deref()))
-                            ]),
-                            Vec::with_capacity(0)
-                        );
-                    }
-                }
-                ObjectType::Func => {
-                    let object = rf.downcast::<GloomFuncObj>();
-                    for value in object.captures.borrow_mut().iter_mut() {
-                        match value {
-                            Value::Int(_) | Value::Num(_) | Value::Char(_) | Value::Bool(_) => {}
-                            value => {
-                                let rf = std::mem::replace(value,Value::Int(0)).assert_into_ref();
-                                self.drop_object(ManuallyDrop::new(rf));
-                            }
-                        }
-                    }
-                }
-                // TODO object drop
-                /*
-                ObjectType::Enum => {}
-                ObjectType::Interface => {}
-                ObjectType::Array => {}
-                ObjectType::Queue => {}
-                ObjectType::Tuple => {}*/
-                _ => {}
-            }
+            rf.drop_by_exec(self);
         }
         unsafe { ManuallyDrop::drop(&mut rf); }
+    }
+    #[inline]
+    pub fn drop_object(&self, rf : &GloomObjRef){
+        if rf.deref().count() == 1 {
+            rf.drop_by_exec(self);
+        }
     }
 }

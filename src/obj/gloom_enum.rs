@@ -1,8 +1,10 @@
 use std::any::Any;
+use std::cell::{Cell, RefCell};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
 use hashbrown::HashMap;
+use crate::exec::executor::Executor;
 use crate::exec::value::Value;
 use crate::frontend::ast::{Statement};
 use crate::obj::func::{FuncBody, FuncInfo, GloomFunc, Param, ReturnType};
@@ -13,8 +15,8 @@ use crate::obj::types::{DataType, RefType};
 
 // 枚举关联类型只支持类  enum could only related to class type
 pub struct GloomEnum{
-    pub tag  : u16,
-    pub val  : Value,
+    pub tag  : Cell<u16>,
+    pub val  : RefCell<Value>,
     pub class : RefCount<GloomEnumClass>
 }
 
@@ -48,6 +50,12 @@ impl Object for GloomEnum {
     }
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn drop_by_exec(&self, exec: &Executor) {
+        if let Value::Ref(rf) = &*self.val.borrow() {
+            exec.drop_object(rf);
+        }
     }
 }
 

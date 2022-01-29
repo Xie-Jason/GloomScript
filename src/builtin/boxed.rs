@@ -2,6 +2,7 @@ use std::any::Any;
 use std::cell::Cell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+use crate::exec::executor::Executor;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 
 pub struct GloomInt(pub Cell<i64>);
@@ -21,6 +22,8 @@ impl Object for GloomInt {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
+    fn drop_by_exec(&self, _ : &Executor) {}
 }
 
 impl Debug for GloomInt {
@@ -47,6 +50,7 @@ impl Object for GloomNum {
     fn as_any(&self) -> &dyn Any {
         self
     }
+    fn drop_by_exec(&self, _ : &Executor) {}
 }
 
 impl Debug for GloomNum {
@@ -73,6 +77,7 @@ impl Object for GloomChar {
     fn as_any(&self) -> &dyn Any {
         self
     }
+    fn drop_by_exec(&self, _ : &Executor) {}
 }
 
 impl Debug for GloomChar {
@@ -99,6 +104,7 @@ impl Object for GloomBool {
     fn as_any(&self) -> &dyn Any {
         self
     }
+    fn drop_by_exec(&self, _ : &Executor) {}
 }
 
 impl GloomBool {

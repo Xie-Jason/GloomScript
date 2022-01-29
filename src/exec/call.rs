@@ -108,7 +108,7 @@ impl GloomFunc {
     #[inline]
     fn drop_local(&self,exec : &Executor,mut local : Scope){
         for idx in self.info.drop_slots.iter() {
-            exec.drop_object(local.take_ref(*idx));
+            exec.drop_object_manually(local.take_ref(*idx));
         }
     }
 

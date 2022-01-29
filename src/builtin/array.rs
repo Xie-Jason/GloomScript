@@ -2,6 +2,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+use crate::exec::executor::Executor;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 
 
@@ -35,6 +36,14 @@ impl Object for GloomArray {
     }
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn drop_by_exec(&self, exec: &Executor) {
+        if let RawArray::RefVec(vec) = &*self.0.borrow(){
+            for rf in vec.iter() {
+                exec.drop_object(rf);
+            }
+        }
     }
 }
 

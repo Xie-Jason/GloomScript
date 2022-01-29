@@ -21,9 +21,6 @@ impl <T> RefCount<T> {
     pub fn inner_mut(&self) -> RefMut<T>{
         self.rf.deref().borrow_mut()
     }
-    pub fn into_rc(self) -> Rc<RefCell<T>>{
-        self.rf
-    }
 }
 
 impl<T:Debug> Debug for RefCount<T> {

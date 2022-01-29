@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
+use std::mem::ManuallyDrop;
 use std::rc::Rc;
 
 use crate::exec::executor::Executor;
@@ -22,6 +23,14 @@ impl Object for GloomFuncObj {
     }
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn drop_by_exec(&self, exec: &Executor) {
+        for value in self.captures.borrow().iter() {
+            if let Value::Ref(rf) = value {
+                exec.drop_object(rf);
+            }
+        }
     }
 }
 

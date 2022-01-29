@@ -40,12 +40,6 @@ impl BuiltinClass {
     pub const STRING_INDEX: usize = 0;
     pub const FUNC_INDEX: usize = 1;
 
-    fn from_builtin_type(builtin_type : BuiltinType) -> BuiltinClass {
-        match builtin_type {
-            BuiltinType::String => crate::builtin::string::gloom_string_class(),
-            _ => panic!()
-        }
-    }
     fn name(&self) -> &str{
         self.name.as_str()
     }

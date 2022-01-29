@@ -83,7 +83,7 @@ impl Analyzer {
             }
         }
         // functions that declared directly
-        for (idx,func) in self.status.funcs.iter().enumerate() {
+        for func in self.status.funcs.iter() {
             let func = func.clone();
             let mut func_ref = func.inner_mut();
             let file_index = func_ref.info.file_index;
@@ -673,7 +673,7 @@ impl Analyzer {
                                             match class.map.get(func_name.as_str()) {
                                                 Some(index) => {
                                                     function = class.funcs.get(*index as usize).unwrap().clone();
-                                                    let target_func = function.inner();;
+                                                    let target_func = function.inner();
                                                     *func = VarId::Index(*index,0);
                                                     match &target_func.info.return_type {
                                                         ReturnType::Void => {
