@@ -164,8 +164,9 @@ impl GloomClass {
         false
     }
 
+    #[inline]
     pub fn len(&self) -> u16{
-        self.map.len() as u16
+        self.field_indexer.size()
     }
 
     #[inline]

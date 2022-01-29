@@ -18,6 +18,9 @@ impl Table {
         };
         unsafe {
             let ptr : *mut MaybeUninit<Slot> = alloc::alloc(layout) as *mut MaybeUninit<Slot>;
+            for i in 0..size {
+                ptr.add(i as usize).write(MaybeUninit::new(Slot::Null))
+            }
             Table {
                 ptr
             }
@@ -38,12 +41,9 @@ impl Table {
     #[inline(always)]
     pub fn take_slot_ref(&self, index : u16) -> ManuallyDrop<GloomObjRef> {
         unsafe {
-            std::mem::replace(
-                self.ptr.add(index as usize)
-                    .as_mut().expect("null pointer exception")
-                    .assume_init_mut(),
-                Slot{ int : [0,0] }
-            ).rf
+            self.ptr.add(index as usize)
+                .as_mut().expect("null pointer exception")
+                .assume_init_mut().take().into_ref()
         }
     }
 

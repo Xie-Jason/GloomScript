@@ -1,6 +1,7 @@
 use std::mem::ManuallyDrop;
 use std::ops::{Deref, DerefMut};
 use crate::obj::object::GloomObjRef;
+use crate::obj::slot::Slot;
 use crate::obj::table::Table;
 
 pub struct StaticTable{
@@ -25,75 +26,47 @@ impl StaticTable {
     }
     #[inline(always)]
     pub fn read_int(&self, slot_idx : u16, sub_idx : u8) -> i64{
-        unsafe {
-            self.table.slot(slot_idx).int[sub_idx as usize]
-        }
+        self.table.slot(slot_idx).get_int(sub_idx)
     }
     #[inline(always)]
     pub fn read_num(&self, slot_idx : u16, sub_idx : u8) -> f64{
-        unsafe {
-            self.table.slot(slot_idx).num[sub_idx as usize]
-        }
+        self.table.slot(slot_idx).get_num(sub_idx)
     }
     #[inline(always)]
     pub fn read_char(&self, slot_idx : u16, sub_idx : u8) -> char{
-        unsafe {
-            self.table.slot(slot_idx).ch[sub_idx as usize]
-        }
+        self.table.slot(slot_idx).get_char(sub_idx)
     }
     #[inline(always)]
     pub fn read_bool(&self, slot_idx : u16, sub_idx : u8) -> bool{
-        unsafe {
-            self.table.slot(slot_idx).bl[sub_idx as usize]
-        }
+        self.table.slot(slot_idx).get_bool(sub_idx)
     }
     #[inline(always)]
     pub fn read_ref(&self, slot_idx : u16) -> &GloomObjRef {
-        unsafe {
-            self.table.slot(slot_idx).rf.deref()
-        }
-    }
-    #[inline(always)]
-    pub fn read_ref_mut(&self, slot_idx : u16) -> &mut GloomObjRef {
-        unsafe {
-            self.table.slot_mut(slot_idx).rf.deref_mut()
-        }
+        self.table.slot(slot_idx).get_ref()
     }
     #[inline(always)]
     pub fn write_int(&self, slot_idx : u16, sub_idx : u8, int : i64){
-        unsafe {
-            self.table.slot_mut(slot_idx).int[sub_idx as usize] = int;
-        }
+        self.table.slot_mut(slot_idx).set_int(sub_idx,int)
     }
     #[inline(always)]
     pub fn write_num(&self, slot_idx : u16, sub_idx : u8, num : f64){
-        unsafe {
-            self.table.slot_mut(slot_idx).num[sub_idx as usize] = num;
-        }
+        self.table.slot_mut(slot_idx).set_num(sub_idx,num);
     }
     #[inline(always)]
     pub fn write_char(&self, slot_idx : u16, sub_idx : u8, ch : char){
-        unsafe {
-            self.table.slot_mut(slot_idx).ch[sub_idx as usize] = ch;
-        }
+        self.table.slot_mut(slot_idx).set_char(sub_idx,ch);
     }
     #[inline(always)]
     pub fn write_bool(&self, slot_idx : u16, sub_idx : u8, bl : bool){
-        unsafe {
-            self.table.slot_mut(slot_idx).bl[sub_idx as usize] = bl;
-        }
+        self.table.slot_mut(slot_idx).set_bool(sub_idx,bl);
     }
     #[inline(always)]
     pub fn write_ref_firstly(&self, slot_idx : u16, rf : GloomObjRef){
-        self.table.slot_mut(slot_idx).rf = ManuallyDrop::new(rf);
+        let slot = self.table.slot_mut(slot_idx).replace(Slot::Ref(ManuallyDrop::new(rf)));
+        if let Slot::Null = slot { } else { panic!("{:?}",slot) }
     }
     #[inline(always)]
     pub fn replace_ref(&self, slot_idx : u16, rf : GloomObjRef) -> ManuallyDrop<GloomObjRef> {
-        unsafe {
-            std::mem::replace::<ManuallyDrop<GloomObjRef>>(
-            &mut self.table.slot_mut(slot_idx).rf,
-            ManuallyDrop::new(rf)
-            )
-        }
+        self.table.slot_mut(slot_idx).replace(Slot::Ref(ManuallyDrop::new(rf))).into_ref()
     }
 }

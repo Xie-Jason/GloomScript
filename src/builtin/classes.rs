@@ -49,7 +49,7 @@ impl BuiltinClass {
     fn name(&self) -> &str{
         self.name.as_str()
     }
-    fn none_generic_fn(ref_type : RefType) -> Box<dyn Fn(Option<Vec<DataType>>) -> Result<RefType,String>> {
+    pub fn none_generic_fn(ref_type : RefType) -> Box<dyn Fn(Option<Vec<DataType>>) -> Result<RefType,String>> {
         Box::new(move |option| {
             if let Some(generic) = option {
                 if generic.len() > 0 {

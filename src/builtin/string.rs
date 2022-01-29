@@ -5,7 +5,7 @@ use std::rc::Rc;
 use hashbrown::HashMap;
 use crate::builtin::classes::BuiltinClass;
 use crate::exec::result::GloomResult;
-use crate::obj::func::{GloomFunc, Param, ReturnType};
+use crate::obj::func::{BuiltinFn, GloomFunc, Param, ReturnType};
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
@@ -63,13 +63,6 @@ pub fn gloom_string_class() -> BuiltinClass{
         name: "String".to_string(),
         map,
         funcs,
-        get_ref_type_fn: Box::new(|option| {
-            if let Some(generic) = option {
-                if generic.len() > 0 {
-                    return Result::Err(format!("unexpected generic type {:?} of String ",generic))
-                }
-            }
-            Result::Ok(RefType::String)
-        })
+        get_ref_type_fn: BuiltinClass::none_generic_fn(RefType::String)
     }
 }
