@@ -378,7 +378,7 @@ impl Parser {
                 if self.has_next() && self.test_next(Token::LBrace) {
                     self.forward();
                     let class_name = var_name.clone();
-                    let mut map = HashMap::new();
+                    let mut fields = Vec::new();
                     while self.has_next() {
                         match self.next() {
                             Token::RBrace => break,
@@ -388,7 +388,7 @@ impl Parser {
                                 let field_name = self.identifier();
                                 self.assert_next(Token::Colon);
                                 let expr = self.expr()?;
-                                map.insert(field_name.deref().clone(), expr);
+                                fields.push((VarId::Name(field_name),expr));
                             }
                         }
                     }
@@ -397,7 +397,7 @@ impl Parser {
                             name: class_name,
                             generic: None
                         })),
-                        map
+                        fields
                     }))
                 }else{
                     Expression::Var(Box::new(Var::Name(var_name)))

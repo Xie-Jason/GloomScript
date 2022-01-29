@@ -1,7 +1,7 @@
 
 class Test {
     pub String name
-    int age
+    pub int age
     pub func max(int n1,int n2) int {
         n1 -- ;
         if(n1 > n2){
@@ -82,3 +82,9 @@ while n > 0 {
     count ++
 }
 println([count,n])
+
+let test = Test{
+    name : "Tester",
+    age : 114514
+}
+println(test)

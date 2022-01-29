@@ -8,6 +8,7 @@ use crate::obj::types::BasicType;
 use std::any::Any;
 use std::fmt::{Debug, Formatter};
 use std::mem::ManuallyDrop;
+use std::ops::Deref;
 use crate::exec::executor::Executor;
 
 pub struct GloomObject {
@@ -32,7 +33,8 @@ impl Object for GloomObject {
 
 impl GloomObject {
     #[inline]
-    pub fn new(class: RefCount<GloomClass>, size: u16) -> GloomObject {
+    pub fn new(class: RefCount<GloomClass>) -> GloomObject {
+        let size = class.inner().field_indexer.size();
         GloomObject {
             table: Table::new(size),
             class,
@@ -104,6 +106,20 @@ impl Drop for GloomObject {
 
 impl Debug for GloomObject {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Object of {:?}", self.class)
+        let class = self.class.inner();
+        let mut string : String = class.name.deref().clone();
+        string.push_str(" { ");
+        for (name, (slot_idx, sub_idx, is_pub, is_fn)) in class.map.iter() {
+            if ! *is_fn {
+                let field_type = class.field_indexer.get_type(*slot_idx).as_basic();
+                string.push_str(name.as_str());
+                string.push_str(" : ");
+                string.push_str(format!("{:?}",self.read_field(*slot_idx,*sub_idx,field_type)).as_str());
+                string.push_str(" , ");
+            }
+        }
+        string.remove(string.len()-2);
+        string.push_str("}");
+        write!(f,"{}",string.as_str())
     }
 }

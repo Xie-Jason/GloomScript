@@ -344,7 +344,7 @@ pub enum ExprType{
 #[derive(Debug)]
 pub struct Construction{
     pub class_type : ExprType,
-    pub map : HashMap<String,Expression>
+    pub fields : Vec<(VarId,Expression)>
 }
 
 pub enum Chain{

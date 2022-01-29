@@ -22,6 +22,7 @@ pub struct GloomClass{
     pub field_indexer : SlotIndexer,
     pub funcs : Vec<RefCount<GloomFunc>>,
     pub file_index : u16,
+    pub field_count : u16,
     pub fn_drop_idx : u16,
 }
 pub type IsMemFunc = bool;
@@ -37,7 +38,8 @@ impl GloomClass {
             funcs: Vec::new(),
             file_index,
             field_indexer: SlotIndexer::new(),
-            fn_drop_idx: u16::MAX
+            fn_drop_idx: u16::MAX,
+            field_count: 0
         }
     }
 
@@ -112,6 +114,7 @@ impl GloomClass {
     }
 
     pub fn add_field(&mut self, is_pub : bool, field_name : String, data_type : DataType){
+        self.field_count += 1;
         let (slot_idx,sub_idx) = self.field_indexer.put(data_type);
         self.map.insert(field_name, (slot_idx,sub_idx,is_pub,false));
     }

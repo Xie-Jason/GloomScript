@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::mem::ManuallyDrop;
 use std::ops::{Deref};
+use std::rc::Rc;
 use crate::builtin::array::{GloomArray, RawArray};
 use crate::builtin::boxed::{GloomChar, GloomInt, GloomNum};
 use crate::builtin::classes::BuiltinClass;
@@ -11,7 +12,7 @@ use crate::exec::result::GloomResult;
 use crate::exec::scope::Scope;
 use crate::exec::static_table::StaticTable;
 use crate::exec::value::{GloomArgs, Value};
-use crate::frontend::ast::{Chain, Expression, FuncExpr, LeftValue, Statement, Var, VarId};
+use crate::frontend::ast::{Chain, Expression, ExprType, FuncExpr, LeftValue, Statement, Var, VarId};
 use crate::frontend::ops::{BinOp, LeftValueOp};
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{ GloomFunc, GloomFuncObj};
@@ -757,9 +758,29 @@ impl Executor {
                 };
                 result
             }
-           /*
-            Expression::Construct(_) => {}
-            */
+            Expression::Construct(construct) => {
+                if let ExprType::Analyzed(data_type) = &construct.deref().class_type{
+                    if let DataType::Ref(RefType::Class(class)) = data_type {
+                        let object = GloomObject::new(class.clone());
+                        let class = class.inner();
+                        for (field, expr) in construct.fields.iter() {
+                            let (slot_idx,sub_idx) = field.index();
+                            let value = self.execute_expr(expr,local).assert_into_value();
+                            let basic_type = class.field_indexer.get_type(slot_idx).as_basic();
+                            object.write_field(slot_idx, sub_idx, value, basic_type);
+                        }
+                        GloomResult::Value(Value::Ref(
+                            GloomObjRef::new(Rc::new(
+                                object
+                            ))
+                        ))
+                    }else{
+                        panic!()
+                    }
+                }else{
+                    panic!()
+                }
+            }
             expr => panic!("unsupported expression {:?}",expr)
         }
     }

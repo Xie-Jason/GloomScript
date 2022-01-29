@@ -946,8 +946,45 @@ impl Analyzer {
                     }
                     ExprType::Analyzed(data_type) => data_type.clone()
                 };
-
-                class_type
+                construction.class_type = ExprType::Analyzed(class_type.clone());
+                let class_rc = match &class_type {
+                    DataType::Ref(RefType::Class(class)) => class,
+                    _ => panic!("{} the object construction expect a Class as type mark, found {}",
+                                context.info(),class_type)
+                };
+                let class = class_rc.inner();
+                if class.field_count as usize != construction.fields.len() {
+                    panic!("{} the fields of class have {}, found {} in the construction list",
+                           context.info(),class.field_count,construction.fields.len())
+                }
+                for (var, expr) in construction.fields.iter_mut() {
+                    let field_name = var.name();
+                    match class.map.get(field_name.as_str()) {
+                        Some((slot_idx,sub_idx,is_pub,is_fn)) => {
+                            if *is_pub || context.belonged_type.equal_class(class_rc) {
+                                if *is_fn {
+                                    panic!("{} {} in class {} is a function rather than field",
+                                           context.info(),field_name,class_type)
+                                }else{
+                                    let expr_type = self.deduce_type(expr, context);
+                                    let field_type = class.field_indexer.get_type(*slot_idx);
+                                    if expr_type.belong_to(field_type) {
+                                        *var = VarId::Index(*slot_idx,*sub_idx);
+                                    }else{
+                                        panic!("{} the field {} of {} need a value/object with {} type, found {}",
+                                               context.info(),field_name,class_type,field_type,expr_type)
+                                    }
+                                }
+                            }else{
+                                panic!("{} field {} is not public, so you can't construct the object of {} except in class member function",
+                                       context.info(),field_name,class_type)
+                            }
+                        }
+                        None => panic!("{} unknown field '{}' in class_rc {}",
+                                        context.info(), field_name, class_type)
+                    }
+                };
+                class_type.clone()
             }
             Expression::NegOp(expr) => {
                 self.deduce_type(expr.deref_mut(),context)
