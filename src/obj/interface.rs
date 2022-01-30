@@ -71,7 +71,8 @@ impl AbstractFunc {
         DataType::Ref(RefType::Func(
             Box::new((
                 self.param_types.clone(),
-                self.return_type.clone()
+                self.return_type.clone(),
+                false
             ))
         ))
     }

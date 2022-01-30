@@ -13,8 +13,3 @@ impl Debug for GloomWeak {
         write!(f,"Object of Weak<{:?}>",self.generic)
     }
 }
-
-
-// 仅在单线程环境下使用 just use in single-thread env
-unsafe impl Send for GloomWeak {}
-unsafe impl Sync for GloomWeak {}

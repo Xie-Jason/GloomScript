@@ -209,7 +209,7 @@ pub enum RefType{
     MataBuiltinType(BuiltinType),
 
     Tuple(Box<Vec<DataType>>),
-    Func(Box<(Vec<DataType>,ReturnType)>),
+    Func(Box<(Vec<DataType>,ReturnType,bool)>),
     Weak(Box<DataType>),
     Array(Box<DataType>),
     Queue(Box<DataType>),
@@ -245,9 +245,12 @@ impl RefType {
             RefType::Func(func_type) => {
                 if let RefType::Func(other_func_type) = other {
                     let func_type_borrow = func_type.deref();
-                    let (vec1,ret_type1) = func_type_borrow.deref();
+                    let (vec1,ret_type1,_) = func_type_borrow.deref();
                     let other_fn_type_borrow = other_func_type.deref();
-                    let (vec2,ret_type2) = other_fn_type_borrow.deref();
+                    let (vec2,ret_type2,all_ok) = other_fn_type_borrow.deref();
+                    if *all_ok {
+                        return true
+                    }
                     vec1.eq(vec2) && ret_type1.eq(ret_type2)
                 }else {
                     false

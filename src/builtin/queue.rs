@@ -39,7 +39,7 @@ impl Object for GloomQueue {
         self
     }
 
-    fn drop_by_exec(&self, exec: &Executor) {
+    fn drop_by_exec(&self, exec: &Executor, _ : &GloomObjRef) {
         if let RawQueue::RefQue(vec) = &*self.0.borrow(){
             for rf in vec.iter() {
                 exec.drop_object(rf);

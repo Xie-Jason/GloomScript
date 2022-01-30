@@ -23,7 +23,7 @@ impl Object for GloomInt {
         self
     }
 
-    fn drop_by_exec(&self, _ : &Executor) {}
+    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
 }
 
 impl Debug for GloomInt {
@@ -50,7 +50,7 @@ impl Object for GloomNum {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, _ : &Executor) {}
+    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
 }
 
 impl Debug for GloomNum {
@@ -77,7 +77,7 @@ impl Object for GloomChar {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, _ : &Executor) {}
+    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
 }
 
 impl Debug for GloomChar {
@@ -104,7 +104,7 @@ impl Object for GloomBool {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, _ : &Executor) {}
+    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
 }
 
 impl GloomBool {

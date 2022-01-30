@@ -27,7 +27,7 @@ impl Object for GloomString {
         self
     }
 
-    fn drop_by_exec(&self, _ : &Executor) {}
+    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
 }
 
 impl GloomString {

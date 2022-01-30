@@ -17,7 +17,7 @@ impl Object for GloomTuple {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, exec: &Executor) {
+    fn drop_by_exec(&self, exec: &Executor, _ : &GloomObjRef) {
         for value in self.vec.borrow().iter() {
             if let Value::Ref(rf) = value {
                 exec.drop_object(rf);

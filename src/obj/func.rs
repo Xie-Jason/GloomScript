@@ -25,7 +25,7 @@ impl Object for GloomFuncObj {
         self
     }
 
-    fn drop_by_exec(&self, exec: &Executor) {
+    fn drop_by_exec(&self, exec: &Executor, _ : &GloomObjRef) {
         for value in self.captures.borrow().iter() {
             if let Value::Ref(rf) = value {
                 exec.drop_object(rf);
@@ -115,7 +115,7 @@ impl GloomFunc {
         for param in self.info.params.iter() {
             param_types.push(param.data_type.clone());
         }
-        DataType::Ref(RefType::Func(Box::new((param_types,self.info.return_type.clone()))))
+        DataType::Ref(RefType::Func(Box::new((param_types,self.info.return_type.clone(),false))))
     }
     #[inline]
     pub fn get_ref_type(&self) -> RefType{
@@ -123,7 +123,7 @@ impl GloomFunc {
         for param in self.info.params.iter() {
             param_types.push(param.data_type.clone());
         }
-        RefType::Func(Box::new((param_types,self.info.return_type.clone())))
+        RefType::Func(Box::new((param_types,self.info.return_type.clone(),false)))
     }
     #[inline]
     pub fn have_capture(&self) -> bool{

@@ -134,6 +134,13 @@ impl GloomClass {
                        func_name,self.name,entry)
             }
         }
+        // found drop fn
+        if func_name.deref().eq("drop")
+            && return_type.is_void()
+            && params.len() == 1
+            && params.get(0).unwrap().name.deref().eq("self"){
+            self.fn_drop_idx = index;
+        }
         self.funcs.push(RefCount::new(
             GloomFunc::new(func_name,self.file_index,params,return_type,body)
         ));
@@ -214,7 +221,7 @@ impl Object for GloomClassObj {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, _ : &Executor) {}
+    fn drop_by_exec(&self, _ : &Executor,rf: &GloomObjRef) {}
 }
 
 impl Debug for GloomClassObj {

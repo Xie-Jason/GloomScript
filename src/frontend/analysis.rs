@@ -101,7 +101,6 @@ impl Analyzer {
         }
     }
 
-
     fn analysis_func(&self, func : &mut GloomFunc, file_index : u16, out_env : Option<&AnalyzeContext>, belonged_type : DeclaredType) {
         let params = &mut func.info.params;
         let func_return_type = &func.info.return_type;
@@ -248,7 +247,6 @@ impl Analyzer {
                                     panic!("{} line {}, mismatched return type, expect {} found {}",
                                            context.info(),line,data_type,expr_type)
                                 }
-                                break
                             }else{
                                 // void
                                 if ! expr_type.is_none() {
@@ -458,7 +456,7 @@ impl Analyzer {
                 Chain::Call(args) => {
                     match &expr_type {
                         DataType::Ref(RefType::Func(func_type)) => {
-                            let (param_types,return_type) = func_type.deref();
+                            let (param_types,return_type,_) = func_type.deref();
                             let in_fact_len = args.len();
                             for (arg_idx,arg) in args.iter_mut().enumerate() {
                                 let arg_type = self.deduce_type(arg, context);

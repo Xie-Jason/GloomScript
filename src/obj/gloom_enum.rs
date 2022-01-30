@@ -9,7 +9,7 @@ use crate::exec::value::Value;
 use crate::frontend::ast::{Statement};
 use crate::obj::func::{FuncBody, FuncInfo, GloomFunc, Param, ReturnType};
 use crate::obj::gloom_class::IsPub;
-use crate::obj::object::{Object, ObjectType};
+use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
 
@@ -52,7 +52,7 @@ impl Object for GloomEnum {
         self
     }
 
-    fn drop_by_exec(&self, exec: &Executor) {
+    fn drop_by_exec(&self, exec: &Executor, _ : &GloomObjRef) {
         if let Value::Ref(rf) = &*self.val.borrow() {
             exec.drop_object(rf);
         }

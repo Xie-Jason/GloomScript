@@ -82,10 +82,10 @@ impl Executor {
                             local.write_num(*slot_idx, *sub_idx, value.assert_num());
                         }
                         Var::LocalChar(slot_idx,sub_idx) => {
-                            local.write_num(*slot_idx, *sub_idx, value.assert_num());
+                            local.write_char(*slot_idx, *sub_idx, value.assert_char());
                         }
                         Var::LocalBool(slot_idx,sub_idx) => {
-                            local.write_num(*slot_idx, *sub_idx, value.assert_num());
+                            local.write_bool(*slot_idx, *sub_idx, value.assert_bool());
                         }
                         Var::LocalRef(slot_idx) => {
                             let rf = value.assert_into_ref();
@@ -131,9 +131,9 @@ impl Executor {
                                         Var::LocalNum(slot_idx,sub_idx) =>
                                             local.write_num(*slot_idx, *sub_idx, value.assert_num()),
                                         Var::LocalChar(slot_idx,sub_idx) =>
-                                            local.write_num(*slot_idx, *sub_idx, value.assert_num()),
+                                            local.write_char(*slot_idx, *sub_idx, value.assert_char()),
                                         Var::LocalBool(slot_idx,sub_idx) =>
-                                            local.write_num(*slot_idx, *sub_idx, value.assert_num()),
+                                            local.write_bool(*slot_idx, *sub_idx, value.assert_bool()),
                                         Var::LocalRef(slot_idx) => {
                                             let manually_drop_ref
                                                 = local.replace_ref(*slot_idx,value.assert_into_ref());

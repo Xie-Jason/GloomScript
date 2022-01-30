@@ -38,7 +38,7 @@ impl Object for GloomArray {
         self
     }
 
-    fn drop_by_exec(&self, exec: &Executor) {
+    fn drop_by_exec(&self, exec: &Executor, _ : &GloomObjRef) {
         if let RawArray::RefVec(vec) = &*self.0.borrow(){
             for rf in vec.iter() {
                 exec.drop_object(rf);

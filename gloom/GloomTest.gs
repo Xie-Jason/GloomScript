@@ -10,15 +10,11 @@ class Test {
             n2
         }
     }
-    func biggerThan(self,int n1,int n2) bool {
-        n1 > n2
+    pub func olderThan(self, Test other) bool {
+        self.age > other.age
     }
-    func display(self,int level){
-        if(self.biggerThan(11,22)){
-            level ++;
-        }else{
-            level --;
-        }
+    func drop(self){
+        println([self.name,"Drop"])
     }
 }
 
@@ -31,7 +27,7 @@ enum State{
     Running(int)
     Stop((String,int))
 
-    pub func print(self,String prefix){
+    pub func show(self,String prefix){
         let arr = [prefix,self];
         println(arr);
     }
@@ -83,8 +79,16 @@ while n > 0 {
 }
 println([count,n])
 
-let test = Test{
+Func.printBody(Test.olderThan)
+
+let test1 = Test{
     name : "Tester",
     age : 114514
 }
-println(test)
+println(test1)
+let test2 = Test{
+    name : "haha",
+    age : 18
+}
+
+println([test1.age,test2.age,test1.olderThan(test2)])

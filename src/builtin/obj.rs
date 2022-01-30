@@ -23,7 +23,7 @@ impl Object for BuiltinClassObj {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, _ : &Executor) {}
+    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
 }
 
 impl BuiltinClassObj {

@@ -42,7 +42,7 @@ impl GloomObjRef {
 
     #[inline]
     pub fn drop_by_exec(&self, exec : &Executor){
-        self.obj.drop_by_exec(exec)
+        self.obj.drop_by_exec(exec,self)
     }
 }
 
@@ -55,7 +55,7 @@ impl Debug for GloomObjRef {
 pub trait Object : Debug {
     fn obj_type(&self) -> ObjectType;
     fn as_any(&self) -> &dyn Any;
-    fn drop_by_exec(&self, exec: &Executor);
+    fn drop_by_exec(&self, exec: &Executor, rf: &GloomObjRef);
 }
 
 pub enum ObjectType {
@@ -76,7 +76,3 @@ pub enum ObjectType {
     Queue,
     Tuple,
 }
-
-// 仅在单线程环境下使用 just use in single-thread env
-unsafe impl Send for GloomObjRef {}
-unsafe impl Sync for GloomObjRef {}

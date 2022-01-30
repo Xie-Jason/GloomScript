@@ -1,4 +1,4 @@
-use crate::exec::value::Value;
+use crate::exec::value::{GloomArgs, Value};
 use crate::obj::gloom_class::GloomClass;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
@@ -24,8 +24,17 @@ impl Object for GloomObject {
         self
     }
 
-    fn drop_by_exec(&self, exec: &Executor) {
-        for idx in self.class.inner().ref_index_iter() {
+    fn drop_by_exec(&self,exec: &Executor, rf : &GloomObjRef) {
+        let class = self.class.inner();
+        if class.fn_drop_idx < u16::MAX {
+            class.funcs.get(class.fn_drop_idx as usize).unwrap().inner()
+                .call(
+                    exec,
+                    GloomArgs::new(vec![Value::Ref(rf.clone())]),
+                    Vec::with_capacity(0)
+                );
+        }
+        for idx in class.ref_index_iter() {
             exec.drop_object(self.table.slot(*idx).get_ref());
         }
     }
