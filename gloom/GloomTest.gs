@@ -53,6 +53,7 @@ n = if n > 25 {
     n * 2
 }
 
+
 let myPrint = func(int i){
     println(["这里是后面的n->",i]);
 }

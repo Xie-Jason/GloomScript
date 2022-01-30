@@ -94,7 +94,7 @@ pub enum Expression{
 
     // 循环控制 loop control
     While(Box<WhileLoop>),
-    For(RefCount<ForLoop>),
+    For(Box<ForLoop>),
 
     // 模式匹配 pattern match
     Match(RefCount<(Expression, Vec<(Expression, Vec<Statement>)>)>),
@@ -285,12 +285,13 @@ impl Debug for WhileLoop {
 pub struct ForLoop{
     pub var : Var,
     pub for_iter : ForIter,
-    pub statements : Vec<Statement>
+    pub statements : Vec<Statement>,
+    pub drop_slots : Vec<u16>,
 }
 
 #[derive(Debug)]
 pub enum ForIter{
-    Num(Expression,Expression,Expression),
+    Range(Expression, Expression, Expression),
     Iter(Expression)
 }
 

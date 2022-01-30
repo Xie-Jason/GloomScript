@@ -517,12 +517,12 @@ impl Parser {
                     if vec.len() == 2 {
                         let end = vec.pop().unwrap();
                         let start = vec.pop().unwrap();
-                        ForIter::Num(start, end, Expression::Int(1))
+                        ForIter::Range(start, end, Expression::Int(1))
                     } else if vec.len() == 3 {
                         let step = vec.pop().unwrap();
                         let end = vec.pop().unwrap();
                         let start = vec.pop().unwrap();
-                        ForIter::Num(start, end, step)
+                        ForIter::Range(start, end, step)
                     } else {
                         panic!("'for <Var> in <Tuple>' is wrong syntax")
                     }
@@ -532,10 +532,11 @@ impl Parser {
                 self.assert_next(Token::LBrace);
                 let statements = self.statements();
                 self.assert_next(Token::RBrace);
-                Expression::For(RefCount::new(ForLoop {
+                Expression::For(Box::new(ForLoop {
                     var: Var::Name(var_name),
                     for_iter,
-                    statements
+                    statements,
+                    drop_slots: Vec::new()
                 }))
             }
             // 匹配 match
@@ -586,14 +587,13 @@ impl Parser {
                             self.forward();
                             let mut args = Vec::new();
                             while self.has_next() {
-                                let arg = self.expr()?;
-                                args.push(arg);
                                 match self.next() {
                                     Token::Comma => continue,
                                     Token::RParen => break,
-                                    token => {
-                                        return Result::Err(ParseError::new(
-                                            line, format!("expect ',' or ')' in function call arguments, found {}",token)));
+                                    _ => {
+                                        self.backward();
+                                        let arg = self.expr()?;
+                                        args.push(arg);
                                     }
                                 }
                             }

@@ -187,6 +187,13 @@ impl ReturnType {
             ReturnType::Have(_) => false
         }
     }
+    #[inline]
+    pub fn data_type(&self) -> &DataType{
+        match self {
+            ReturnType::Void => panic!(),
+            ReturnType::Have(tp) => tp
+        }
+    }
 }
 
 impl Debug for ReturnType {

@@ -22,6 +22,7 @@ use crate::{
     obj::interface::{AbstractFunc, Interface},
     obj::types::{BreakType, BuiltinType, DataType, DeclaredType, RefType}
 };
+use crate::exec::executor::BlockType;
 use crate::frontend::ops::LeftValueOp;
 use crate::obj::func::FuncInfo;
 
@@ -121,175 +122,7 @@ impl Analyzer {
         // analysis per statement
         let body = &mut func.body;
         if let FuncBody::Gloom(body) = body {
-            let stat_max_index = if body.len() > 0 { body.len() - 1 } else { 0 };
-            let mut temp_expr = Expression::None;
-            let mut temp_line = 0;
-            let mut expr_to_return = false;
-            for (stat_index,statement) in body.iter_mut().enumerate() {
-                match statement {
-                    // 声明局部变量 declare local variable
-                    Statement::Let(let_tuple) => {
-                        let (var,marked_type,expr,line) = let_tuple.deref_mut();
-                        context.expr_stack.push((SyntaxType::Let,*line));
-                        match marked_type {
-                            None => {
-                                // 未标记变量类型 without type mark
-                                let deduced_type = self.deduce_type(expr,&mut context);
-                                let basic_type = deduced_type.as_basic();
-                                // 检查变量名是否重复 check if the variable name occupied
-                                let (slot_idx,sub_idx) = context.indexer.put(deduced_type);
-                                match context.symbol_table.entry(var.name().deref().clone()) {
-                                    Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,true)),
-                                    Entry::Occupied(_) => panic!("{} line {}, variable name {} occupied",context.info(),line,var.name().deref()),
-                                };
-                                *var = Var::new_local(slot_idx, sub_idx, basic_type);
-                            }
-                            Some(data_type) => {
-                                // 已标记变量类型 with type mark
-                                let data_type = self.get_type(data_type, file_index);
-                                if data_type.is_queue() && expr.is_array_literal() {
-                                    if let Expression::Array(array) = expr {
-                                        let (_,_,is_queue) = array.deref_mut();
-                                        *is_queue = true;
-                                    }
-                                }
-                                let basic_type = data_type.as_basic();
-                                if ! self.deduce_type(expr,&mut context).belong_to(&data_type){
-                                    panic!()
-                                }
-                                let (slot_idx,sub_idx) = context.indexer.put(data_type);
-                                // 检查变量名是否重复 check if the variable name occupied
-                                match context.symbol_table.entry(var.name().deref().clone()) {
-                                    Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,true)),
-                                    Entry::Occupied(_) => panic!("{} line {}, variable name {} occupied",context.info(),line,var.name().deref()),
-                                };
-                                *var = Var::new_local(slot_idx, sub_idx, basic_type);
-                            }
-                        }
-                        context.expr_stack.pop();
-                    }
-                    Statement::Static(static_tuple) => {
-                        let (var,parsed_type,expr) = static_tuple.deref_mut();
-                        match parsed_type {
-                            Some(parsed_type) => {
-                                let marked_type = self.get_type(parsed_type, file_index);
-                                let basic_type = marked_type.as_basic();
-                                let expr_type = self.deduce_type(expr,&mut context);
-                                if ! expr_type.belong_to(&marked_type) {
-                                    panic!("{} the expression's type {} do not belongs to marked type {} when comes to static variable {} declare",
-                                           context.info(),expr_type,marked_type,var.name().deref())
-                                }
-                                let (slot_idx,sub_idx)  = self.static_indexer.inner_mut().put(marked_type);
-                                match context.symbol_table.entry(var.name().deref().clone()) {
-                                    Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,false)),
-                                    Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
-                                };
-                                *var = Var::new_static(slot_idx, sub_idx, basic_type);
-                            }
-                            None => {
-                                let expr_type = self.deduce_type(expr,&mut context);
-                                let basic_type = expr_type.as_basic();
-                                let (slot_idx,sub_idx) = self.static_indexer.inner_mut().put(expr_type);
-                                match context.symbol_table.entry(var.name().deref().clone()) {
-                                    Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,false)),
-                                    Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
-                                };
-                                *var = Var::new_static(slot_idx, sub_idx, basic_type);
-                            }
-                        };
-                    }
-                    Statement::PubStatic(static_tuple) => {
-                        let (var,parsed_type,expr) = static_tuple.deref_mut();
-                        let pub_static_symbol_table = self.static_map.clone();
-                        match parsed_type {
-                            Some(parsed_type) => {
-                                let marked_type = self.get_type(parsed_type, file_index);
-                                let basic_type = marked_type.as_basic();
-                                let expr_type = self.deduce_type(expr,&mut context);
-                                if ! expr_type.belong_to(&marked_type) {
-                                    panic!("{} the expression's type {} do not belongs to marked type {} when comes to static variable {} declare",
-                                           context.info(),expr_type,marked_type,var.name().deref())
-                                }
-                                let (slot_idx,sub_idx)  = self.static_indexer.inner_mut().put(marked_type);
-                                match pub_static_symbol_table.inner_mut().entry(var.name().deref().clone()) {
-                                    Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx)),
-                                    Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
-                                };
-                                *var = Var::new_static(slot_idx, sub_idx, basic_type);
-                            }
-                            None => {
-                                let expr_type = self.deduce_type(expr,&mut context);
-                                let basic_type = expr_type.as_basic();
-                                let (slot_idx,sub_idx)  = self.static_indexer.inner_mut().put(expr_type);
-                                match pub_static_symbol_table.inner_mut().entry(var.name().deref().clone()) {
-                                    Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx)),
-                                    Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
-                                };
-                                *var = Var::new_static(slot_idx, sub_idx, basic_type);
-                            }
-                        };
-                    }
-                    Statement::LeftValueOp(left_val_tuple) => {
-                        self.handle_left_value_op(&mut context,left_val_tuple);
-                    }
-                    Statement::Discard(expr,line) => {
-                        context.expr_stack.push((SyntaxType::Discard,*line));
-                        self.deduce_type(expr,&mut context);
-                        context.expr_stack.pop();
-                    }
-                    Statement::Expr(expr,line) => {
-                        context.expr_stack.push((SyntaxType::Expr,*line));
-                        let expr_type = self.deduce_type(expr, &mut context);
-                        if stat_index == stat_max_index {
-                            if let ReturnType::Have(data_type) = &*func_return_type {
-                                // need to be returned expression, need assert its type as return type
-                                if ! data_type.belong_to(&expr_type) {
-                                    panic!("{} line {}, mismatched return type, expect {} found {}",
-                                           context.info(),line,data_type,expr_type)
-                                }
-                            }else{
-                                // void
-                                if ! expr_type.is_none() {
-                                    panic!("{} line {}, mismatched return type, expect void found {}",
-                                           context.info(),line,expr_type)
-                                }
-                            }
-                            expr_to_return = true;
-                            temp_line = *line;
-                            temp_expr = std::mem::replace(
-                                expr,
-                                Expression::None
-                            );
-                        }
-                        context.expr_stack.pop();
-                    }
-                    Statement::Return(expr,line) => {
-                        context.expr_stack.push((SyntaxType::Return,*line));
-                        match &*func_return_type {
-                            ReturnType::Void => panic!("{} function have no return value, line {}",context.info(),line),
-                            ReturnType::Have(data_type) => {
-                                let expr_type = self.deduce_type(expr, &mut context);
-                                if ! expr_type.belong_to(data_type) {
-                                    panic!("{} mismatched return type, expect {} found {}, line {}",
-                                           context.info(),data_type,expr_type,line)
-                                }
-                            }
-                        }
-                        context.expr_stack.pop();
-                    }
-
-                    Statement::Continue(line) => panic!("{} unexpected continue statement in function body, line {}",context.info(),line),
-                    Statement::Break(_,line) => panic!("{} unexpected break statement in function body, line {}",context.info(),line),
-                    _ => {}
-                }
-                if expr_to_return {
-                    *statement = Statement::Return(
-                        std::mem::replace(&mut temp_expr,Expression::None),
-                        temp_line
-                    );
-                }
-                expr_to_return = false;
-            }
+            self.analysis_statements(&mut context,body,BlockType::Func);
         }
         func.info.captures = context.captures;
         func.info.local_size = context.indexer.size();
@@ -1109,7 +942,9 @@ impl Analyzer {
                     ReturnType::Void => DataType::Ref(RefType::None)
                 }
             }
-
+            Expression::For(for_loop) => {
+                DataType::Ref(RefType::None)
+            }
             expr => panic!("unsupported expression {:?} now",expr)
         }
     }
@@ -1122,17 +957,34 @@ impl Analyzer {
         if ! cond_type.is_bool() {
             panic!("{} line {}, the loop condition expression is not bool type but {}",context.info(),line,cond_type)
         };
-        let mut temp_var_table = Vec::new();
         let statements = &mut while_loop.statements;
-        let max_idx = statements.len() - 1;
+
         context.expr_stack.push((SyntaxType::While,line));
         context.break_stack.push(BreakType::Uninit);
         context.indexer.enter_sub_block();
 
-        let mut temp_expr = Expression::None;
-        let mut temp_line = 0;
-        let mut expr_to_break = false;
+        self.analysis_statements(context,statements,BlockType::Loop);
 
+        while_loop.drop_vec = context.indexer.level_sub_block();
+        match context.break_stack.pop().unwrap() {
+            BreakType::Type(data_type) => ReturnType::Have(data_type),
+            BreakType::Uninit => ReturnType::Void,
+            BreakType::Void => ReturnType::Void
+        }
+    }
+
+    #[inline]
+    fn analysis_statements(&self, context : &mut AnalyzeContext, statements : &mut Vec<Statement>, block_type : BlockType){
+        let mut last_is_expr = false;
+        let mut last_type = ReturnType::Void;
+
+        let mut temp_var_table = Vec::new();
+        let var_is_temp = match block_type{
+            BlockType::Func => false,
+            BlockType::Loop => true,
+            BlockType::IfElse => true
+        };
+        let max_idx = if statements.len() > 0 { statements.len() - 1 } else { 0 };
         for (idx,statement) in statements.iter_mut().enumerate() {
             match statement {
                 Statement::Let(let_tuple) => {
@@ -1148,7 +1000,9 @@ impl Analyzer {
                                 Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,true)),
                                 Entry::Occupied(_) => panic!("{} line {} variable name {} occupied",context.info(),line,var.name().deref()),
                             };
-                            temp_var_table.push(var.name().deref().clone());
+                            if var_is_temp {
+                                temp_var_table.push(var.name().deref().clone());
+                            }
                             *var = Var::new_local(slot_idx,sub_idx,basic_type);
                         }
                         Some(data_type) => {
@@ -1164,7 +1018,9 @@ impl Analyzer {
                                 Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx, true)),
                                 Entry::Occupied(_) => panic!("{} line {}, variable name {} occupied",context.info(),line,var.name().deref()),
                             };
-                            temp_var_table.push(var.name().deref().clone());
+                            if var_is_temp {
+                                temp_var_table.push(var.name().deref().clone());
+                            }
                             *var = Var::new_local(slot_idx,sub_idx,basic_type);
                         }
                     }
@@ -1175,39 +1031,12 @@ impl Analyzer {
                 Statement::Expr(expr,line) => {
                     context.expr_stack.push((SyntaxType::Expr,*line));
                     let expr_type = self.deduce_type(expr,context);
-                    if max_idx == idx {
-                        // 默认返回最后一个表达式的结果  default return the result of last expression
-                        let break_type = context.break_stack.last_mut().unwrap();
-                        let mut alert = Option::None;
-                        match break_type {
-                            BreakType::Type(break_data_type) => {
-                                if expr_type.belong_to(break_data_type) {
-                                    // best situation, do nothing
-                                }else if break_data_type.belong_to(&expr_type) {
-                                    *break_data_type = expr_type;
-                                }else{
-                                    alert = Option::Some(format!("mismatched break type of loop, expect {} found {}",break_data_type,expr_type));
-                                }
-                            }
-                            BreakType::Uninit => {
-                                *break_type = if expr_type.is_none() {
-                                    BreakType::Void
-                                }else{
-                                    BreakType::Type(expr_type)
-                                }
-                            }
-                            BreakType::Void => {
-                                if ! expr_type.is_none() {
-                                    alert = Option::Some(format!("mismatch break type of while loop, expect void found {}",expr_type))
-                                }
-                            }
+                    if max_idx == idx{
+                        last_is_expr = true;
+                        let is_void = expr_type.is_none();
+                        if ! is_void {
+                            last_type = ReturnType::Have(expr_type)
                         };
-                        if let Some(alert) = alert {
-                            panic!("{} {}",context.info(),alert)
-                        }
-                        expr_to_break = true;
-                        temp_line = *line;
-                        temp_expr = std::mem::replace(expr,Expression::None);
                     }
                     context.expr_stack.pop();
                 }
@@ -1215,25 +1044,33 @@ impl Analyzer {
                     context.expr_stack.push((SyntaxType::Discard,*line));
                     self.deduce_type(expr,context);
                     if max_idx == idx {
-                        // 表示这个while循环没有返回类型 means this while loop return void
-                        let break_type = context.break_stack.last_mut().unwrap();
-                        let mut alert = Option::None;
-                        match break_type {
-                            BreakType::Type(break_data_type) => {
-                                alert = Option::Some(format!("mismatched break type of loop, expect void found {}",break_data_type));
+                        match block_type {
+                            BlockType::Func => {
+                                if context.func_return_type.is_void() { } else {
+                                    panic!("{} expect return a value/object of type {}, found void in line {}",
+                                           context.info(),context.func_return_type,line)
+                                }
                             }
-                            BreakType::Uninit => {
-                                *break_type = BreakType::Void;
+                            BlockType::IfElse => {
+                                match context.break_stack.last().unwrap() {
+                                    BreakType::Type(data_type) => {
+                                        panic!("{} expect the if-else branch have a result of type {}, found void",
+                                               context.info(),data_type)
+                                    }
+                                    // nothing to do
+                                    BreakType::Uninit => {}
+                                    BreakType::Void => {}
+                                }
                             }
-                            BreakType::Void => {} // matched
-                        };
-                        if let Some(alert) = alert {
-                            panic!("{}{}",context.info(),alert)
+                            BlockType::Loop => {}
                         }
                     }
                     context.expr_stack.pop();
                 }
                 Statement::Break(expr,line) => {
+                    if let BlockType::Loop = block_type {} else{
+                        panic!("{} unexpected 'break' in non-loop block line {}",context.info(),line)
+                    }
                     context.expr_stack.push((SyntaxType::Break,*line));
                     let expr_type = self.deduce_type(expr,context);
                     let mut alert = Option::None;
@@ -1283,25 +1120,162 @@ impl Analyzer {
                     }
                     context.expr_stack.pop();
                 }
-
-                Statement::Continue(_) => {}
-                Statement::Static(_) => panic!("{} you can't declare static variable in while loop body",context.info()),
-                Statement::PubStatic(_) => panic!("{} you can't declare public static variable in while loop body",context.info()),
-                _ => {}
-            }
-            if expr_to_break {
-                *statement = Statement::Break(
-                    std::mem::replace(&mut temp_expr,Expression::None),
-                    temp_line
-                );
+                Statement::Continue(line) => {
+                    if let BlockType::Loop = block_type {} else{
+                        panic!("{} unexpected 'continue' in non-loop block line {}",context.info(),line)
+                    }
+                }
+                Statement::Static(static_tuple) => {
+                    if let BlockType::Func = block_type { } else {
+                        panic!("{} static variable can't declared in loop or is-else block",context.info())
+                    }
+                    let (var,parsed_type,expr) = static_tuple.deref_mut();
+                    match parsed_type {
+                        Some(parsed_type) => {
+                            let marked_type = self.get_type(parsed_type, context.file_index);
+                            let basic_type = marked_type.as_basic();
+                            let expr_type = self.deduce_type(expr,context);
+                            if ! expr_type.belong_to(&marked_type) {
+                                panic!("{} the expression's type {} do not belongs to marked type {} when comes to static variable {} declare",
+                                       context.info(),expr_type,marked_type,var.name().deref())
+                            }
+                            let (slot_idx,sub_idx)  = self.static_indexer.inner_mut().put(marked_type);
+                            match context.symbol_table.entry(var.name().deref().clone()) {
+                                Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,false)),
+                                Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
+                            };
+                            *var = Var::new_static(slot_idx, sub_idx, basic_type);
+                        }
+                        None => {
+                            let expr_type = self.deduce_type(expr,context);
+                            let basic_type = expr_type.as_basic();
+                            let (slot_idx,sub_idx) = self.static_indexer.inner_mut().put(expr_type);
+                            match context.symbol_table.entry(var.name().deref().clone()) {
+                                Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,false)),
+                                Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
+                            };
+                            *var = Var::new_static(slot_idx, sub_idx, basic_type);
+                        }
+                    };
+                }
+                Statement::PubStatic(static_tuple) => {
+                    if let BlockType::Func = block_type { } else {
+                        panic!("{} static variable can't declared in loop or is-else block",context.info())
+                    }
+                    let (var,parsed_type,expr) = static_tuple.deref_mut();
+                    let pub_static_symbol_table = self.static_map.clone();
+                    match parsed_type {
+                        Some(parsed_type) => {
+                            let marked_type = self.get_type(parsed_type, context.file_index);
+                            let basic_type = marked_type.as_basic();
+                            let expr_type = self.deduce_type(expr,context);
+                            if ! expr_type.belong_to(&marked_type) {
+                                panic!("{} the expression's type {} do not belongs to marked type {} when comes to static variable {} declare",
+                                       context.info(),expr_type,marked_type,var.name().deref())
+                            }
+                            let (slot_idx,sub_idx)  = self.static_indexer.inner_mut().put(marked_type);
+                            match pub_static_symbol_table.inner_mut().entry(var.name().deref().clone()) {
+                                Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx)),
+                                Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
+                            };
+                            *var = Var::new_static(slot_idx, sub_idx, basic_type);
+                        }
+                        None => {
+                            let expr_type = self.deduce_type(expr,context);
+                            let basic_type = expr_type.as_basic();
+                            let (slot_idx,sub_idx)  = self.static_indexer.inner_mut().put(expr_type);
+                            match pub_static_symbol_table.inner_mut().entry(var.name().deref().clone()) {
+                                Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx)),
+                                Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
+                            };
+                            *var = Var::new_static(slot_idx, sub_idx, basic_type);
+                        }
+                    };
+                }
+                _ => panic!()
             }
         }
-        while_loop.drop_vec = context.indexer.level_sub_block();
-        ReturnType::Void
+        if last_is_expr {
+            match block_type {
+                BlockType::Func => {
+                    if last_type.eq(&context.func_return_type) {
+                        let last_statement = statements.last_mut().unwrap();
+                        let return_statement = if let Statement::Expr(expr,line) = last_statement{
+                            Statement::Return(
+                                std::mem::replace(expr,Expression::None),
+                                *line
+                            )
+                        }else{
+                            panic!()
+                        };
+                        *last_statement = return_statement;
+                    }else if context.func_return_type.is_void() {
+                        // nothing to do
+                    }else{
+                        panic!()
+                    }
+                }
+                BlockType::Loop => {
+                    // nothing to do
+                }
+                BlockType::IfElse => {
+                    let last_statement = statements.last_mut().unwrap();
+                    match context.break_stack.last_mut().unwrap() {
+                        BreakType::Void => {
+                            // nothing to do
+                        }
+                        BreakType::Type(already_type) => {
+                            if already_type.is_none() && last_type.is_void() {
+                                // nothing to do
+                            }else if last_type.data_type().belong_to(already_type) {
+                                let result_statement = if let Statement::Expr(expr,line) = last_statement{
+                                    Statement::IfResult(
+                                        std::mem::replace(expr,Expression::None),
+                                        *line
+                                    )
+                                }else{
+                                    panic!()
+                                };
+                                *last_statement = result_statement;
+                            }else if already_type.belong_to(last_type.data_type()) {
+                                *already_type = last_type.data_type().clone();
+                                let result_statement = if let Statement::Expr(expr,line) = last_statement{
+                                    Statement::IfResult(
+                                        std::mem::replace(expr,Expression::None),
+                                        *line
+                                    )
+                                }else{
+                                    panic!()
+                                };
+                                *last_statement = result_statement;
+                            }
+                        }
+                        // BreakType::UnInit
+                        break_type => {
+                            let result_statement = if let Statement::Expr(expr,line) = last_statement{
+                                Statement::IfResult(
+                                    std::mem::replace(expr,Expression::None),
+                                    *line
+                                )
+                            }else{
+                                panic!()
+                            };
+                            *last_statement = result_statement;
+                            *break_type = BreakType::Type(last_type.data_type().clone());
+                        }
+                    }
+                }
+            }
+        }
+        if var_is_temp {
+            for var_name in temp_var_table.iter() {
+                context.symbol_table.remove(var_name.as_str());
+            }
+        }
     }
+
     fn analysis_if_else(& self, if_else : &mut IfElse, context : &mut AnalyzeContext ) -> ReturnType {
-        let mut result_type = BreakType::Uninit;
-        let mut temp_vars = Vec::new();
+        context.break_stack.push(BreakType::Uninit);
         for (branch_idx,branch) in if_else.branches.iter_mut().enumerate() {
             // 处理每个分支  handle every branch
             let statements = &mut branch.statements;
@@ -1311,187 +1285,15 @@ impl Analyzer {
             }
             context.expr_stack.push((SyntaxType::IfElseBranch,branch.line));
             context.indexer.enter_sub_block();
-            let max_idx = statements.len() - 1;
 
-            let mut expr_to_result = false;
-            let mut temp_expr = Expression::None;
-            let mut temp_line = 0;
+            self.analysis_statements(context,statements,BlockType::IfElse);
 
-            for (idx,statement) in statements.iter_mut().enumerate() {
-                match statement {
-                    Statement::Let(let_tuple) => {
-                        let (var,marked_type,expr,line) = let_tuple.deref_mut();
-                        match marked_type {
-                            None => {
-                                // 未标记变量类型 without type mark
-                                let deduced_type = self.deduce_type(expr,context);
-                                let basic_type = deduced_type.as_basic();
-                                // 检查变量名是否重复 check if the variable name occupied
-                                let (slot_idx,sub_idx) = context.indexer.put(deduced_type);
-                                match context.symbol_table.entry(var.name().deref().clone()) {
-                                    Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,true)),
-                                    Entry::Occupied(_) => panic!("{} line {}, variable name {} occupied",context.info(),line,var.name().deref()),
-                                };
-                                temp_vars.push(var.name().deref().clone());
-                                *var = Var::new_local(slot_idx,sub_idx,basic_type);
-                            }
-                            Some(data_type) => {
-                                // 已标记变量类型 with type mark
-                                let data_type = self.get_type(data_type, context.file_index);
-                                let basic_type = data_type.as_basic();
-                                if ! self.deduce_type(expr,context).belong_to(&data_type){
-                                    panic!()
-                                }
-                                let (slot_idx,sub_idx) = context.indexer.put(data_type);
-                                // 检查变量名是否重复 check if the variable name occupied
-                                match context.symbol_table.entry(var.name().deref().clone()) {
-                                    Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,true)),
-                                    Entry::Occupied(_) => panic!("{} line {}, variable name {} occupied",context.info(),line,var.name().deref()),
-                                };
-                                *var = Var::new_local(slot_idx,sub_idx,basic_type);
-                            }
-                        }
-                    }
-                    Statement::LeftValueOp(left) => {
-                        self.handle_left_value_op(context,left);
-                    }
-                    Statement::Expr(expr,line) => {
-                        context.expr_stack.push((SyntaxType::Expr,*line));
-                        let expr_type = self.deduce_type(expr,context);
-                        if idx == max_idx {
-                            match &mut result_type {
-                                BreakType::Type(data_type) => {
-                                    if expr_type.belong_to(data_type) {
-                                        expr_to_result = true;
-                                        temp_expr = std::mem::replace(expr,Expression::None);
-                                        temp_line = *line;
-                                    }else if data_type.belong_to(&expr_type) {
-                                        *data_type = expr_type;
-                                    }else {
-                                        panic!("{} mismatched type, expect {} found {}",context.info(),data_type,expr_type)
-                                    }
-                                }
-                                BreakType::Uninit => {
-                                    result_type = if expr_type.is_none() {
-                                        BreakType::Void
-                                    }else{
-                                        expr_to_result = true;
-                                        temp_expr = std::mem::replace(expr,Expression::None);
-                                        temp_line = *line;
-                                        BreakType::Type(expr_type)
-                                    }
-                                }
-                                BreakType::Void => {
-                                    if ! expr_type.is_none() {
-                                        panic!("{} expect the if-else return void but found {}",context.info(),expr_type)
-                                    }
-                                }
-                            }
-
-                        }
-                        context.expr_stack.pop();
-                    }
-                    Statement::Discard(expr,line) => {
-                        context.expr_stack.push((SyntaxType::Discard,*line));
-                        self.deduce_type(expr,context);
-                        if idx == max_idx {
-                            match &mut result_type {
-                                BreakType::Type(data_type) => {
-                                    panic!("{} mismatched result type of if-else, expect {} found void",context.info(),data_type)
-                                }
-                                BreakType::Uninit => {
-                                    result_type = BreakType::Void
-                                }
-                                BreakType::Void => {}
-                            }
-                        }
-                        context.expr_stack.pop();
-                    }
-
-                    Statement::Break(expr,line) => {
-                        context.expr_stack.push((SyntaxType::Break,*line));
-                        let expr_type = self.deduce_type(expr,context);
-                        let break_type = match context.break_stack.last_mut() {
-                            Some(break_type) => break_type,
-                            None => continue,
-                        };
-                        let mut alert = Option::None;
-                        match break_type {
-                            BreakType::Type(break_data_type) => {
-                                if expr_type.belong_to(break_data_type) {
-                                    // best situation, do nothing
-                                }else if break_data_type.belong_to(&expr_type) {
-                                    *break_data_type = expr_type;
-                                }else{
-                                    alert = Option::Some(format!("line {}, mismatched break type of loop, expect {} found {}",
-                                                                 line,break_data_type,expr_type));
-                                }
-                            }
-                            BreakType::Uninit => {
-                                *break_type = if expr_type.is_none() {
-                                    BreakType::Void
-                                }else{
-                                    BreakType::Type(expr_type)
-                                }
-                            }
-                            BreakType::Void => {
-                                if ! expr_type.is_none() {
-                                    alert = Option::Some(format!("line {}, mismatch break type of while loop, expect void found {}",
-                                                                 line,expr_type))
-                                }
-                            }
-                        };
-                        if let Some(alert) = alert {
-                            panic!("{}{}",context.info(),alert)
-                        }
-                        context.expr_stack.pop();
-                    }
-                    Statement::Return(expr,line) => {
-                        context.expr_stack.push((SyntaxType::Return,*line));
-                        let data_type = if expr.is_none() {
-                            DataType::Ref(RefType::None)
-                        } else {
-                            self.deduce_type(expr, context)
-                        };
-                        match &context.func_return_type {
-                            ReturnType::Have(return_type) => {
-                                if ! data_type.belong_to(return_type) {
-                                    panic!("{} line {}, expect return type if {}, found return type is {}",
-                                           context.info(),line,return_type,data_type)
-                                }
-                            }
-                            ReturnType::Void => {
-                                if ! data_type.is_none() {
-                                    panic!("{} line {}, expect return void, found return {} type",
-                                           context.info(),line,data_type)
-                                }
-                            }
-                        }
-                        context.expr_stack.pop();
-                    }
-                    Statement::Continue(_) => {}
-
-                    Statement::Static(_) => panic!("{} you can't declare static variable in if-else statement",context.info()),
-                    Statement::PubStatic(_) => panic!("{} you can't declare public static variable in if-else statement",context.info()),
-                    _ => {}
-                }
-                if expr_to_result {
-                    *statement = Statement::IfResult(
-                        std::mem::replace(&mut temp_expr,Expression::None),
-                        temp_line
-                    )
-                }
-            }
             // 处理完一个分支的全部语句 handle all the statements of one branch
             // 清理分支内声明的变量的信息 clear the info of the variables declared in branch
             branch.drop_vec = context.indexer.level_sub_block();
-            for temp_var_name in temp_vars.iter() {
-                context.symbol_table.remove(temp_var_name.as_str());
-            }
-            temp_vars.clear();
             context.expr_stack.pop();
         }
-        match result_type {
+        match context.break_stack.pop().unwrap() {
             BreakType::Type(data_type) => ReturnType::Have(data_type),
             BreakType::Void => ReturnType::Void,
             BreakType::Uninit => ReturnType::Void,
