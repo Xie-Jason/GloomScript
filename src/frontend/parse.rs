@@ -510,6 +510,7 @@ impl Parser {
             // for-循环 for-loop
             Token::For => {
                 let var_name = self.identifier();
+                let line = self.line();
                 self.assert_next(Token::In);
                 let expr = self.expr()?;
                 let for_iter : ForIter = if let Expression::Tuple(mut tuple) = expr {
@@ -536,7 +537,8 @@ impl Parser {
                     var: Var::Name(var_name),
                     for_iter,
                     statements,
-                    drop_slots: Vec::new()
+                    drop_slots: Vec::new(),
+                    line
                 }))
             }
             // 匹配 match

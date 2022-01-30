@@ -148,6 +148,7 @@ impl Analyzer {
                             data_type
                         }
                     }
+                    // TODO captured left value
                     None => panic!("{} unknown variable {}", context.info(), var_name_ref)
                 }
             }
@@ -943,7 +944,10 @@ impl Analyzer {
                 }
             }
             Expression::For(for_loop) => {
-                DataType::Ref(RefType::None)
+                match self.analysis_for(for_loop.deref_mut(),context) {
+                    ReturnType::Void => DataType::Ref(RefType::None),
+                    ReturnType::Have(data_type) => data_type
+                }
             }
             expr => panic!("unsupported expression {:?} now",expr)
         }
@@ -970,6 +974,70 @@ impl Analyzer {
             BreakType::Type(data_type) => ReturnType::Have(data_type),
             BreakType::Uninit => ReturnType::Void,
             BreakType::Void => ReturnType::Void
+        }
+    }
+
+    fn analysis_for(&self, for_loop : &mut ForLoop, context : &mut AnalyzeContext) -> ReturnType {
+        match &mut for_loop.for_iter {
+            ForIter::Range(start, end, step) => {
+                let range_type = self.deduce_type(start, context);
+                if ! range_type.is_int() {
+                    panic!("{} expect int in start of for-in loop, found {}", context.info(),range_type)
+                }
+                let range_type = self.deduce_type(end, context);
+                if ! range_type.is_int() {
+                    panic!("{} expect int in end of for-in loop, found {}",context.info(),range_type)
+                }
+                let range_type = self.deduce_type(step, context);
+                if ! range_type.is_int() {
+                    panic!("{} expect int in step of for-in loop, found {}",context.info(),range_type)
+                }
+
+                let var = &mut for_loop.var;
+                let var_name = var.name();
+                let (slot_idx,sub_idx) = context.indexer.put(DataType::Int);
+                match context.symbol_table.entry(var_name.deref().clone()) {
+                    Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, true)),
+                    Entry::Occupied(_) => panic!("{} variable '{}' already occupied", context.info(), var_name),
+                };
+                *var = Var::LocalInt(slot_idx,sub_idx);
+
+            }
+            ForIter::Iter(iter_expr) => {
+                let mut iter_type = self.deduce_type(iter_expr, context);
+                let item_type = match &mut iter_type {
+                    DataType::Ref(RefType::Array(item_type)) => DataType::clone(&item_type),
+                    DataType::Ref(RefType::Queue(item_type)) => DataType::clone(&item_type),
+                    other_type => {
+                        panic!("{} can't apply for-in iteration in type {}", context.info(), other_type)
+                    }
+                };
+
+                let var_name = for_loop.var.name();
+                let basic_type = item_type.as_basic();
+                let (slot_idx,sub_idx) = context.indexer.put(item_type);
+                match context.symbol_table.entry(var_name.deref().clone()) {
+                    Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, true)),
+                    Entry::Occupied(_) => panic!("{} variable '{}' already occupied", context.info(), var_name),
+                };
+                for_loop.var = Var::new_local(slot_idx,sub_idx,basic_type);
+
+
+            }
+        }
+
+        context.expr_stack.push((SyntaxType::ForIn,for_loop.line));
+        context.break_stack.push(BreakType::Uninit);
+        context.indexer.enter_sub_block();
+
+        self.analysis_statements(context,&mut for_loop.statements,BlockType::Loop);
+
+        for_loop.drop_slots = context.indexer.level_sub_block();
+        context.expr_stack.pop();
+        match context.break_stack.pop().unwrap() {
+            BreakType::Type(data_type) => ReturnType::Have(data_type),
+            BreakType::Uninit => ReturnType::Void,
+            BreakType::Void => ReturnType::Void,
         }
     }
 

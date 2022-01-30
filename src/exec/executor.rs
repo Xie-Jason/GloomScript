@@ -12,7 +12,7 @@ use crate::exec::result::GloomResult;
 use crate::exec::scope::Scope;
 use crate::exec::static_table::StaticTable;
 use crate::exec::value::{GloomArgs, Value};
-use crate::frontend::ast::{Chain, Expression, ExprType, FuncExpr, LeftValue, Statement, Var, VarId};
+use crate::frontend::ast::{Chain, Expression, ExprType, ForIter, FuncExpr, LeftValue, Statement, Var, VarId};
 use crate::frontend::ops::{BinOp, LeftValueOp};
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{ GloomFunc, GloomFuncObj};
@@ -757,6 +757,35 @@ impl Executor {
                     }
                 };
                 result
+            }
+            Expression::For(for_loop) => {
+                match &for_loop.for_iter {
+                    ForIter::Range(start_expr, end_expr, step_expr) => {
+                        let mut start = self.execute_expr(start_expr,local).assert_into_value().assert_int();
+                        let end = self.execute_expr(end_expr,local).assert_into_value().assert_int();
+                        let step = self.execute_expr(step_expr,local).assert_into_value().assert_int();
+                        let result = loop {
+                            if start < end{
+                                let result = self.execute_statement(&for_loop.statements, local, BlockType::Loop);
+                                match result {
+                                    GloomResult::Return(value) => break GloomResult::Return(value),
+                                    GloomResult::ReturnVoid => break GloomResult::ReturnVoid,
+                                    GloomResult::Break(value) => break GloomResult::Value(value),
+                                    GloomResult::BreakVoid => break GloomResult::ValueVoid,
+                                    GloomResult::Continue => {}
+                                    _ => panic!()
+                                }
+                                start += step;
+                            }else {
+                                break GloomResult::ValueVoid
+                            }
+                        };
+                        result
+                    }
+                    ForIter::Iter(iter_expr) => {
+                        panic!()
+                    }
+                }
             }
             Expression::Construct(construct) => {
                 if let ExprType::Analyzed(data_type) = &construct.deref().class_type{

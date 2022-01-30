@@ -287,6 +287,7 @@ pub struct ForLoop{
     pub for_iter : ForIter,
     pub statements : Vec<Statement>,
     pub drop_slots : Vec<u16>,
+    pub line : u16
 }
 
 #[derive(Debug)]
@@ -396,6 +397,7 @@ pub enum SyntaxType{
     Discard,
     Assign,
     While,
+    ForIn,
     IfElseBranch,
     Break,
     Return,
@@ -417,7 +419,8 @@ impl Debug for SyntaxType {
             SyntaxType::Break => "break",
             SyntaxType::Return => "return",
             SyntaxType::Match => "match",
-            SyntaxType::Chain => "chain operation"
+            SyntaxType::Chain => "chain operation",
+            SyntaxType::ForIn => "for-in",
         })
     }
 }

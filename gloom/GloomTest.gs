@@ -93,3 +93,9 @@ let test2 = Test{
 }
 
 println([test1.age,test2.age,test1.olderThan(test2)])
+
+let forCount = 0;
+for i in (0,100,1){
+    forCount ++
+}
+println(forCount)
