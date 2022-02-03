@@ -1008,6 +1008,7 @@ impl Analyzer {
                 let item_type = match &mut iter_type {
                     DataType::Ref(RefType::Array(item_type)) => DataType::clone(&item_type),
                     DataType::Ref(RefType::Queue(item_type)) => DataType::clone(&item_type),
+                    DataType::Ref(RefType::String) => DataType::Char,
                     other_type => {
                         panic!("{} can't apply for-in iteration in type {}", context.info(), other_type)
                     }

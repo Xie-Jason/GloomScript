@@ -3,10 +3,11 @@ use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use crate::exec::executor::Executor;
+use crate::exec::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 
 
-pub struct GloomArray(RefCell<RawArray>);
+pub struct GloomArray(pub RefCell<RawArray>);
 
 pub enum RawArray {
     IntVec(Vec<i64>),
@@ -17,10 +18,21 @@ pub enum RawArray {
 }
 
 impl GloomArray {
-    pub fn new( array : RawArray) -> GloomObjRef{
+    pub fn new(array : RawArray) -> GloomObjRef{
         GloomObjRef::new(Rc::new(
             GloomArray(RefCell::new(array))
         ))
+    }
+    
+    #[inline]
+    pub fn get(&self, index : usize) -> Option<Value>{
+        match &*self.0.borrow() {
+            RawArray::IntVec(vec) => vec.get(index).map(|i| { Value::Int(*i) }),
+            RawArray::NumVec(vec) => vec.get(index).map(|f| { Value::Num(*f) }),
+            RawArray::CharVec(vec) => vec.get(index).map(|c| { Value::Char(*c) }),
+            RawArray::BoolVec(vec) => vec.get(index).map(|b| { Value::Bool(*b) }),
+            RawArray::RefVec(vec) => vec.get(index).map(|rf| { Value::Ref(rf.clone()) }),
+        }
     }
 }
 
@@ -34,6 +46,7 @@ impl Object for GloomArray {
     fn obj_type(&self) -> ObjectType {
         ObjectType::Array
     }
+    #[inline]
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -44,6 +57,13 @@ impl Object for GloomArray {
                 exec.drop_object(rf);
             }
         }
+    }
+
+    #[inline]
+    fn at(&self , index : &mut usize) -> Option<Value> {
+        let option = self.get(*index);
+        *index += 1;
+        option
     }
 }
 

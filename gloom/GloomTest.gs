@@ -95,7 +95,18 @@ let test2 = Test{
 println([test1.age,test2.age,test1.olderThan(test2)])
 
 let forCount = 0;
-for i in (0,100,1){
+for i1 in (0,100,1){
     forCount ++
 }
 println(forCount)
+for i2 in (0,100,2){
+    forCount --
+}
+println(forCount)
+
+for item in [1,2,3] {
+    println(item)
+}
+for ch in "GloomScript真不错"{
+    println(ch)
+}

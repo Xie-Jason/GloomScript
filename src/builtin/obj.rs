@@ -3,6 +3,7 @@ use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use crate::builtin::classes::BuiltinClass;
 use crate::exec::executor::Executor;
+use crate::exec::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 
@@ -24,6 +25,10 @@ impl Object for BuiltinClassObj {
         self
     }
     fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+
+    fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
 }
 
 impl BuiltinClassObj {

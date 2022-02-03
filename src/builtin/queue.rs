@@ -1,9 +1,11 @@
 use std::any::Any;
 use std::cell::RefCell;
+use std::collections::vec_deque::Iter;
 use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use crate::exec::executor::Executor;
+use crate::exec::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 
 pub struct GloomQueue(RefCell<RawQueue>);
@@ -22,6 +24,16 @@ impl GloomQueue {
         GloomObjRef::new(Rc::new(
             GloomQueue(RefCell::new(queue))
         ))
+    }
+    #[inline]
+    pub fn get(&self, index : usize) -> Option<Value>{
+        match &*self.0.borrow() {
+            RawQueue::IntQue(vec) => vec.get(index).map(|val| { Value::Int(*val) }),
+            RawQueue::NumQue(vec) => vec.get(index).map(|val| { Value::Num(*val) }),
+            RawQueue::CharQue(vec) => vec.get(index).map(|val| { Value::Char(*val) }),
+            RawQueue::BoolQue(vec) => vec.get(index).map(|val| { Value::Bool(*val) }),
+            RawQueue::RefQue(vec) => vec.get(index).map(|val| { Value::Ref(val.clone()) }),
+        }
     }
 }
 
@@ -45,6 +57,12 @@ impl Object for GloomQueue {
                 exec.drop_object(rf);
             }
         }
+    }
+
+    fn at(&self, index: &mut usize) -> Option<Value> {
+        let option = self.get(*index);
+        *index += 1;
+        option
     }
 }
 

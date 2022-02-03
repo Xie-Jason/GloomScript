@@ -6,6 +6,7 @@ use std::slice::Iter;
 use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
 use crate::exec::executor::Executor;
+use crate::exec::value::Value;
 use crate::frontend::ast::{Statement};
 use crate::frontend::index::SlotIndexer;
 use crate::obj::func::{GloomFunc, Param, ReturnType};
@@ -222,6 +223,10 @@ impl Object for GloomClassObj {
         self
     }
     fn drop_by_exec(&self, _ : &Executor,rf: &GloomObjRef) {}
+
+    fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
 }
 
 impl Debug for GloomClassObj {

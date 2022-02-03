@@ -2,7 +2,9 @@ use std::any::{Any};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Deref};
 use std::rc::{Rc, Weak};
+use crate::builtin::iter::GloomIter;
 use crate::exec::executor::Executor;
+use crate::exec::value::Value;
 
 #[derive(Clone)]
 pub struct GloomObjRef{
@@ -44,6 +46,16 @@ impl GloomObjRef {
     pub fn drop_by_exec(&self, exec : &Executor){
         self.obj.drop_by_exec(exec,self)
     }
+
+    #[inline]
+    pub fn at(&self, index :&mut usize) -> Option<Value>{
+        self.obj.at(index)
+    }
+
+    #[inline]
+    pub fn iterator(&self) -> GloomIter{
+        GloomIter::new(self.clone())
+    }
 }
 
 impl Debug for GloomObjRef {
@@ -56,6 +68,7 @@ pub trait Object : Debug {
     fn obj_type(&self) -> ObjectType;
     fn as_any(&self) -> &dyn Any;
     fn drop_by_exec(&self, exec: &Executor, rf: &GloomObjRef);
+    fn at(&self, index : &mut usize) -> Option<Value>;
 }
 
 pub enum ObjectType {

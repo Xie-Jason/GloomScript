@@ -3,6 +3,7 @@ use std::cell::Cell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use crate::exec::executor::Executor;
+use crate::exec::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 
 pub struct GloomInt(pub Cell<i64>);
@@ -24,6 +25,10 @@ impl Object for GloomInt {
     }
 
     fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+
+    fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
 }
 
 impl Debug for GloomInt {
@@ -51,6 +56,9 @@ impl Object for GloomNum {
         self
     }
     fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+    fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
 }
 
 impl Debug for GloomNum {
@@ -78,6 +86,9 @@ impl Object for GloomChar {
         self
     }
     fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+    fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
 }
 
 impl Debug for GloomChar {
@@ -105,6 +116,9 @@ impl Object for GloomBool {
         self
     }
     fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+    fn at(&self, _:&mut  usize) -> Option<Value> {
+        panic!()
+    }
 }
 
 impl GloomBool {

@@ -57,6 +57,10 @@ impl Object for GloomEnum {
             exec.drop_object(rf);
         }
     }
+
+    fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
 }
 
 impl GloomEnumClass {

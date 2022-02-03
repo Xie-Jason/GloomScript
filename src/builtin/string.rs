@@ -6,6 +6,7 @@ use hashbrown::HashMap;
 use crate::builtin::classes::BuiltinClass;
 use crate::exec::executor::Executor;
 use crate::exec::result::GloomResult;
+use crate::exec::value::Value;
 use crate::obj::func::{GloomFunc, Param, ReturnType};
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
@@ -28,6 +29,30 @@ impl Object for GloomString {
     }
 
     fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+
+    fn at(&self, index : &mut usize) -> Option<Value> {
+        let string = self.0.borrow();
+        if *index < string.len() {
+
+            // find bytes read limit
+            let remain = string.len() - *index;
+            // replace the if
+            let limit = [remain,4][(remain >= 4) as usize];
+
+            let mut bytes = [0;4];
+            let ptr = string.as_ptr();
+            for idx in 0..limit {
+                unsafe {
+                    bytes[idx] = ptr.add(*index + idx).read();
+                }
+            }
+            let (step,ch) = GloomString::decode_utf8(bytes);
+            *index += step;
+            Option::Some(Value::Char(ch))
+        }else{
+            Option::None
+        }
+    }
 }
 
 impl GloomString {
@@ -36,6 +61,45 @@ impl GloomString {
         GloomObjRef::new(Rc::new(
             GloomString(RefCell::new(str))
         ))
+    }
+
+    // IMPORTANT
+    // 下面几个常量魔数和函数decode_utf8()的一部分来自 `core::str::validation`
+    // The const magic numbers and part of fn decode_utf8() are copied from `core::str::validation`
+
+    // 连续字节的掩码
+    // Mask of the value bits of a continuation byte.
+    const CONT_MASK: u8 = 0b0011_1111;
+
+    #[inline]
+    pub fn decode_utf8(bytes : [u8;4]) -> (usize,char){
+
+        let x = bytes[0];
+        if x < 128{
+            return (1,x as char)
+        }
+        let mut step = 1;
+        let y = bytes[1];
+        let init = (x & (0x7F >> 2)) as u32;
+        let mut ch = (init << 6) | ( y & GloomString::CONT_MASK) as u32;
+        step = 2;
+        if x >= 0xE0 {
+            // [[x y z] w] case
+            // 5th bit in 0xE0 .. 0xEF is always clear, so `init` is still valid
+            let z = bytes[2];
+            let y_z = (((y & GloomString::CONT_MASK) as u32) << 6)
+                | ( z & GloomString::CONT_MASK) as u32;
+            ch = init << 12 | y_z;
+            step = 3;
+            if x >= 0xF0 {
+                // [x y z w] case
+                // use only the lower 3 bits of `init`
+                let w = bytes[3];
+                ch = (init & 7) << 18 | (y_z << 6) | ( w & GloomString::CONT_MASK) as u32;
+                step = 4;
+            }
+        }
+        (step,char::from_u32(ch).unwrap())
     }
 }
 

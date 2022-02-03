@@ -17,12 +17,19 @@ impl Object for GloomTuple {
     fn as_any(&self) -> &dyn Any {
         self
     }
+    #[inline]
     fn drop_by_exec(&self, exec: &Executor, _ : &GloomObjRef) {
         for value in self.vec.borrow().iter() {
             if let Value::Ref(rf) = value {
                 exec.drop_object(rf);
             }
         }
+    }
+    #[inline]
+    fn at(&self, index : &mut usize) -> Option<Value> {
+        let option = self.vec.borrow().get(*index).map(|val| { val.clone() });
+        *index += 1;
+        option
     }
 }
 

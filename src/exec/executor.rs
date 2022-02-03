@@ -1,3 +1,4 @@
+use std::cell::{Ref, RefCell};
 use std::collections::VecDeque;
 use std::mem::ManuallyDrop;
 use std::ops::{Deref};
@@ -73,28 +74,8 @@ impl Executor {
             match statement {
                 Statement::Let(let_tuple) => {
                     let (var,_,expr,_) = let_tuple.deref();
-                    let value = self.execute_expr(expr,local).assert_into_value();
-                    match var {
-                        Var::LocalInt(slot_idx,sub_idx) => {
-                            local.write_int(*slot_idx, *sub_idx, value.assert_int());
-                        }
-                        Var::LocalNum(slot_idx,sub_idx) => {
-                            local.write_num(*slot_idx, *sub_idx, value.assert_num());
-                        }
-                        Var::LocalChar(slot_idx,sub_idx) => {
-                            local.write_char(*slot_idx, *sub_idx, value.assert_char());
-                        }
-                        Var::LocalBool(slot_idx,sub_idx) => {
-                            local.write_bool(*slot_idx, *sub_idx, value.assert_bool());
-                        }
-                        Var::LocalRef(slot_idx) => {
-                            let rf = value.assert_into_ref();
-                            local.write_ref_firstly(*slot_idx, rf);
-                        }
-                        var => {
-                            panic!("unexpected Var {:?} when ",var)
-                        }
-                    }
+                    let val = self.execute_expr(expr,local).assert_into_value();
+                    Executor::write_local_var(var,val,local);
                 }
                 Statement::Static(static_box) | Statement::PubStatic(static_box) => {
                     let (var,_,expr) = static_box.deref();
@@ -761,11 +742,12 @@ impl Executor {
             Expression::For(for_loop) => {
                 match &for_loop.for_iter {
                     ForIter::Range(start_expr, end_expr, step_expr) => {
-                        let mut start = self.execute_expr(start_expr,local).assert_into_value().assert_int();
+                        let mut index = self.execute_expr(start_expr, local).assert_into_value().assert_int();
                         let end = self.execute_expr(end_expr,local).assert_into_value().assert_int();
                         let step = self.execute_expr(step_expr,local).assert_into_value().assert_int();
                         let result = loop {
-                            if start < end{
+                            if index < end{
+                                Executor::write_local_var(&for_loop.var,Value::Int(index),local);
                                 let result = self.execute_statement(&for_loop.statements, local, BlockType::Loop);
                                 match result {
                                     GloomResult::Return(value) => break GloomResult::Return(value),
@@ -775,7 +757,7 @@ impl Executor {
                                     GloomResult::Continue => {}
                                     _ => panic!()
                                 }
-                                start += step;
+                                index += step;
                             }else {
                                 break GloomResult::ValueVoid
                             }
@@ -783,7 +765,36 @@ impl Executor {
                         result
                     }
                     ForIter::Iter(iter_expr) => {
-                        panic!()
+                        let obj = self.execute_expr(iter_expr, local).assert_into_value().assert_into_ref();
+                        let mut result = GloomResult::ValueVoid;
+                        for val in obj.iterator() {
+                            Executor::write_local_var(&for_loop.var,val,local);
+                            let temp_result = self.execute_statement(&for_loop.statements, local, BlockType::Loop);
+                            match temp_result {
+                                GloomResult::Return(value) =>{
+                                    result = GloomResult::Return(value);
+                                    break
+                                }
+                                GloomResult::ReturnVoid => {
+                                    result = GloomResult::ReturnVoid;
+                                    break
+                                }
+                                GloomResult::Break(value) =>{
+                                    result = GloomResult::Value(value);
+                                    break
+                                }
+                                GloomResult::BreakVoid => {
+                                    result = GloomResult::ValueVoid;
+                                    break
+                                }
+                                GloomResult::Continue => {}
+                                _ => panic!()
+                            }
+                            if let Var::LocalRef(idx) = &for_loop.var {
+                                self.drop_object_manually(local.take_ref(*idx));
+                            }
+                        }
+                        result
                     }
                 }
             }
@@ -811,6 +822,31 @@ impl Executor {
                 }
             }
             expr => panic!("unsupported expression {:?}",expr)
+        }
+    }
+
+    #[inline(always)]
+    fn write_local_var(var : &Var, value : Value, local : &mut Scope){
+        match var {
+            Var::LocalInt(slot_idx,sub_idx) => {
+                local.write_int(*slot_idx, *sub_idx, value.assert_int());
+            }
+            Var::LocalNum(slot_idx,sub_idx) => {
+                local.write_num(*slot_idx, *sub_idx, value.assert_num());
+            }
+            Var::LocalChar(slot_idx,sub_idx) => {
+                local.write_char(*slot_idx, *sub_idx, value.assert_char());
+            }
+            Var::LocalBool(slot_idx,sub_idx) => {
+                local.write_bool(*slot_idx, *sub_idx, value.assert_bool());
+            }
+            Var::LocalRef(slot_idx) => {
+                let rf = value.assert_into_ref();
+                local.write_ref_firstly(*slot_idx, rf);
+            }
+            var => {
+                panic!("unexpected Var {:?} when ",var)
+            }
         }
     }
 

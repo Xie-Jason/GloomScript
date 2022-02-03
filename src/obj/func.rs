@@ -32,6 +32,10 @@ impl Object for GloomFuncObj {
             }
         }
     }
+
+    fn at(&self, index: &mut usize) -> Option<Value> {
+        panic!()
+    }
 }
 
 impl GloomFuncObj {

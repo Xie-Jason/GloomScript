@@ -38,6 +38,10 @@ impl Object for GloomObject {
             exec.drop_object(self.table.slot(*idx).get_ref());
         }
     }
+
+    fn at(&self, index : &mut usize) -> Option<Value> {
+        todo!()
+    }
 }
 
 impl GloomObject {
