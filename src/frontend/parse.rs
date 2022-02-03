@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
-use hashbrown::HashMap;
 use crate::frontend::ast::{Expression, IfElse, Statement, ParsedType, Var, BinOpVec, VarId, TypeTuple, SingleType, ParsedFunc, WhileLoop, ForLoop, ParsedClass, ParsedInterface, ParsedEnum, Construction, ExprType, ForIter, FuncExpr, Chain, IfBranch, LeftValue};
 use crate::frontend::import::Importer;
 use crate::frontend::ops::{BinOp, LeftValueOp};
@@ -579,7 +578,6 @@ impl Parser {
         };
         if self.has_next() && (self.test_next(Token::Dot) || self.test_next(Token::LParen)) {
             let mut chains = Vec::new();
-            let line = self.line();
             while self.has_next() {
                 match self.next() {
                     Token::Dot => {

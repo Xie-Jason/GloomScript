@@ -122,7 +122,9 @@ impl Analyzer {
         // analysis per statement
         let body = &mut func.body;
         if let FuncBody::Gloom(body) = body {
-            self.analysis_statements(&mut context,body,BlockType::Func);
+            context.block_stack.push(BlockType::Func);
+            self.analysis_statements(&mut context,body);
+            context.block_stack.pop();
         }
         func.info.captures = context.captures;
         func.info.local_size = context.indexer.size();
@@ -964,11 +966,14 @@ impl Analyzer {
         let statements = &mut while_loop.statements;
 
         context.expr_stack.push((SyntaxType::While,line));
+        context.block_stack.push(BlockType::Loop);
         context.break_stack.push(BreakType::Uninit);
         context.indexer.enter_sub_block();
 
-        self.analysis_statements(context,statements,BlockType::Loop);
+        self.analysis_statements(context,statements);
 
+        context.expr_stack.pop();
+        context.block_stack.pop();
         while_loop.drop_vec = context.indexer.level_sub_block();
         match context.break_stack.pop().unwrap() {
             BreakType::Type(data_type) => ReturnType::Have(data_type),
@@ -978,6 +983,7 @@ impl Analyzer {
     }
 
     fn analysis_for(&self, for_loop : &mut ForLoop, context : &mut AnalyzeContext) -> ReturnType {
+        let var_name;
         match &mut for_loop.for_iter {
             ForIter::Range(start, end, step) => {
                 let range_type = self.deduce_type(start, context);
@@ -994,14 +1000,13 @@ impl Analyzer {
                 }
 
                 let var = &mut for_loop.var;
-                let var_name = var.name();
+                var_name = var.name();
                 let (slot_idx,sub_idx) = context.indexer.put(DataType::Int);
                 match context.symbol_table.entry(var_name.deref().clone()) {
                     Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, true)),
                     Entry::Occupied(_) => panic!("{} variable '{}' already occupied", context.info(), var_name),
                 };
                 *var = Var::LocalInt(slot_idx,sub_idx);
-
             }
             ForIter::Iter(iter_expr) => {
                 let mut iter_type = self.deduce_type(iter_expr, context);
@@ -1014,7 +1019,7 @@ impl Analyzer {
                     }
                 };
 
-                let var_name = for_loop.var.name();
+                var_name = for_loop.var.name();
                 let basic_type = item_type.as_basic();
                 let (slot_idx,sub_idx) = context.indexer.put(item_type);
                 match context.symbol_table.entry(var_name.deref().clone()) {
@@ -1022,17 +1027,18 @@ impl Analyzer {
                     Entry::Occupied(_) => panic!("{} variable '{}' already occupied", context.info(), var_name),
                 };
                 for_loop.var = Var::new_local(slot_idx,sub_idx,basic_type);
-
-
             }
         }
 
         context.expr_stack.push((SyntaxType::ForIn,for_loop.line));
+        context.block_stack.push(BlockType::Loop);
         context.break_stack.push(BreakType::Uninit);
         context.indexer.enter_sub_block();
 
-        self.analysis_statements(context,&mut for_loop.statements,BlockType::Loop);
+        self.analysis_statements(context,&mut for_loop.statements);
 
+        context.symbol_table.remove(var_name.as_str());
+        context.block_stack.pop();
         for_loop.drop_slots = context.indexer.level_sub_block();
         context.expr_stack.pop();
         match context.break_stack.pop().unwrap() {
@@ -1043,12 +1049,13 @@ impl Analyzer {
     }
 
     #[inline]
-    fn analysis_statements(&self, context : &mut AnalyzeContext, statements : &mut Vec<Statement>, block_type : BlockType){
+    fn analysis_statements(&self, context : &mut AnalyzeContext, statements : &mut Vec<Statement>){
         let mut last_is_expr = false;
         let mut last_type = ReturnType::Void;
 
         let mut temp_var_table = Vec::new();
-        let var_is_temp = match block_type{
+        let curr_block_type = *context.block_stack.last().unwrap();
+        let var_is_temp = match curr_block_type{
             BlockType::Func => false,
             BlockType::Loop => true,
             BlockType::IfElse => true
@@ -1097,8 +1104,7 @@ impl Analyzer {
                 Statement::LeftValueOp(left) => {
                     self.handle_left_value_op(context,left);
                 }
-                Statement::Expr(expr,line) => {
-                    context.expr_stack.push((SyntaxType::Expr,*line));
+                Statement::Expr(expr,_) => {
                     let expr_type = self.deduce_type(expr,context);
                     if max_idx == idx{
                         last_is_expr = true;
@@ -1107,13 +1113,11 @@ impl Analyzer {
                             last_type = ReturnType::Have(expr_type)
                         };
                     }
-                    context.expr_stack.pop();
                 }
                 Statement::Discard(expr,line) => {
-                    context.expr_stack.push((SyntaxType::Discard,*line));
                     self.deduce_type(expr,context);
                     if max_idx == idx {
-                        match block_type {
+                        match curr_block_type {
                             BlockType::Func => {
                                 if context.func_return_type.is_void() { } else {
                                     panic!("{} expect return a value/object of type {}, found void in line {}",
@@ -1134,10 +1138,11 @@ impl Analyzer {
                             BlockType::Loop => {}
                         }
                     }
-                    context.expr_stack.pop();
                 }
                 Statement::Break(expr,line) => {
-                    if let BlockType::Loop = block_type {} else{
+                    if context.block_stack.iter().rfind(|block| {
+                        if let BlockType::Loop = block { true } else { false }
+                    }).is_none(){
                         panic!("{} unexpected 'break' in non-loop block line {}",context.info(),line)
                     }
                     context.expr_stack.push((SyntaxType::Break,*line));
@@ -1190,12 +1195,14 @@ impl Analyzer {
                     context.expr_stack.pop();
                 }
                 Statement::Continue(line) => {
-                    if let BlockType::Loop = block_type {} else{
+                    if context.block_stack.iter().rfind(|block| {
+                        if let BlockType::Loop = block { true } else { false }
+                    }).is_none(){
                         panic!("{} unexpected 'continue' in non-loop block line {}",context.info(),line)
                     }
                 }
                 Statement::Static(static_tuple) => {
-                    if let BlockType::Func = block_type { } else {
+                    if let BlockType::Func = curr_block_type { } else {
                         panic!("{} static variable can't declared in loop or is-else block",context.info())
                     }
                     let (var,parsed_type,expr) = static_tuple.deref_mut();
@@ -1228,7 +1235,7 @@ impl Analyzer {
                     };
                 }
                 Statement::PubStatic(static_tuple) => {
-                    if let BlockType::Func = block_type { } else {
+                    if let BlockType::Func = curr_block_type { } else {
                         panic!("{} static variable can't declared in loop or is-else block",context.info())
                     }
                     let (var,parsed_type,expr) = static_tuple.deref_mut();
@@ -1265,7 +1272,7 @@ impl Analyzer {
             }
         }
         if last_is_expr {
-            match block_type {
+            match curr_block_type {
                 BlockType::Func => {
                     if last_type.eq(&context.func_return_type) {
                         let last_statement = statements.last_mut().unwrap();
@@ -1344,6 +1351,7 @@ impl Analyzer {
     }
 
     fn analysis_if_else(& self, if_else : &mut IfElse, context : &mut AnalyzeContext ) -> ReturnType {
+        context.block_stack.push(BlockType::IfElse);
         context.break_stack.push(BreakType::Uninit);
         for (branch_idx,branch) in if_else.branches.iter_mut().enumerate() {
             // 处理每个分支  handle every branch
@@ -1355,13 +1363,14 @@ impl Analyzer {
             context.expr_stack.push((SyntaxType::IfElseBranch,branch.line));
             context.indexer.enter_sub_block();
 
-            self.analysis_statements(context,statements,BlockType::IfElse);
+            self.analysis_statements(context,statements);
 
             // 处理完一个分支的全部语句 handle all the statements of one branch
             // 清理分支内声明的变量的信息 clear the info of the variables declared in branch
             branch.drop_vec = context.indexer.level_sub_block();
             context.expr_stack.pop();
         }
+        context.block_stack.pop();
         match context.break_stack.pop().unwrap() {
             BreakType::Type(data_type) => ReturnType::Have(data_type),
             BreakType::Void => ReturnType::Void,
@@ -1698,26 +1707,7 @@ impl Analyzer {
                 }
             }
             None => {
-                /*match BuiltinType::try_from_str(single_type.name.as_str()) {
-                    // 导入内置类型 import builtin type
-                    Some(builtin_type) => {
-                        let builtin_classes = self.status.builtin_classes.clone();
-                        let index = builtin_classes.inner().len() as u16;
-                        self.type_map.insert(
-                            single_type.name.clone(),
-                            Label::from(index,true,0,MetaType::Builtin)
-                        );
-                        self.builtin_map.clone().inner_mut().insert(builtin_type,index);
-
-                        let class = BuiltinClass::from_builtin_type(builtin_type);
-                        // return data type
-                        let ref_type = class.get_ref_type(generic);
-                        builtin_classes.inner_mut().push(class);
-                        DataType::Ref(ref_type)
-                    }
-                    None => panic!("type '{}' not found", single_type.name)
-                }*/
-                panic!("{:?}",single_type)
+                panic!("type '{}' not found", single_type.name)
             }
         }
     }
@@ -1758,7 +1748,8 @@ pub struct AnalyzeContext<'a>{
     pub func_return_type : ReturnType,
     pub expr_stack : Vec<(SyntaxType,u16)>,
     pub break_stack : Vec<BreakType>,
-    pub indexer : SlotIndexer
+    pub indexer : SlotIndexer,
+    pub block_stack : Vec<BlockType>,
 }
 
 impl<'a> AnalyzeContext<'a>{
@@ -1778,7 +1769,8 @@ impl<'a> AnalyzeContext<'a>{
             expr_stack: Vec::new(),
             break_stack: Vec::new(),
             file_name: Rc::new(String::from("")),
-            indexer: SlotIndexer::new()
+            indexer: SlotIndexer::new(),
+            block_stack: Vec::new()
         }
     }
 

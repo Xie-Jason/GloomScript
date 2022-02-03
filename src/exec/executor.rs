@@ -1,4 +1,3 @@
-use std::cell::{Ref, RefCell};
 use std::collections::VecDeque;
 use std::mem::ManuallyDrop;
 use std::ops::{Deref};
@@ -338,7 +337,15 @@ impl Executor {
                     }
                 }
                 Statement::Expr(expr,_) | Statement::Discard(expr,_) => {
-                    self.execute_expr(expr,local);
+                    match self.execute_expr(expr, local) {
+                        GloomResult::ValueVoid | GloomResult::IfElseVoid => {}
+                        GloomResult::Value(val) | GloomResult::IfElseResult(val)  => {
+                            if let Value::Ref(rf) = val {
+                                self.drop_object(&rf);
+                            }
+                        }
+                        result => return result
+                    }
                 }
                 Statement::Return(expr,_) => {
                     return match self.execute_expr(expr, local) {
@@ -353,11 +360,15 @@ impl Executor {
                     return GloomResult::Continue;
                 }
                 Statement::Break(expr,_) => {
-                    return match self.execute_expr(expr, local) {
-                        GloomResult::Value(value) => GloomResult::Break(value),
-                        GloomResult::ValueVoid => GloomResult::BreakVoid,
-                        _ => panic!()
-                    }
+                    return if expr.is_none() {
+                        GloomResult::BreakVoid
+                    }else {
+                        match self.execute_expr(expr, local) {
+                            GloomResult::Value(value) => GloomResult::Break(value),
+                            GloomResult::ValueVoid => GloomResult::BreakVoid,
+                            _ => panic!()
+                        }
+                    };
                 }
                 Statement::IfResult(expr,_) => {
                     return match self.execute_expr(expr, local) {
@@ -367,13 +378,12 @@ impl Executor {
                     }
                 }
             }
-        }
+        };
         match block_type {
             BlockType::Func => GloomResult::ReturnVoid,
             BlockType::Loop => GloomResult::Continue,
             BlockType::IfElse => GloomResult::IfElseVoid
         }
-
     }
 
     #[inline]
@@ -693,28 +703,30 @@ impl Executor {
                 }
             }
             Expression::IfElse(if_else) => {
+                let mut result = GloomResult::ValueVoid;
                 for if_branch in if_else.deref().branches.iter() {
                     let condition = self.execute_expr(&if_branch.condition, local)
                         .assert_into_value()
                         .assert_bool();
                     if condition {
                         let value = self.execute_statement(&if_branch.statements, local,BlockType::IfElse);
-                        match value {
-                            GloomResult::Return(value) => return GloomResult::Return(value),
-                            GloomResult::ReturnVoid => return GloomResult::ReturnVoid,
-                            GloomResult::Continue => return GloomResult::Continue,
-                            GloomResult::Break(value) => return GloomResult::Break(value),
-                            GloomResult::BreakVoid => return GloomResult::BreakVoid,
-                            GloomResult::IfElseResult(value) => return GloomResult::Value(value),
-                            GloomResult::IfElseVoid => return GloomResult::ValueVoid,
+                        result = match value {
+                            GloomResult::Return(value) => GloomResult::Return(value),
+                            GloomResult::ReturnVoid => GloomResult::ReturnVoid,
+                            GloomResult::Continue => GloomResult::Continue,
+                            GloomResult::Break(value) => GloomResult::Break(value),
+                            GloomResult::BreakVoid => GloomResult::BreakVoid,
+                            GloomResult::IfElseResult(value) => GloomResult::Value(value),
+                            GloomResult::IfElseVoid => GloomResult::ValueVoid,
                             _ => panic!()
+                        };
+                        for idx in if_branch.drop_vec.iter() {
+                            self.drop_object_manually(local.take_ref(*idx));
                         }
-                    }
-                    for idx in if_branch.drop_vec.iter() {
-                        self.drop_object_manually(local.take_ref(*idx));
+                        break
                     }
                 }
-                GloomResult::ValueVoid
+                result
             }
             Expression::While(while_loop) => {
                 let while_loop = while_loop.deref();
@@ -770,28 +782,31 @@ impl Executor {
                         for val in obj.iterator() {
                             Executor::write_local_var(&for_loop.var,val,local);
                             let temp_result = self.execute_statement(&for_loop.statements, local, BlockType::Loop);
-                            match temp_result {
-                                GloomResult::Return(value) =>{
+                            let should_break = match temp_result {
+                                GloomResult::Return(value) => {
                                     result = GloomResult::Return(value);
-                                    break
+                                    true
                                 }
                                 GloomResult::ReturnVoid => {
                                     result = GloomResult::ReturnVoid;
-                                    break
+                                    true
                                 }
-                                GloomResult::Break(value) =>{
+                                GloomResult::Break(value) => {
                                     result = GloomResult::Value(value);
-                                    break
+                                    true
                                 }
                                 GloomResult::BreakVoid => {
                                     result = GloomResult::ValueVoid;
-                                    break
+                                    true
                                 }
-                                GloomResult::Continue => {}
+                                GloomResult::Continue => false,
                                 _ => panic!()
-                            }
+                            };
                             if let Var::LocalRef(idx) = &for_loop.var {
                                 self.drop_object_manually(local.take_ref(*idx));
+                            }
+                            if should_break {
+                                break
                             }
                         }
                         result

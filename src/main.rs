@@ -15,7 +15,7 @@ mod exec;
 
 fn main() {
     let debug = false;
-    let mut file = File::open(&String::from(r"D:\Rust\projects\gloomscript\gloom\GloomTest.gs")).unwrap();
+    let mut file = File::open(&String::from(r"D:\Rust\projects\gloomscript\gloom\AfterTest.gs")).unwrap();
     let mut src : Vec<u8> = Vec::with_capacity(256);
     let read = file.read_to_end(&mut src).unwrap();
     if debug {

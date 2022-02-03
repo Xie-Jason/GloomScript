@@ -39,7 +39,7 @@ impl Object for GloomObject {
         }
     }
 
-    fn at(&self, index : &mut usize) -> Option<Value> {
+    fn at(&self, _ : &mut usize) -> Option<Value> {
         todo!()
     }
 }
@@ -122,7 +122,7 @@ impl Debug for GloomObject {
         let class = self.class.inner();
         let mut string : String = class.name.deref().clone();
         string.push_str(" { ");
-        for (name, (slot_idx, sub_idx, is_pub, is_fn)) in class.map.iter() {
+        for (name, (slot_idx, sub_idx, _ , is_fn)) in class.map.iter() {
             if ! *is_fn {
                 let field_type = class.field_indexer.get_type(*slot_idx).as_basic();
                 string.push_str(name.as_str());

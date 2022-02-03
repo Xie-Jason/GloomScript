@@ -78,7 +78,7 @@ impl GloomString {
         if x < 128{
             return (1,x as char)
         }
-        let mut step = 1;
+        let mut step;
         let y = bytes[1];
         let init = (x & (0x7F >> 2)) as u32;
         let mut ch = (init << 6) | ( y & GloomString::CONT_MASK) as u32;

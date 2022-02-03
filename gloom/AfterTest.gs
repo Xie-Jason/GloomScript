@@ -3,8 +3,7 @@ class Test {
     pub String name
     pub int age
     pub func max(int n1,int n2) int {
-        n1 -- ;
-        if(n1 > n2){
+        if(n1 >= n2){
             n1
         }else{
             n2
@@ -43,6 +42,7 @@ str.append("666");
 String.append(str," 223");
 println(str);
 func(){
+    // n1 are captured here
     println([n1,str])
 }()
 println(["这里是n->",n])
@@ -95,18 +95,27 @@ let test2 = Test{
 println([test1.age,test2.age,test1.olderThan(test2)])
 
 let forCount = 0;
-for i1 in (0,100,1){
+for i in (0,100,1){
     forCount ++
 }
 println(forCount)
-for i2 in (0,100,2){
+for i in (0,100,2){
     forCount --
 }
 println(forCount)
 
-for item in [1,2,3] {
+println("======")
+for item in [0,5,10,15,20] {
     println(item)
+    if item >= 8 {
+        Test{ name : "Will be Dropped now", age : 18 }
+        let test = Test{ name : "Will be Dropped after if scope", age : 18 }
+        println(["stop at ->",item])
+        break
+    }
 }
+println("======")
+
 for ch in "GloomScript真不错"{
     println(ch)
 }

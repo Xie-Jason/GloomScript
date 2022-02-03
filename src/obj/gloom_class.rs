@@ -222,7 +222,7 @@ impl Object for GloomClassObj {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, _ : &Executor,rf: &GloomObjRef) {}
+    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
 
     fn at(&self, _ : &mut usize) -> Option<Value> {
         panic!()

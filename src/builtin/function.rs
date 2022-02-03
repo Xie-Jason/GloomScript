@@ -19,7 +19,7 @@ pub fn gloom_func_class() -> BuiltinClass{
             )],
             ReturnType::Void,
             true,
-            Rc::new(|exec, mut args| {
+            Rc::new(|_ , mut args| {
                 let obj_ref = args.vec.pop().unwrap().assert_into_ref();
                 println!("{:?}", obj_ref.downcast::<GloomFuncObj>().func.inner().body);
                 GloomResult::ReturnVoid

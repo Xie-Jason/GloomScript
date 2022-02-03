@@ -1,6 +1,5 @@
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
-use hashbrown::HashMap;
 use crate::frontend::ops::{BinOp, LeftValueOp};
 use crate::obj::func::GloomFunc;
 use crate::obj::gloom_class::{IsPub};
@@ -112,14 +111,6 @@ impl Expression {
         match self {
             Expression::None => true,
             _ => false
-        }
-    }
-    #[inline]
-    pub fn is_array_literal(&self) -> bool{
-        if let Expression::Array(_) = self{
-            true
-        }else{
-            false
         }
     }
 }
@@ -371,7 +362,7 @@ impl Debug for Chain {
             Chain::Access(i,t) => {
                 write!(f,"->{:?}<{:?}>",i.index(),t)
             }
-            Chain::FnCall { func, need_self, args } => {
+            Chain::FnCall { func, need_self: _need_self, args } => {
                 write!(f,"func[{:?}] {:?}",func,args)
             }
             Chain::Call(call) => {
@@ -393,8 +384,6 @@ pub enum SyntaxType{
     Let,
     Static,
     PubStatic,
-    Expr,
-    Discard,
     Assign,
     While,
     ForIn,
@@ -411,8 +400,6 @@ impl Debug for SyntaxType {
             SyntaxType::Let => "let",
             SyntaxType::Static => "static",
             SyntaxType::PubStatic => "pub static",
-            SyntaxType::Expr => "expression",
-            SyntaxType::Discard => "discarded expr",
             SyntaxType::Assign => "assign",
             SyntaxType::While => "while",
             SyntaxType::IfElseBranch => "if-else branch",

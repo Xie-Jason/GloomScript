@@ -1,7 +1,6 @@
 use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
-use std::mem::ManuallyDrop;
 use std::rc::Rc;
 
 use crate::exec::executor::Executor;
@@ -33,7 +32,7 @@ impl Object for GloomFuncObj {
         }
     }
 
-    fn at(&self, index: &mut usize) -> Option<Value> {
+    fn at(&self, _ : &mut usize) -> Option<Value> {
         panic!()
     }
 }
@@ -194,7 +193,7 @@ impl ReturnType {
     #[inline]
     pub fn data_type(&self) -> &DataType{
         match self {
-            ReturnType::Void => panic!(),
+            ReturnType::Void => &DataType::Ref(RefType::None),
             ReturnType::Have(tp) => tp
         }
     }

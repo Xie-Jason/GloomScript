@@ -1,6 +1,6 @@
 use std::alloc::{Layout};
 use std::alloc;
-use std::mem::{ManuallyDrop, MaybeUninit, size_of};
+use std::mem::{ManuallyDrop, MaybeUninit};
 use crate::obj::object::GloomObjRef;
 use crate::obj::slot::Slot;
 
