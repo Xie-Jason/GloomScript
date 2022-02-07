@@ -64,6 +64,10 @@ impl Debug for GloomObjRef {
     }
 }
 
+pub trait Interpreter{
+
+}
+
 pub trait Object : Debug {
     fn obj_type(&self) -> ObjectType;
     fn as_any(&self) -> &dyn Any;

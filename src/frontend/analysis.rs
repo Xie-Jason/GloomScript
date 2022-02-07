@@ -121,7 +121,7 @@ impl Analyzer {
         }
         // analysis per statement
         let body = &mut func.body;
-        if let FuncBody::Gloom(body) = body {
+        if let FuncBody::AST(body) = body {
             context.block_stack.push(BlockType::Func);
             self.analysis_statements(&mut context,body);
             context.block_stack.pop();

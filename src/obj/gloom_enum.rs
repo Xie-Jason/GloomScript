@@ -101,7 +101,7 @@ impl GloomEnumClass {
                 need_self: false,
                 file_index: self.file_index
             },
-            body: FuncBody::Gloom(body)
+            body: FuncBody::AST(body)
         }));
     }
     pub fn handle_instance_func(&mut self, myself : RefCount<GloomEnumClass>){

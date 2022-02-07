@@ -41,6 +41,7 @@ let str String = "hello"
 str.append("666");
 String.append(str," 223");
 println(str);
+
 func(){
     // n1 are captured here
     println([n1,str])

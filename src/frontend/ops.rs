@@ -11,6 +11,7 @@ pub enum LeftValueOp{
 }
 
 #[derive(Debug,Copy,Clone)]
+#[repr(u8)]
 pub enum BinOp {
     // calc : num to num
     Plus,   // +

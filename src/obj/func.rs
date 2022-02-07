@@ -2,6 +2,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
+use crate::bytecode::code::ByteCode;
 
 use crate::exec::executor::Executor;
 use crate::exec::result::GloomResult;
@@ -80,9 +81,10 @@ impl GloomFunc {
                 drop_slots: Vec::with_capacity(0),
                 local_size: 0,
                 need_self: false,
-                file_index
+                file_index,
+                stack_size: 0
             },
-            body: FuncBody::Gloom(statements)
+            body: FuncBody::AST(statements)
         }
     }
     pub fn new_builtin_fn(name : Rc<String>, params : Vec<Param>, return_type : ReturnType, need_self : bool, func : BuiltinFn ) -> GloomFunc {
@@ -95,7 +97,8 @@ impl GloomFunc {
                 drop_slots: Vec::with_capacity(0),
                 local_size: 0,
                 need_self,
-                file_index: 0
+                file_index: 0,
+                stack_size: 0
             },
             body: FuncBody::Builtin(func)
         }
@@ -148,9 +151,10 @@ pub struct FuncInfo{
     pub return_type : ReturnType,
     pub captures : Vec<Capture>,
     pub drop_slots : Vec<u16>,
-    pub local_size : u16,
     pub need_self : bool,
     pub file_index : u16,
+    pub local_size : u16,
+    pub stack_size : u16,
 }
 
 #[derive(Clone)]
@@ -235,7 +239,8 @@ impl PartialEq<Option<DataType>> for ReturnType  {
 
 pub enum FuncBody{
     Builtin(BuiltinFn),
-    Gloom(Vec<Statement>),
+    AST(Vec<Statement>),
+    ByteCodes(Vec<ByteCode>),
     None,
 }
 
@@ -245,7 +250,10 @@ impl Debug for FuncBody {
             FuncBody::Builtin(_) => {
                 write!(f,"BuiltinFunc")
             }
-            FuncBody::Gloom(vec) => {
+            FuncBody::AST(vec) => {
+                write!(f,"{:?}",vec)
+            }
+            FuncBody::ByteCodes(vec) => {
                 write!(f,"{:?}",vec)
             }
             FuncBody::None => {

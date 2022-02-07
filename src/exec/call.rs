@@ -17,7 +17,7 @@ impl GloomFunc {
             FuncBody::Builtin(func) => {
                 func(exec,args)
             }
-            FuncBody::Gloom(body) => {
+            FuncBody::AST(body) => {
                 let local_size = self.info.local_size;
                 if local_size <= 16 {
                     if local_size <= 8 {

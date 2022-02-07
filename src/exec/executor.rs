@@ -805,6 +805,9 @@ impl Executor {
                             if let Var::LocalRef(idx) = &for_loop.var {
                                 self.drop_object_manually(local.take_ref(*idx));
                             }
+                            for idx in for_loop.drop_slots.iter() {
+                                self.drop_object_manually(local.take_ref(*idx));
+                            }
                             if should_break {
                                 break
                             }
