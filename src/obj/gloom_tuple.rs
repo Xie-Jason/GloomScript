@@ -2,9 +2,9 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
-use crate::exec::executor::Executor;
 use crate::exec::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
+use crate::vm::machine::GloomVM;
 
 pub struct GloomTuple {
     vec : RefCell<Vec<Value>>
@@ -18,10 +18,10 @@ impl Object for GloomTuple {
         self
     }
     #[inline]
-    fn drop_by_exec(&self, exec: &Executor, _ : &GloomObjRef) {
+    fn drop_by_vm(&self, vm: &GloomVM, _ : &GloomObjRef) {
         for value in self.vec.borrow().iter() {
             if let Value::Ref(rf) = value {
-                exec.drop_object(rf);
+                vm.drop_object(rf);
             }
         }
     }

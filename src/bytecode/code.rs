@@ -3,9 +3,12 @@ use crate::frontend::ops::BinOp;
 #[derive(Debug, Copy, Clone)]
 pub enum ByteCode {
     Pop,
+    CopyTop,
 
     LoadConstString(u16),
     LoadConstInt(u16),
+    LoadDirectInt(i32),
+    LoadDirectNum(f32),
     LoadConstNum(u16),
     LoadConstChar(char),
     LoadConstBool(bool),
@@ -39,8 +42,8 @@ pub enum ByteCode {
     CallStaticFn { index: u16, nargs: u16 },
     CallMethod { index: u16, nargs: u16 },
 
-    Continue(u32),
     JumpIf(u32),
+    Jump(u32),
     Return,
 }
 
@@ -53,6 +56,8 @@ impl ByteCode {
             ByteCode::LoadConstString(_)
             | ByteCode::LoadConstInt(_)
             | ByteCode::LoadConstNum(_)
+            | ByteCode::LoadDirectInt(_)
+            | ByteCode::LoadDirectNum(_)
             | ByteCode::LoadConstChar(_)
             | ByteCode::LoadConstBool(_)
             | ByteCode::LoadClass(_)
@@ -61,7 +66,8 @@ impl ByteCode {
             | ByteCode::LoadBuiltinType(_)
             | ByteCode::ReadField(_, _)
             | ByteCode::LoadDirectFn(_)
-            | ByteCode::ReadLocal(_, _) => 1,
+            | ByteCode::ReadLocal(_, _)
+            | ByteCode::CopyTop => 1,
 
             ByteCode::WriteLocalInt(_, _)
             | ByteCode::WriteLocalNum(_, _)
@@ -74,16 +80,17 @@ impl ByteCode {
 
             ByteCode::JumpIf(_) => -1,
 
-            ByteCode::Continue(_)
+            ByteCode::Jump(_)
             | ByteCode::DropLocal(_)
             | ByteCode::NotOp
             | ByteCode::NegOp => 0,
 
             ByteCode::CallTopFn { index: _, nargs }
             | ByteCode::CallStaticFn { index: _, nargs }
-            | ByteCode::CallMethod { index: _, nargs } => -nargs,
+            | ByteCode::CallMethod { index: _, nargs } => - (nargs as i8),
 
-            ByteCode::Return => {}
+            ByteCode::Return => 0,
+
         }
     }
 }

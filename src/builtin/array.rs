@@ -2,9 +2,9 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
-use crate::exec::executor::Executor;
 use crate::exec::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
+use crate::vm::machine::GloomVM;
 
 
 pub struct GloomArray(pub RefCell<RawArray>);
@@ -51,10 +51,10 @@ impl Object for GloomArray {
         self
     }
 
-    fn drop_by_exec(&self, exec: &Executor, _ : &GloomObjRef) {
+    fn drop_by_vm(&self, vm: &GloomVM, _ : &GloomObjRef) {
         if let RawArray::RefVec(vec) = &*self.0.borrow(){
             for rf in vec.iter() {
-                exec.drop_object(rf);
+                vm.drop_object(rf);
             }
         }
     }

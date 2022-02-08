@@ -5,7 +5,6 @@ use std::rc::Rc;
 use std::slice::Iter;
 use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
-use crate::exec::executor::Executor;
 use crate::exec::value::Value;
 use crate::frontend::ast::{Statement};
 use crate::frontend::index::SlotIndexer;
@@ -14,6 +13,7 @@ use crate::obj::types::{DataType, RefType};
 use crate::obj::refcount::RefCount;
 use crate::obj::interface::Interface;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
+use crate::vm::machine::GloomVM;
 
 pub struct GloomClass{
     pub name: Rc<String>,
@@ -222,7 +222,7 @@ impl Object for GloomClassObj {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+    fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
 
     fn at(&self, _ : &mut usize) -> Option<Value> {
         panic!()

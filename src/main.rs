@@ -1,8 +1,7 @@
 use std::fs::File;
 use std::io::Read;
-use std::time::Instant;
+use crate::bytecode::code::ByteCode;
 use crate::bytecode::gen::CodeGenerator;
-use crate::exec::executor::Executor;
 use crate::frontend::analysis::Analyzer;
 use crate::frontend::import::Importer;
 use crate::frontend::parse::Parser;
@@ -18,6 +17,7 @@ mod bytecode;
 mod vm;
 
 fn main() {
+    println!("ByteCode size : {}byte", std::mem::size_of::<ByteCode>());
     let debug = false;
     let mut file = File::open(&String::from(r"D:\Rust\projects\gloomscript\gloom\AfterTest.gs")).unwrap();
     let mut src : Vec<u8> = Vec::with_capacity(256);

@@ -3,8 +3,8 @@ use std::fmt::{Debug, Formatter};
 use std::ops::{Deref};
 use std::rc::{Rc, Weak};
 use crate::builtin::iter::GloomIter;
-use crate::exec::executor::Executor;
 use crate::exec::value::Value;
+use crate::vm::machine::GloomVM;
 
 #[derive(Clone)]
 pub struct GloomObjRef{
@@ -43,8 +43,8 @@ impl GloomObjRef {
     }
 
     #[inline]
-    pub fn drop_by_exec(&self, exec : &Executor){
-        self.obj.drop_by_exec(exec,self)
+    pub fn drop_by_vm(&self, vm : &GloomVM){
+        self.obj.drop_by_vm(vm,self);
     }
 
     #[inline]
@@ -64,14 +64,11 @@ impl Debug for GloomObjRef {
     }
 }
 
-pub trait Interpreter{
-
-}
 
 pub trait Object : Debug {
     fn obj_type(&self) -> ObjectType;
     fn as_any(&self) -> &dyn Any;
-    fn drop_by_exec(&self, exec: &Executor, rf: &GloomObjRef);
+    fn drop_by_vm(&self, vm : &GloomVM, rf: &GloomObjRef);
     fn at(&self, index : &mut usize) -> Option<Value>;
 }
 

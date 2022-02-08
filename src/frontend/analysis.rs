@@ -22,7 +22,7 @@ use crate::{
     obj::interface::{AbstractFunc, Interface},
     obj::types::{BreakType, BuiltinType, DataType, DeclaredType, RefType}
 };
-use crate::exec::executor::BlockType;
+use crate::frontend::ast::BlockType;
 use crate::frontend::ops::LeftValueOp;
 use crate::obj::func::FuncInfo;
 
@@ -414,7 +414,8 @@ impl Analyzer {
                                                     drop_slots: Vec::with_capacity(0),
                                                     local_size: 0,
                                                     need_self: false,
-                                                    file_index: 0
+                                                    file_index: 0,
+                                                    stack_size: 0
                                                 },
                                                 body: FuncBody::None
                                             });

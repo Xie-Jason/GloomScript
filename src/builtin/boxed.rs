@@ -2,9 +2,9 @@ use std::any::Any;
 use std::cell::Cell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
-use crate::exec::executor::Executor;
 use crate::exec::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
+use crate::vm::machine::GloomVM;
 
 pub struct GloomInt(pub Cell<i64>);
 
@@ -24,7 +24,7 @@ impl Object for GloomInt {
         self
     }
 
-    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+    fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
 
     fn at(&self, _ : &mut usize) -> Option<Value> {
         panic!()
@@ -55,7 +55,7 @@ impl Object for GloomNum {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+    fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
     fn at(&self, _ : &mut usize) -> Option<Value> {
         panic!()
     }
@@ -85,7 +85,7 @@ impl Object for GloomChar {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+    fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
     fn at(&self, _ : &mut usize) -> Option<Value> {
         panic!()
     }
@@ -115,7 +115,7 @@ impl Object for GloomBool {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+    fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
     fn at(&self, _:&mut  usize) -> Option<Value> {
         panic!()
     }

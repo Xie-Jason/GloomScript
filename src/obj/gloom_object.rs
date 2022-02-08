@@ -9,7 +9,7 @@ use std::any::Any;
 use std::fmt::{Debug, Formatter};
 use std::mem::ManuallyDrop;
 use std::ops::Deref;
-use crate::exec::executor::Executor;
+use crate::vm::machine::GloomVM;
 
 pub struct GloomObject {
     pub table: Table,
@@ -24,18 +24,16 @@ impl Object for GloomObject {
         self
     }
 
-    fn drop_by_exec(&self,exec: &Executor, rf : &GloomObjRef) {
+    fn drop_by_vm(&self, vm: &GloomVM, rf : &GloomObjRef) {
         let class = self.class.inner();
         if class.fn_drop_idx < u16::MAX {
-            class.funcs.get(class.fn_drop_idx as usize).unwrap().inner()
-                .call(
-                    exec,
-                    GloomArgs::new(vec![Value::Ref(rf.clone())]),
-                    Vec::with_capacity(0)
-                );
+            vm.call_fn(
+                &*class.funcs.get(class.fn_drop_idx as usize).unwrap().inner(),
+                GloomArgs::new(vec![Value::Ref(rf.clone())])
+            );
         }
         for idx in class.ref_index_iter() {
-            exec.drop_object(self.table.slot(*idx).get_ref());
+            vm.drop_object(self.table.slot(*idx).get_ref());
         }
     }
 

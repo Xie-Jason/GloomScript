@@ -1,8 +1,9 @@
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+
 use crate::frontend::ops::{BinOp, LeftValueOp};
 use crate::obj::func::GloomFunc;
-use crate::obj::gloom_class::{IsPub};
+use crate::obj::gloom_class::IsPub;
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{BasicType, DataType};
 
@@ -410,4 +411,11 @@ impl Debug for SyntaxType {
             SyntaxType::ForIn => "for-in",
         })
     }
+}
+
+#[derive(Copy,Clone,Debug)]
+pub enum BlockType{
+    Func,
+    Loop,
+    IfElse
 }

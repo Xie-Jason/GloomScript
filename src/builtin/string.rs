@@ -4,13 +4,13 @@ use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use hashbrown::HashMap;
 use crate::builtin::classes::BuiltinClass;
-use crate::exec::executor::Executor;
 use crate::exec::result::GloomResult;
 use crate::exec::value::Value;
 use crate::obj::func::{GloomFunc, Param, ReturnType};
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
+use crate::vm::machine::GloomVM;
 
 pub struct GloomString(pub RefCell<String>);
 
@@ -28,7 +28,7 @@ impl Object for GloomString {
         self
     }
 
-    fn drop_by_exec(&self, _ : &Executor, _ : &GloomObjRef) {}
+    fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
 
     fn at(&self, index : &mut usize) -> Option<Value> {
         let string = self.0.borrow();

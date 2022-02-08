@@ -4,7 +4,6 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
 use hashbrown::HashMap;
-use crate::exec::executor::Executor;
 use crate::exec::value::Value;
 use crate::frontend::ast::{Statement};
 use crate::obj::func::{FuncBody, FuncInfo, GloomFunc, Param, ReturnType};
@@ -12,6 +11,7 @@ use crate::obj::gloom_class::IsPub;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
+use crate::vm::machine::GloomVM;
 
 // 枚举关联类型只支持类  enum could only related to class type
 pub struct GloomEnum{
@@ -52,9 +52,9 @@ impl Object for GloomEnum {
         self
     }
 
-    fn drop_by_exec(&self, exec: &Executor, _ : &GloomObjRef) {
+    fn drop_by_vm(&self, vm: &GloomVM, _ : &GloomObjRef) {
         if let Value::Ref(rf) = &*self.val.borrow() {
-            exec.drop_object(rf);
+            vm.drop_object(rf);
         }
     }
 
@@ -99,7 +99,8 @@ impl GloomEnumClass {
                 drop_slots: Vec::with_capacity(0),
                 local_size: 0,
                 need_self: false,
-                file_index: self.file_index
+                file_index: self.file_index,
+                stack_size: 0
             },
             body: FuncBody::AST(body)
         }));

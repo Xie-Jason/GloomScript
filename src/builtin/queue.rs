@@ -3,9 +3,9 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
-use crate::exec::executor::Executor;
 use crate::exec::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
+use crate::vm::machine::GloomVM;
 
 pub struct GloomQueue(RefCell<RawQueue>);
 
@@ -50,10 +50,10 @@ impl Object for GloomQueue {
         self
     }
 
-    fn drop_by_exec(&self, exec: &Executor, _ : &GloomObjRef) {
+    fn drop_by_vm(&self, vm: &GloomVM, _ : &GloomObjRef) {
         if let RawQueue::RefQue(vec) = &*self.0.borrow(){
             for rf in vec.iter() {
-                exec.drop_object(rf);
+                vm.drop_object(rf);
             }
         }
     }
