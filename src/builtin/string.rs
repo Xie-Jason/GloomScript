@@ -4,12 +4,12 @@ use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use hashbrown::HashMap;
 use crate::builtin::classes::BuiltinClass;
-use crate::exec::result::GloomResult;
-use crate::exec::value::Value;
+use crate::vm::value::Value;
 use crate::obj::func::{GloomFunc, Param, ReturnType};
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
+use crate::vm::frame::Operand;
 use crate::vm::machine::GloomVM;
 
 pub struct GloomString(pub RefCell<String>);
@@ -113,16 +113,18 @@ pub fn gloom_string_class() -> BuiltinClass{
             Param::new(empty_string.clone(),DataType::Ref(RefType::String)),
             Param::new(empty_string.clone(),DataType::Ref(RefType::String))
         ],
-        ReturnType::Void,
+        ReturnType::Have(DataType::Ref(RefType::String)),
         true,
         Rc::new(|_, args| {
             let mut iter = args.vec.into_iter();
-            let myself_ref = iter.next().unwrap().assert_into_ref();
-            let myself = myself_ref.downcast::<GloomString>();
+            let myself = iter.next().unwrap().assert_into_ref();
+            let mut string = myself.downcast::<GloomString>().0.borrow().clone();
             let other_ref = iter.next().unwrap().assert_into_ref();
             let other = other_ref.downcast::<GloomString>();
-            myself.0.borrow_mut().push_str(other.0.borrow().as_str());
-            GloomResult::ReturnVoid
+            string.push_str(other.0.borrow().as_str());
+            Operand::Some(Value::Ref(
+                GloomString::new(string)
+            ))
         })
     )));
     map.insert(String::from("append"),0);

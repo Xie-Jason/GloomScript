@@ -37,9 +37,9 @@ let n1 = 100 + 10 * 2;
 
 println([n,n1])
 
-let str String = "hello"
-str.append("666");
-String.append(str," 223");
+let str String = "hello";
+str = str.append("666");
+str = String.append(str," 223");
 println(str);
 
 func(){

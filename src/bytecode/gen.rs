@@ -1,10 +1,11 @@
 use crate::bytecode::code::ByteCode;
-use crate::frontend::ast::{Expression, LeftValue, Statement, Var};
+use crate::frontend::ast::{Chain, Expression, LeftValue, Statement, Var};
 use crate::frontend::ops::LeftValueOp;
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{FuncBody, GloomFunc};
 use crate::vm::constant::ConstantPool;
 use std::ops::Deref;
+use crate::obj::types::BasicType;
 
 pub struct CodeGenerator {
     constant_pool: ConstantPool,
@@ -48,13 +49,13 @@ impl CodeGenerator {
             _ => panic!()
         };
         func.info.stack_size = context.stack_size();
-        std::mem::replace(&mut func.body, FuncBody::ByteCodes(context.bytecodes()));
+        func.body = FuncBody::ByteCodes(context.bytecodes());
     }
     fn generate_statements(&mut self, statements: &Vec<Statement>, context: &mut GenerateContext) {
         for stmt in statements.iter() {
             match stmt {
                 Statement::Let(let_info) => {
-                    let (var, _, expr, line) = let_info.deref();
+                    let (var, _, expr, _) = let_info.deref();
                     self.generate_expression(expr, context);
                     let code = match var {
                         Var::LocalInt(i1, i2) => ByteCode::WriteLocalInt(*i1, *i2),
@@ -70,11 +71,11 @@ impl CodeGenerator {
                     let (var, _, expr) = static_info.deref();
                     self.generate_expression(expr, context);
                     let code = match var {
-                        Var::StaticInt(i1, i2) => ByteCode::WriteStatic(*i1, *i2),
-                        Var::StaticNum(i1, i2) => ByteCode::WriteStatic(*i1, *i2),
-                        Var::StaticChar(i1, i2) => ByteCode::WriteStatic(*i1, *i2),
-                        Var::StaticBool(i1, i2) => ByteCode::WriteStatic(*i1, *i2),
-                        Var::StaticRef(i) => ByteCode::WriteStatic(*i, 0),
+                        Var::StaticInt(i1, i2) => ByteCode::WriteStaticInt(*i1, *i2),
+                        Var::StaticNum(i1, i2) => ByteCode::WriteStaticNum(*i1, *i2),
+                        Var::StaticChar(i1, i2) => ByteCode::WriteStaticChar(*i1, *i2),
+                        Var::StaticBool(i1, i2) => ByteCode::WriteStaticBool(*i1, *i2),
+                        Var::StaticRef(i) => ByteCode::WriteStaticRef(*i),
                         _ => panic!()
                     };
                     context.push(code);
@@ -107,41 +108,82 @@ impl CodeGenerator {
                                 }
                                 LeftValueOp::PlusEq(expr) => {
                                     self.generate_expression(expr,context);
-
+                                    context.push(ByteCode::Plus);
                                 }
                                 LeftValueOp::SubEq(expr) => {
                                     self.generate_expression(expr,context);
-
+                                    context.push(ByteCode::Sub);
                                 }
                                 LeftValueOp::PlusOne => {
                                     context.push(ByteCode::LoadDirectInt(1));
+                                    context.push(ByteCode::Plus);
                                 }
                                 LeftValueOp::SubOne => {
                                     context.push(ByteCode::LoadDirectInt(1));
-
+                                    context.push(ByteCode::Sub);
                                 }
                             }
                             match var {
-                                Var::LocalInt(_, _) => {}
-                                Var::LocalNum(_, _) => {}
-                                Var::LocalChar(_, _) => {}
-                                Var::LocalBool(_, _) => {}
-                                Var::LocalRef(_) => {}
-                                Var::StaticInt(_, _) => {}
-                                Var::StaticNum(_, _) => {}
-                                Var::StaticChar(_, _) => {}
-                                Var::StaticBool(_, _) => {}
-                                Var::StaticRef(_) => {}
+                                Var::LocalInt(i1, i2) => ByteCode::WriteLocalInt(*i1,*i2),
+                                Var::LocalNum(i1, i2) => ByteCode::WriteLocalNum(*i1,*i2),
+                                Var::LocalChar(i1, i2) => ByteCode::WriteLocalChar(*i1,*i2),
+                                Var::LocalBool(i1, i2) => ByteCode::WriteLocalBool(*i1,*i2),
+                                Var::LocalRef(i) => ByteCode::WriteLocalRef(*i),
+                                Var::StaticInt(i1, i2) => ByteCode::WriteStaticInt(*i1,*i2),
+                                Var::StaticNum(i1, i2) => ByteCode::WriteLocalNum(*i1,*i2),
+                                Var::StaticChar(i1, i2) => ByteCode::WriteLocalChar(*i1,*i2),
+                                Var::StaticBool(i1, i2) => ByteCode::WriteLocalBool(*i1,*i2),
+                                Var::StaticRef(i) =>  ByteCode::WriteLocalRef(*i),
                                 _ => panic!()
-                            }
+                            };
                         }
-                        LeftValue::Chain(first_elem, chains) => match operation {
-                            LeftValueOp::Assign(expr) => {}
-                            LeftValueOp::PlusEq(expr) => {}
-                            LeftValueOp::SubEq(expr) => {}
-                            LeftValueOp::PlusOne => {}
-                            LeftValueOp::SubOne => {}
-                        },
+                        LeftValue::Chain(first_elem, chains) => {
+                            self.generate_expression(first_elem,context);
+                            // the last chain must be a field-access
+                            for chain in chains.as_slice()[0..chains.len()-1].iter() {
+                                self.generate_chain(chain,context);
+                            }
+                            let ((slot_idx,sub_idx),field_type) = if let Chain::Access(var_id,field_type) = chains.last().unwrap() {
+                                (var_id.index(),*field_type)
+                            }else{
+                                panic!()
+                            };
+                            if let LeftValueOp::Assign(_) = operation {
+                                // do nothing
+                            }else{
+                                // need read field and do some calculation before write field
+                                context.push(ByteCode::ReadField(slot_idx,sub_idx));
+                            }
+                            match operation {
+                                LeftValueOp::Assign(expr) => {
+                                    self.generate_expression(expr,context);
+                                }
+                                LeftValueOp::PlusEq(expr) => {
+                                    self.generate_expression(expr,context);
+                                    context.push(ByteCode::Plus);
+                                }
+                                LeftValueOp::SubEq(expr) => {
+                                    self.generate_expression(expr,context);
+                                    context.push(ByteCode::Sub);
+                                }
+                                LeftValueOp::PlusOne => {
+                                    context.push(ByteCode::LoadDirectInt(1));
+                                    context.push(ByteCode::Plus);
+                                }
+                                LeftValueOp::SubOne => {
+                                    context.push(ByteCode::LoadDirectInt(1));
+                                    context.push(ByteCode::Sub);
+                                }
+                            };
+                            let write_field_code = match field_type {
+                                BasicType::Int => ByteCode::WriteFieldInt(slot_idx,sub_idx),
+                                BasicType::Num => ByteCode::WriteFieldNum(slot_idx,sub_idx),
+                                BasicType::Char => ByteCode::WriteFieldChar(slot_idx,sub_idx),
+                                BasicType::Bool => ByteCode::WriteFieldBool(slot_idx,sub_idx),
+                                BasicType::Ref => ByteCode::WriteFieldRef(slot_idx),
+                            };
+                            context.push(write_field_code);
+                        }
                     }
                 }
                 Statement::Expr(expr, _) | Statement::Discard(expr, _) => {
@@ -165,7 +207,90 @@ impl CodeGenerator {
             }
         }
     }
-    fn generate_expression(&mut self, expr: &Expression, context: &mut GenerateContext) {}
+    fn generate_expression(&mut self, expr: &Expression, context: &mut GenerateContext) {
+        match expr {
+            Expression::None => {},
+            Expression::Int(i) => {
+                let code = if *i <= i32::MAX as i64 && *i >= i32::MIN as i64 {
+                    ByteCode::LoadDirectInt(*i as i32)
+                }else{
+                    let idx = self.constant_pool.int.len();
+                    self.constant_pool.int.push(*i);
+                    ByteCode::LoadConstInt(idx as u16)
+                };
+                context.push(code);
+            }
+            Expression::Num(n) => {
+                let code = if *n <= f32::MAX as f64 && *n >= f32::MIN as f64 {
+                    ByteCode::LoadDirectNum(*n as f32)
+                }else{
+                    let idx = self.constant_pool.num.len();
+                    self.constant_pool.num.push(*n);
+                    ByteCode::LoadConstNum(idx as u16)
+                };
+                context.push(code);
+            }
+            Expression::Char(ch) => {
+                context.push(ByteCode::LoadDirectChar(*ch));
+            }
+            Expression::Bool(bl) => {
+                context.push(ByteCode::LoadDirectBool(*bl));
+            }
+            Expression::Str(str) => {
+
+            }
+            Expression::Var(_) => {}
+            Expression::Tuple(_) => {}
+            Expression::Array(_) => {}
+            Expression::Construct(_) => {}
+            Expression::BinaryOp(_) => {}
+            Expression::Cast(_) => {}
+            Expression::NegOp(_) => {}
+            Expression::NotOp(_) => {}
+            Expression::IfElse(_) => {}
+            Expression::While(_) => {}
+            Expression::For(_) => {}
+            Expression::Match(_) => {}
+            Expression::Chain(_) => {}
+            Expression::Func(_) => {}
+        }
+    }
+    #[inline]
+    fn generate_chain(&mut self, chain : &Chain, context : &mut GenerateContext){
+        match chain {
+            Chain::Access(field,_) => {
+                let (slot_idx,sub_idx) = field.index();
+                context.push(ByteCode::ReadField(slot_idx,sub_idx));
+            }
+            Chain::FnCall{
+                func,
+                need_self,
+                args
+            } => {
+                for arg_expr in args.iter(){
+                    self.generate_expression(arg_expr,context);
+                }
+                let call_code = if *need_self {
+                    ByteCode::CallMethod {
+                        index: func.index().0,
+                        nargs: args.len() as u16
+                    }
+                }else {
+                    ByteCode::CallStaticFn {
+                        index: func.index().0,
+                        nargs: args.len() as u16
+                    }
+                };
+                context.push(call_code);
+            }
+            Chain::Call(args) => {
+                for arg_expr in args.iter(){
+                    self.generate_expression(arg_expr,context);
+                }
+                context.push(ByteCode::CallTopFn{ nargs: args.len() as u16 })
+            }
+        }
+    }
     pub fn new() -> Self {
         CodeGenerator {
             constant_pool: ConstantPool::new(),

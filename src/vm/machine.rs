@@ -3,10 +3,10 @@ use std::mem::ManuallyDrop;
 use std::rc::Rc;
 use crate::builtin::string::GloomString;
 use crate::bytecode::code::ByteCode;
-use crate::exec::static_table::StaticTable;
-use crate::exec::value::{GloomArgs, Value};
+use crate::vm::static_table::StaticTable;
+use crate::vm::value::{GloomArgs, Value};
 use crate::frontend::status::GloomStatus;
-use crate::obj::func::{GloomFunc, GloomFuncObj};
+use crate::obj::func::{FuncBody, GloomFunc, GloomFuncObj};
 use crate::obj::object::GloomObjRef;
 use crate::vm::constant::ConstantPool;
 use crate::vm::frame::{Frame, Operand};
@@ -31,18 +31,32 @@ impl GloomVM {
         }
     }
     pub fn call_fn(&self, func : &GloomFunc, args : GloomArgs) -> Operand{
-        let mut frame = Frame::new(func.info.stack_size, func.info.local_size);
-        frame.fill_args(&func.info.params,args);
-        let bytecodes = func.body.bytecodes();
-        self.interpret(bytecodes,&mut frame)
+        match &func.body {
+            FuncBody::Builtin(func) => {
+                func(self,args)
+            }
+            FuncBody::ByteCodes(bytecodes) => {
+                let mut frame = Frame::new(func.info.stack_size, func.info.local_size);
+                frame.fill_args(&func.info.params,args);
+                self.interpret(bytecodes,&mut frame)
+            }
+            unknown => panic!("unknown func body {:?} of {:?}",unknown,func)
+        }
     }
     pub fn call(&self, func_obj : &GloomFuncObj, args : GloomArgs) -> Operand {
         let func = func_obj.func.inner();
-        let mut frame = Frame::new(func.info.stack_size, func.info.local_size);
-        frame.fill_args(&func.info.params,args);
-        frame.fill_capture(&func.info.captures,&*func_obj.captures.borrow());
-        let bytecodes = func.body.bytecodes();
-        self.interpret(bytecodes,&mut frame)
+        match &func.body {
+            FuncBody::Builtin(func) => {
+                func(self,args)
+            }
+            FuncBody::ByteCodes(bytecodes) => {
+                let mut frame = Frame::new(func.info.stack_size, func.info.local_size);
+                frame.fill_args(&func.info.params,args);
+                frame.fill_capture(&func.info.captures,&*func_obj.captures.borrow());
+                self.interpret(bytecodes,&mut frame)
+            }
+            unknown => panic!("unknown func body {:?} of {:?}",unknown,func)
+        }
     }
 
     #[inline]
@@ -77,12 +91,14 @@ impl GloomVM {
                         *self.constant_pool.num.get(idx as usize).unwrap()
                     )));
                 }
-                ByteCode::LoadConstChar(ch) => {
+                ByteCode::LoadDirectChar(ch) => {
                     frame.push(Operand::Some(Value::Char(ch)))
                 }
-                ByteCode::LoadConstBool(bl) => {
+                ByteCode::LoadDirectBool(bl) => {
                     frame.push(Operand::Some(Value::Bool(bl)))
                 }
+
+                ByteCode::CopyTop => {}
                 ByteCode::LoadClass(_) => {}
                 ByteCode::LoadEnum(_) => {}
                 ByteCode::LoadBuiltinType(_) => {}
@@ -93,22 +109,39 @@ impl GloomVM {
                 ByteCode::WriteLocalBool(_, _) => {}
                 ByteCode::WriteLocalRef(_) => {}
                 ByteCode::ReadStatic(_, _) => {}
-                ByteCode::WriteStatic(_, _) => {}
+                ByteCode::WriteStaticInt(_, _) => {}
+                ByteCode::WriteStaticNum(_, _) => {}
+                ByteCode::WriteStaticChar(_, _) => {}
+                ByteCode::WriteStaticBool(_, _) => {}
+                ByteCode::WriteStaticRef(_) => {}
                 ByteCode::ReadField(_, _) => {}
-                ByteCode::WriteField(_, _) => {}
+                ByteCode::WriteFieldInt(_, _) => {}
+                ByteCode::WriteFieldNum(_, _) => {}
+                ByteCode::WriteFieldChar(_, _) => {}
+                ByteCode::WriteFieldBool(_, _) => {}
+                ByteCode::WriteFieldRef(_) => {}
                 ByteCode::DropLocal(_) => {}
-                ByteCode::BinaryOps(_) => {}
                 ByteCode::NotOp => {}
                 ByteCode::NegOp => {}
+                ByteCode::Plus => {}
+                ByteCode::Sub => {}
+                ByteCode::Mul => {}
+                ByteCode::Div => {}
+                ByteCode::GreaterThan => {}
+                ByteCode::LessThan => {}
+                ByteCode::GreaterThanEquals => {}
+                ByteCode::LessThanEquals => {}
+                ByteCode::Equals => {}
+                ByteCode::NotEquals => {}
+                ByteCode::LogicAnd => {}
+                ByteCode::LogicOr => {}
                 ByteCode::LoadDirectFn(_) => {}
                 ByteCode::CallTopFn { .. } => {}
                 ByteCode::CallStaticFn { .. } => {}
                 ByteCode::CallMethod { .. } => {}
                 ByteCode::JumpIf(_) => {}
-                ByteCode::Return => {}
-                ByteCode::CopyTop => {}
-
                 ByteCode::Jump(_) => {}
+                ByteCode::Return => {}
             }
         }
         result

@@ -3,12 +3,12 @@ use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 use crate::bytecode::code::ByteCode;
-use crate::exec::result::GloomResult;
-use crate::exec::value::{GloomArgs, Value};
+use crate::vm::value::{GloomArgs, Value};
 use crate::frontend::ast::Statement;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{BasicType, DataType, RefType};
+use crate::vm::frame::Operand;
 use crate::vm::machine::GloomVM;
 
 pub struct GloomFuncObj{
@@ -67,7 +67,7 @@ pub struct GloomFunc {
     pub body : FuncBody
 }
 
-pub type BuiltinFn = Rc<dyn Fn(&GloomVM,GloomArgs) -> GloomResult>;
+pub type BuiltinFn = Rc<dyn Fn(&GloomVM,GloomArgs) -> Operand>;
 
 impl GloomFunc {
     pub fn new(name : Rc<String>, file_index : u16, params : Vec<Param>, return_type : ReturnType, statements : Vec<Statement>) -> GloomFunc{

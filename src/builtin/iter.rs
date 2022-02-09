@@ -1,6 +1,6 @@
 use std::cell::Cell;
 use std::fmt::{Debug, Formatter};
-use crate::exec::value::Value;
+use crate::vm::value::Value;
 use crate::obj::object::GloomObjRef;
 
 pub struct GloomIter {

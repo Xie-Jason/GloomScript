@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
 use hashbrown::HashMap;
-use crate::exec::value::Value;
+use crate::vm::value::Value;
 use crate::frontend::ast::{Statement};
 use crate::obj::func::{FuncBody, FuncInfo, GloomFunc, Param, ReturnType};
 use crate::obj::gloom_class::IsPub;

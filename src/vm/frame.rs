@@ -1,5 +1,5 @@
 use std::mem::ManuallyDrop;
-use crate::exec::value::{GloomArgs, Value};
+use crate::vm::value::{GloomArgs, Value};
 use crate::obj::func::{Capture, Param};
 use crate::obj::object::GloomObjRef;
 use crate::obj::slot::Slot;

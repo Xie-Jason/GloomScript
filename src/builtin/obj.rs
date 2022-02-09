@@ -2,7 +2,7 @@ use std::any::Any;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use crate::builtin::classes::BuiltinClass;
-use crate::exec::value::Value;
+use crate::vm::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::vm::machine::GloomVM;
@@ -24,7 +24,7 @@ impl Object for BuiltinClassObj {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn drop_by_vm(&self, vm: &GloomVM, rf: &GloomObjRef) {}
+    fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
 
     fn at(&self, _ : &mut usize) -> Option<Value> {
         panic!()

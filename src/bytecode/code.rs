@@ -1,4 +1,3 @@
-use crate::frontend::ops::BinOp;
 
 #[derive(Debug, Copy, Clone)]
 pub enum ByteCode {
@@ -10,8 +9,8 @@ pub enum ByteCode {
     LoadDirectInt(i32),
     LoadDirectNum(f32),
     LoadConstNum(u16),
-    LoadConstChar(char),
-    LoadConstBool(bool),
+    LoadDirectChar(char),
+    LoadDirectBool(bool),
 
     LoadClass(u16),
     LoadEnum(u16),
@@ -26,19 +25,41 @@ pub enum ByteCode {
     WriteLocalRef(u16),
 
     ReadStatic(u16, u8),
-    WriteStatic(u16, u8),
+
+    WriteStaticInt(u16, u8),
+    WriteStaticNum(u16, u8),
+    WriteStaticChar(u16, u8),
+    WriteStaticBool(u16, u8),
+    WriteStaticRef(u16),
 
     ReadField(u16, u8),
-    WriteField(u16, u8),
+
+    WriteFieldInt(u16, u8),
+    WriteFieldNum(u16, u8),
+    WriteFieldChar(u16, u8),
+    WriteFieldBool(u16, u8),
+    WriteFieldRef(u16),
 
     DropLocal(u16),
-    BinaryOps(BinOp),
     NotOp,
     NegOp,
 
+    Plus,
+    Sub,
+    Mul,
+    Div,
+    GreaterThan,
+    LessThan,
+    GreaterThanEquals,
+    LessThanEquals,
+    Equals,
+    NotEquals,
+    LogicAnd,
+    LogicOr,
+
     LoadDirectFn(u16),
 
-    CallTopFn { index: u16, nargs: u16 }, // call the func obj of stack top 调用栈顶的函数对象
+    CallTopFn { nargs: u16 }, // call the func obj of stack top 调用栈顶的函数对象
     CallStaticFn { index: u16, nargs: u16 },
     CallMethod { index: u16, nargs: u16 },
 
@@ -58,8 +79,8 @@ impl ByteCode {
             | ByteCode::LoadConstNum(_)
             | ByteCode::LoadDirectInt(_)
             | ByteCode::LoadDirectNum(_)
-            | ByteCode::LoadConstChar(_)
-            | ByteCode::LoadConstBool(_)
+            | ByteCode::LoadDirectChar(_)
+            | ByteCode::LoadDirectBool(_)
             | ByteCode::LoadClass(_)
             | ByteCode::LoadEnum(_)
             | ByteCode::ReadStatic(_, _)
@@ -74,23 +95,39 @@ impl ByteCode {
             | ByteCode::WriteLocalChar(_, _)
             | ByteCode::WriteLocalBool(_, _)
             | ByteCode::WriteLocalRef(_)
-            | ByteCode::WriteStatic(_, _)
-            | ByteCode::WriteField(_, _)
-            | ByteCode::BinaryOps(_) => -1,
+            | ByteCode::WriteStaticInt(_, _)
+            | ByteCode::WriteStaticNum(_, _)
+            | ByteCode::WriteStaticChar(_, _)
+            | ByteCode::WriteStaticBool(_, _)
+            | ByteCode::WriteStaticRef(_)
+            | ByteCode::WriteFieldInt(_, _)
+            | ByteCode::WriteFieldNum(_, _)
+            | ByteCode::WriteFieldChar(_, _)
+            | ByteCode::WriteFieldBool(_, _)
+            | ByteCode::WriteFieldRef(_) => -1,
 
             ByteCode::JumpIf(_) => -1,
 
-            ByteCode::Jump(_)
-            | ByteCode::DropLocal(_)
-            | ByteCode::NotOp
-            | ByteCode::NegOp => 0,
+            ByteCode::Jump(_) | ByteCode::DropLocal(_) | ByteCode::NotOp | ByteCode::NegOp => 0,
 
-            ByteCode::CallTopFn { index: _, nargs }
+            ByteCode::CallTopFn { nargs }
             | ByteCode::CallStaticFn { index: _, nargs }
-            | ByteCode::CallMethod { index: _, nargs } => - (nargs as i8),
+            | ByteCode::CallMethod { index: _, nargs } => -(nargs as i8),
 
             ByteCode::Return => 0,
 
+            ByteCode::Plus
+            | ByteCode::Sub
+            | ByteCode::Mul
+            | ByteCode::Div
+            | ByteCode::GreaterThan
+            | ByteCode::LessThan
+            | ByteCode::GreaterThanEquals
+            | ByteCode::LessThanEquals
+            | ByteCode::Equals
+            | ByteCode::NotEquals
+            | ByteCode::LogicAnd
+            | ByteCode::LogicOr => -1,
         }
     }
 }

@@ -1,4 +1,4 @@
-use crate::exec::value::{GloomArgs, Value};
+use crate::vm::value::{GloomArgs, Value};
 use crate::obj::gloom_class::GloomClass;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;

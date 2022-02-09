@@ -1,10 +1,10 @@
 use std::rc::Rc;
 use hashbrown::HashMap;
 use crate::builtin::classes::BuiltinClass;
-use crate::exec::result::GloomResult;
 use crate::obj::func::{GloomFunc, GloomFuncObj, Param, ReturnType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
+use crate::vm::frame::Operand;
 
 pub fn gloom_func_class() -> BuiltinClass{
     let mut map = HashMap::new();
@@ -22,7 +22,7 @@ pub fn gloom_func_class() -> BuiltinClass{
             Rc::new(|_ , mut args| {
                 let obj_ref = args.vec.pop().unwrap().assert_into_ref();
                 println!("{:?}", obj_ref.downcast::<GloomFuncObj>().func.inner().body);
-                GloomResult::ReturnVoid
+                Operand::Void
             })
         )
     ));

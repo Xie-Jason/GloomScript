@@ -12,7 +12,6 @@ use crate::vm::machine::GloomVM;
 mod obj;
 mod frontend;
 mod builtin;
-mod exec;
 mod bytecode;
 mod vm;
 

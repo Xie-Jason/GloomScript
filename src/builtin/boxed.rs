@@ -2,7 +2,7 @@ use std::any::Any;
 use std::cell::Cell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
-use crate::exec::value::Value;
+use crate::vm::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::vm::machine::GloomVM;
 

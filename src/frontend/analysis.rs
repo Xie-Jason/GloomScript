@@ -2,29 +2,31 @@ use std::borrow::{Borrow, BorrowMut};
 use std::ops::{Add, Deref, DerefMut};
 use std::option::Option::Some;
 use std::rc::Rc;
-use hashbrown::hash_map::{Entry};
+
+use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
+
 use crate::{
-    exec::static_table::StaticTable,
-    builtin::funcs::{BuiltInFuncs, IsBuiltIn},
     builtin::classes::BuiltinClass,
+    builtin::funcs::{BuiltInFuncs, IsBuiltIn},
     frontend::{
         ast::*,
         index::SlotIndexer,
         ops::BinOpType,
         script::{ParsedFile, ScriptBody},
-        status::{GloomStatus, TypeIndex, MetaType}
+        status::{GloomStatus, MetaType, TypeIndex}
     },
     obj::func::{Capture, FuncBody, GloomFunc, Param, ReturnType},
     obj::gloom_class::{GloomClass, IsPub},
     obj::gloom_enum::GloomEnumClass,
-    obj::refcount::RefCount,
     obj::interface::{AbstractFunc, Interface},
+    obj::refcount::RefCount,
     obj::types::{BreakType, BuiltinType, DataType, DeclaredType, RefType}
 };
 use crate::frontend::ast::BlockType;
 use crate::frontend::ops::LeftValueOp;
 use crate::obj::func::FuncInfo;
+use crate::vm::static_table::StaticTable;
 
 pub struct Analyzer{
     status : GloomStatus,

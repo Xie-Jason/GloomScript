@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::slice::Iter;
 use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
-use crate::exec::value::Value;
+use crate::vm::value::Value;
 use crate::frontend::ast::{Statement};
 use crate::frontend::index::SlotIndexer;
 use crate::obj::func::{GloomFunc, Param, ReturnType};
