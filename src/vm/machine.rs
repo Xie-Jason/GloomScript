@@ -74,9 +74,7 @@ impl GloomVM {
                 },
                 ByteCode::LoadConstString(idx) => {
                     frame.push(Operand::Some(Value::Ref(
-                        GloomObjRef::new(Rc::new(GloomString(RefCell::new(
-                            String::clone(self.constant_pool.str.get(idx as usize).unwrap())
-                        ))))
+                        self.constant_pool.str.get(idx as usize).unwrap().clone()
                     )));
                 }
                 ByteCode::LoadDirectInt(_) => {}
@@ -135,13 +133,16 @@ impl GloomVM {
                 ByteCode::NotEquals => {}
                 ByteCode::LogicAnd => {}
                 ByteCode::LogicOr => {}
-                ByteCode::LoadDirectFn(_) => {}
+                ByteCode::LoadDirectDefFn(_) => {}
                 ByteCode::CallTopFn { .. } => {}
                 ByteCode::CallStaticFn { .. } => {}
                 ByteCode::CallMethod { .. } => {}
                 ByteCode::JumpIf(_) => {}
                 ByteCode::Jump(_) => {}
                 ByteCode::Return => {}
+                ByteCode::CollectTuple(_) => {}
+                ByteCode::CollectArray(_, _) => {}
+                ByteCode::CollectQueue(_, _) => {}
             }
         }
         result

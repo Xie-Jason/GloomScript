@@ -23,6 +23,7 @@ pub struct GloomClass{
     pub field_indexer : SlotIndexer,
     pub funcs : Vec<RefCount<GloomFunc>>,
     pub file_index : u16,
+    pub class_index : u16,
     pub field_count : u16,
     pub fn_drop_idx : u16,
 }
@@ -30,7 +31,7 @@ pub type IsMemFunc = bool;
 pub type IsPub = bool;
 
 impl GloomClass {
-    pub fn new(class_name : Rc<String>, file_index : u16) -> GloomClass{
+    pub fn new(class_name : Rc<String>, file_index : u16, class_index : u16) -> GloomClass{
         GloomClass{
             name: class_name,
             parent: Option::None,
@@ -40,7 +41,8 @@ impl GloomClass {
             file_index,
             field_indexer: SlotIndexer::new(),
             fn_drop_idx: u16::MAX,
-            field_count: 0
+            field_count: 0,
+            class_index,
         }
     }
 

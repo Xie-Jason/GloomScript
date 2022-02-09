@@ -1,3 +1,4 @@
+use crate::obj::types::BasicType;
 
 #[derive(Debug, Copy, Clone)]
 pub enum ByteCode {
@@ -57,20 +58,27 @@ pub enum ByteCode {
     LogicAnd,
     LogicOr,
 
-    LoadDirectFn(u16),
+    LoadDirectDefFn(u16),
 
     CallTopFn { nargs: u16 }, // call the func obj of stack top 调用栈顶的函数对象
     CallStaticFn { index: u16, nargs: u16 },
     CallMethod { index: u16, nargs: u16 },
 
+    CollectTuple(u16),
+    CollectArray(BasicType,u16),
+    CollectQueue(BasicType,u16),
+
+    Construct(u16),
+
     JumpIf(u32),
+    JumpIfNot(u32),
     Jump(u32),
     Return,
 }
 
 impl ByteCode {
     #[inline]
-    pub fn stack_affect(self) -> i8 {
+    pub fn stack_affect(self) -> i16 {
         match self {
             ByteCode::Pop => -1,
 
@@ -86,7 +94,7 @@ impl ByteCode {
             | ByteCode::ReadStatic(_, _)
             | ByteCode::LoadBuiltinType(_)
             | ByteCode::ReadField(_, _)
-            | ByteCode::LoadDirectFn(_)
+            | ByteCode::LoadDirectDefFn(_)
             | ByteCode::ReadLocal(_, _)
             | ByteCode::CopyTop => 1,
 
@@ -106,13 +114,14 @@ impl ByteCode {
             | ByteCode::WriteFieldBool(_, _)
             | ByteCode::WriteFieldRef(_) => -1,
 
-            ByteCode::JumpIf(_) => -1,
+            ByteCode::JumpIf(_)
+            | ByteCode::JumpIfNot(_) => 0,
 
             ByteCode::Jump(_) | ByteCode::DropLocal(_) | ByteCode::NotOp | ByteCode::NegOp => 0,
 
             ByteCode::CallTopFn { nargs }
             | ByteCode::CallStaticFn { index: _, nargs }
-            | ByteCode::CallMethod { index: _, nargs } => -(nargs as i8),
+            | ByteCode::CallMethod { index: _, nargs } => -(nargs as i16),
 
             ByteCode::Return => 0,
 
@@ -128,6 +137,12 @@ impl ByteCode {
             | ByteCode::NotEquals
             | ByteCode::LogicAnd
             | ByteCode::LogicOr => -1,
+
+            ByteCode::CollectTuple(i)
+            | ByteCode::CollectArray(_,i)
+            | ByteCode::CollectQueue(_,i) => - (i as i16),
+
+            ByteCode::Construct(_) => 1,
         }
     }
 }

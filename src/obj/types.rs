@@ -398,6 +398,7 @@ impl Display for BreakType {
 }
 
 #[derive(Copy,Clone)]
+#[repr(u8)]
 pub enum BasicType{
     Int,
     Num,

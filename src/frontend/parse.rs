@@ -387,7 +387,7 @@ impl Parser {
                                 let field_name = self.identifier();
                                 self.assert_next(Token::Colon);
                                 let expr = self.expr()?;
-                                fields.push((VarId::Name(field_name),expr));
+                                fields.push((VarId::Name(field_name),BasicType::Ref,expr));
                             }
                         }
                     }

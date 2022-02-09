@@ -794,7 +794,7 @@ impl Analyzer {
                     panic!("{} the fields of class have {}, found {} in the construction list",
                            context.info(),class.field_count,construction.fields.len())
                 }
-                for (var, expr) in construction.fields.iter_mut() {
+                for (var, field_basic_type, expr) in construction.fields.iter_mut() {
                     let field_name = var.name();
                     match class.map.get(field_name.as_str()) {
                         Some((slot_idx,sub_idx,is_pub,is_fn)) => {
@@ -805,6 +805,7 @@ impl Analyzer {
                                 }else{
                                     let expr_type = self.deduce_type(expr, context);
                                     let field_type = class.field_indexer.get_type(*slot_idx);
+                                    *field_basic_type = field_type.as_basic();
                                     if expr_type.belong_to(field_type) {
                                         *var = VarId::Index(*slot_idx,*sub_idx);
                                     }else{
@@ -1581,7 +1582,7 @@ impl Analyzer {
                 }
                 Entry::Occupied(_) => panic!("Type name {} already occupied",class.name)
             };
-            self.status.classes.push(RefCount::new(GloomClass::new(class.name.clone(), file_index)));
+            self.status.classes.push(RefCount::new(GloomClass::new(class.name.clone(), file_index,index as u16)));
         }
         // load empty enum
         for (enum_class, is_pub) in script.enums.iter() {
