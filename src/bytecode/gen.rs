@@ -350,6 +350,10 @@ impl CodeGenerator {
                     // if condition is true, execute orderly, or if false, jump to next condition judge
                     context.push(ByteCode::JumpIfNot(Self::INVALID_LABEL));
                     self.generate_statements(&branch.statements,context);
+                    // Drop所有的Slot::Ref drop all the Slot::Ref
+                    for slot_idx in branch.drop_vec.iter() {
+                        context.push(ByteCode::DropLocal(*slot_idx));
+                    }
 
                     // 执行完某一个分支，应当跳转到这一系列 if/elseif 分支的末尾
                     // should jump to the end index of this a series of if/elseif branch after execution in a branch
