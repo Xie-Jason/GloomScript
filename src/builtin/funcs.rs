@@ -4,7 +4,7 @@ use crate::obj::func::{GloomFunc, Param, ReturnType};
 use crate::obj::gloom_class::IsPub;
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
-use crate::vm::frame::Operand;
+use crate::vm::value::Value;
 
 pub struct BuiltInFuncs;
 
@@ -23,7 +23,7 @@ impl BuiltInFuncs {
             Rc::new(|_,mut args| {
                 let obj = args.vec.pop().unwrap().assert_into_ref();
                 println!("{:?}",obj);
-                Operand::Void
+                Value::None
             })
         ))
     }

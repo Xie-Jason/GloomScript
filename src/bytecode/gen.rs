@@ -119,12 +119,10 @@ impl CodeGenerator {
                                     context.push(ByteCode::Sub);
                                 }
                                 LeftValueOp::PlusOne => {
-                                    context.push(ByteCode::LoadDirectInt(1));
-                                    context.push(ByteCode::Plus);
+                                    context.push(ByteCode::PlusOne);
                                 }
                                 LeftValueOp::SubOne => {
-                                    context.push(ByteCode::LoadDirectInt(1));
-                                    context.push(ByteCode::Sub);
+                                    context.push(ByteCode::SubOne);
                                 }
                             }
                             match var {
@@ -172,12 +170,10 @@ impl CodeGenerator {
                                     context.push(ByteCode::Sub);
                                 }
                                 LeftValueOp::PlusOne => {
-                                    context.push(ByteCode::LoadDirectInt(1));
-                                    context.push(ByteCode::Plus);
+                                    context.push(ByteCode::PlusOne);
                                 }
                                 LeftValueOp::SubOne => {
-                                    context.push(ByteCode::LoadDirectInt(1));
-                                    context.push(ByteCode::Sub);
+                                    context.push(ByteCode::SubOne);
                                 }
                             };
                             let write_field_code = match field_type {

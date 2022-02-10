@@ -1,7 +1,6 @@
 pub mod refcount;
 pub mod weak;
 pub mod gloom_class;
-pub mod slot;
 pub mod object;
 pub mod types;
 pub mod gloom_enum;

@@ -1,7 +1,8 @@
 use std::mem::ManuallyDrop;
 use crate::obj::object::GloomObjRef;
-use crate::obj::slot::Slot;
+use crate::vm::slot::Slot;
 use crate::obj::table::Table;
+use crate::vm::value::Value;
 
 pub struct StaticTable{
     pub len : u16,
@@ -24,6 +25,18 @@ impl StaticTable {
         }
     }
     #[inline(always)]
+    pub fn read(&self, slot_idx : u16, sub_idx : u8) -> Value{
+        let sub_idx = sub_idx as usize;
+        match self.table.slot(slot_idx) {
+            Slot::Null => Value::None,
+            Slot::Int(int) => Value::Int(int[sub_idx]),
+            Slot::Num(num) => Value::Num(num[sub_idx]),
+            Slot::Char(ch) => Value::Char(ch[sub_idx]),
+            Slot::Bool(bl) => Value::Bool(bl[sub_idx]),
+            Slot::Ref(rf) => Value::Ref(GloomObjRef::clone(rf))
+        }
+    }
+    /*#[inline(always)]
     pub fn read_int(&self, slot_idx : u16, sub_idx : u8) -> i64{
         self.table.slot(slot_idx).get_int(sub_idx)
     }
@@ -43,6 +56,7 @@ impl StaticTable {
     pub fn read_ref(&self, slot_idx : u16) -> &GloomObjRef {
         self.table.slot(slot_idx).get_ref()
     }
+   */
     #[inline(always)]
     pub fn write_int(&self, slot_idx : u16, sub_idx : u8, int : i64){
         self.table.slot_mut(slot_idx).set_int(sub_idx,int)

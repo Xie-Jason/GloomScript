@@ -2,11 +2,12 @@ use std::mem::ManuallyDrop;
 use crate::vm::value::{GloomArgs, Value};
 use crate::obj::func::{Capture, Param};
 use crate::obj::object::GloomObjRef;
-use crate::obj::slot::Slot;
+use crate::vm::slot::Slot;
 use crate::obj::types::{BasicType, DataType};
+use crate::vm::machine::GloomVM;
 
 pub struct Frame{
-    stack : Vec<Operand>,
+    stack : Vec<Value>,
     local : Box<[Slot]>
 }
 
@@ -68,15 +69,37 @@ impl Frame {
         }
     }
     #[inline(always)]
-    pub fn pop(&mut self) -> Operand {
+    pub fn pop(&mut self) -> Value {
         self.stack.pop().unwrap()
     }
     #[inline(always)]
-    pub fn push(&mut self, operand : Operand){
-        self.stack.push(operand);
+    pub fn push(&mut self, val : Value){
+        self.stack.push(val);
+    }
+
+    #[inline(always)]
+    pub fn top(&self) -> &Value{
+        self.stack.last().unwrap()
+    }
+
+    #[inline(always)]
+    pub fn top_mut(&mut self) -> &mut Value{
+        self.stack.last_mut().unwrap()
     }
 
     #[inline]
+    pub fn drop_local(&mut self, vm : &GloomVM, slot_idx : u16){
+        let slot = self.local.get_mut(slot_idx as usize).unwrap().replace(Slot::Null);
+        match slot {
+            Slot::Null => {}
+            Slot::Ref(rf) => {
+                vm.drop_object_manually(rf);
+            }
+            slot => panic!("{:?}",slot)
+        }
+    }
+
+    /*#[inline]
     pub fn read_int(&self, slot_idx : u16, sub_idx : u8) -> i64{
         self.local[slot_idx as usize].get_int(sub_idx)
     }
@@ -95,7 +118,7 @@ impl Frame {
     #[inline]
     pub fn read_ref(&self, slot_idx : u16) -> GloomObjRef{
         self.local[slot_idx as usize].get_ref().clone()
-    }
+    }*/
     #[inline]
     pub fn read(&self, slot_idx : u16, sub_idx : u8) -> Value{
         match &self.local[slot_idx as usize] {

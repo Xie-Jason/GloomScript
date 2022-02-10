@@ -49,6 +49,10 @@ pub enum ByteCode {
     Sub,
     Mul,
     Div,
+
+    PlusOne,
+    SubOne,
+
     GreaterThan,
     LessThan,
     GreaterThanEquals,
@@ -154,6 +158,9 @@ impl ByteCode {
             | ByteCode::NotEquals
             | ByteCode::LogicAnd
             | ByteCode::LogicOr => -1,
+
+            ByteCode::PlusOne
+            | ByteCode::SubOne => 0,
 
             ByteCode::CollectTuple(i)
             | ByteCode::CollectArray(_,i)

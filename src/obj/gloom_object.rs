@@ -2,7 +2,7 @@ use crate::vm::value::{GloomArgs, Value};
 use crate::obj::gloom_class::GloomClass;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
-use crate::obj::slot::Slot;
+use crate::vm::slot::Slot;
 use crate::obj::table::Table;
 use crate::obj::types::BasicType;
 use std::any::Any;
@@ -59,60 +59,42 @@ impl GloomObject {
             class,
         }
     }
-    #[inline(always)]
-    pub fn read_field(&self, slot_idx: u16, sub_idx: u8, field_type: BasicType) -> Value {
-        match field_type {
-            BasicType::Int => Value::Int(self.table.slot(slot_idx).get_int(sub_idx)),
-            BasicType::Num => Value::Num(self.table.slot(slot_idx).get_num(sub_idx)),
-            BasicType::Char => Value::Char(self.table.slot(slot_idx).get_char(sub_idx)),
-            BasicType::Bool => Value::Bool(self.table.slot(slot_idx).get_bool(sub_idx)),
-            BasicType::Ref => Value::Ref(self.table.slot(slot_idx).get_ref().clone()),
+
+    #[inline]
+    pub fn read_field(&self, slot_idx: u16, sub_idx: u8) -> Value{
+        let sub_idx = sub_idx as usize;
+        match self.table.slot(slot_idx) {
+            Slot::Null => Value::None,
+            Slot::Int(int) => Value::Int(int[sub_idx]),
+            Slot::Num(num) => Value::Num(num[sub_idx]),
+            Slot::Char(ch) => Value::Char(ch[sub_idx]),
+            Slot::Bool(bl) => Value::Bool(bl[sub_idx]),
+            Slot::Ref(rf) => Value::Ref(GloomObjRef::clone(rf))
         }
     }
-    #[inline(always)]
-    pub fn write_field(
-        &self,
-        slot_idx: u16,
-        sub_idx: u8,
-        field: Value,
-        field_type: BasicType,
-    ) -> Option<ManuallyDrop<GloomObjRef>> {
-        match field_type {
-            BasicType::Int => {
-                self.table
-                    .slot_mut(slot_idx)
-                    .set_int(sub_idx, field.assert_int_include_num());
-                Option::None
-            }
-            BasicType::Num => {
-                self.table
-                    .slot_mut(slot_idx)
-                    .set_num(sub_idx, field.assert_num_include_int());
-                Option::None
-            }
-            BasicType::Char => {
-                self.table
-                    .slot_mut(slot_idx)
-                    .set_char(sub_idx, field.assert_char());
-                Option::None
-            }
-            BasicType::Bool => {
-                self.table
-                    .slot_mut(slot_idx)
-                    .set_bool(sub_idx, field.assert_bool());
-                Option::None
-            }
-            BasicType::Ref => {
-                let slot = self
-                    .table
-                    .slot_mut(slot_idx)
-                    .replace(Slot::Ref(ManuallyDrop::new(field.assert_into_ref())));
-                match slot {
-                    Slot::Null => Option::None,
-                    Slot::Ref(rf) => Option::Some(rf),
-                    _ => panic!(),
-                }
-            }
+
+    #[inline]
+    pub fn write_field_int(&self, slot_idx : u16, sub_idx : u8, val : i64){
+        self.table.slot_mut(slot_idx).set_int(sub_idx,val);
+    }
+    #[inline]
+    pub fn write_field_num(&self, slot_idx : u16, sub_idx : u8, val : f64){
+        self.table.slot_mut(slot_idx).set_num(sub_idx,val);
+    }
+    #[inline]
+    pub fn write_field_char(&self, slot_idx : u16, sub_idx : u8, val : char){
+        self.table.slot_mut(slot_idx).set_char(sub_idx,val);
+    }
+    #[inline]
+    pub fn write_field_bool(&self, slot_idx : u16, sub_idx : u8, val : bool){
+        self.table.slot_mut(slot_idx).set_bool(sub_idx,val);
+    }
+    #[inline]
+    pub fn write_field_ref(&self, slot_idx : u16, val : GloomObjRef) -> Option<ManuallyDrop<GloomObjRef>> {
+        match self.table.slot_mut(slot_idx).replace(Slot::Ref(ManuallyDrop::new(val))) {
+            Slot::Ref(rf) => Option::Some(rf),
+            Slot::Null => Option::None,
+            slot => panic!("{:?}",slot)
         }
     }
 }
@@ -130,10 +112,9 @@ impl Debug for GloomObject {
         string.push_str(" { ");
         for (name, (slot_idx, sub_idx, _ , is_fn)) in class.map.iter() {
             if ! *is_fn {
-                let field_type = class.field_indexer.get_type(*slot_idx).as_basic();
                 string.push_str(name.as_str());
                 string.push_str(" : ");
-                string.push_str(format!("{:?}",self.read_field(*slot_idx,*sub_idx,field_type)).as_str());
+                string.push_str(format!("{:?}",self.read_field(*slot_idx,*sub_idx)).as_str());
                 string.push_str(" , ");
             }
         }

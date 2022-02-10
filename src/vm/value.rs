@@ -10,6 +10,7 @@ pub enum Value{
     Char(char),
     Bool(bool),
     Ref(GloomObjRef),
+    None
 }
 
 impl Debug for Value{
@@ -19,7 +20,8 @@ impl Debug for Value{
             Value::Num(i) => write!(f,"{}",i),
             Value::Char(i) => write!(f,"'{}'",i),
             Value::Bool(i) => write!(f,"{}",i),
-            Value::Ref(rf) => write!(f,"{:?}",rf)
+            Value::Ref(rf) => write!(f,"{:?}",rf),
+            Value::None => write!(f,"none")
         }
     }
 }
@@ -159,6 +161,15 @@ impl Value {
         self.as_bool().unwrap()
     }
 
+    #[inline]
+    pub fn as_ref(&self) -> &GloomObjRef{
+        if let Value::Ref(rf) = self {
+            rf
+        }else{
+            panic!()
+        }
+    }
+
     #[inline(always)]
     pub fn into_ref(self) -> Option<GloomObjRef>{
         match self {
@@ -167,6 +178,7 @@ impl Value {
             Value::Char(i) => Option::Some(GloomChar::new(i)),
             Value::Bool(i) => Option::Some(GloomBool::new(i)),
             Value::Ref(obj) => Option::Some(obj),
+            Value::None => Option::None
         }
     }
     #[inline(always)]
@@ -174,7 +186,49 @@ impl Value {
         self.into_ref().unwrap()
     }
 
-    #[inline(always)]
+    #[inline]
+    pub fn not(&mut self){
+        match self {
+            Value::Bool(bl) => {
+                *bl = ! *bl;
+            }
+            Value::Ref(rf) => {
+                if let ObjectType::Bool = rf.obj_type() {
+                    let bl = rf.downcast::<GloomBool>();
+                    bl.0.set(! bl.0.get());
+                }
+            }
+            _ => panic!()
+        }
+    }
+
+    #[inline]
+    pub fn neg(&mut self){
+        match self {
+            Value::Int(i) => {
+                *i = - *i;
+            }
+            Value::Num(n) => {
+                *n = - *n;
+            }
+            Value::Ref(rf) => {
+                match rf.obj_type() {
+                    ObjectType::Int => {
+                        let i = rf.downcast::<GloomInt>();
+                        i.0.set(i.0.get());
+                    }
+                    ObjectType::Num => {
+                        let n = rf.downcast::<GloomNum>();
+                        n.0.set(n.0.get());
+                    }
+                    _ => panic!()
+                }
+            }
+            _ => panic!()
+        }
+    }
+
+    #[inline]
     pub fn plus(&mut self,val : Value){
         match self {
             Value::Int(int) => {
@@ -201,7 +255,7 @@ impl Value {
             _ => panic!()
         }
     }
-    #[inline(always)]
+    #[inline]
     pub fn sub(&mut self,val : Value){
         match self {
             Value::Int(int) => {
@@ -228,7 +282,7 @@ impl Value {
             _ => panic!()
         }
     }
-    #[inline(always)]
+    #[inline]
     pub fn plus_one(&mut self){
         match self {
             Value::Int(int) => {
@@ -255,7 +309,7 @@ impl Value {
             _ => panic!()
         }
     }
-    #[inline(always)]
+    #[inline]
     pub fn sub_one(&mut self){
         match self {
             Value::Int(int) => {
@@ -283,7 +337,7 @@ impl Value {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn equals(&self, other : Value) -> bool{
         match self {
             Value::Int(int) => *int == other.assert_int_include_num(),
@@ -299,10 +353,11 @@ impl Value {
                     _ => rf.addr_eqs(&other.assert_into_ref())
                 }
             }
+            Value::None => false
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn greater_than(&self, other : Value) -> bool{
         match self {
             Value::Int(int) => *int > other.assert_int_include_num(),
@@ -318,7 +373,7 @@ impl Value {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn less_than(&self, other : Value) -> bool{
         match self {
             Value::Int(int) => *int < other.assert_int_include_num(),
@@ -334,7 +389,7 @@ impl Value {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn greater_equal(&self, other : Value) -> bool{
         match self {
             Value::Int(int) => *int >= other.assert_int_include_num(),
@@ -350,7 +405,7 @@ impl Value {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn less_equal(&self, other : Value) -> bool{
         match self {
             Value::Int(int) => *int <= other.assert_int_include_num(),
@@ -366,7 +421,7 @@ impl Value {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn multiply(&mut self, other : Value){
         match self {
             Value::Int(int) => *int = *int * other.assert_int_include_num(),

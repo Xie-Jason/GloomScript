@@ -5,6 +5,7 @@ use crate::obj::func::{GloomFunc, GloomFuncObj, Param, ReturnType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
 use crate::vm::frame::Operand;
+use crate::vm::value::Value;
 
 pub fn gloom_func_class() -> BuiltinClass{
     let mut map = HashMap::new();
@@ -22,7 +23,7 @@ pub fn gloom_func_class() -> BuiltinClass{
             Rc::new(|_ , mut args| {
                 let obj_ref = args.vec.pop().unwrap().assert_into_ref();
                 println!("{:?}", obj_ref.downcast::<GloomFuncObj>().func.inner().body);
-                Operand::Void
+                Value::None
             })
         )
     ));

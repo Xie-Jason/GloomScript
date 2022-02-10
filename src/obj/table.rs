@@ -2,7 +2,7 @@ use std::alloc::{Layout};
 use std::alloc;
 use std::mem::{ManuallyDrop, MaybeUninit};
 use crate::obj::object::GloomObjRef;
-use crate::obj::slot::Slot;
+use crate::vm::slot::Slot;
 
 pub struct Table {
     ptr : *mut MaybeUninit<Slot>,

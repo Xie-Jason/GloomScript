@@ -10,7 +10,6 @@ use crate::obj::func::{GloomFunc, Param, ReturnType};
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
-use crate::vm::frame::Operand;
 use crate::vm::machine::GloomVM;
 
 pub struct GloomString(pub RefCell<String>);
@@ -131,9 +130,9 @@ pub fn gloom_string_class() -> BuiltinClass{
             let other_ref = iter.next().unwrap().assert_into_ref();
             let other = other_ref.downcast::<GloomString>();
             string.push_str(other.0.borrow().as_str());
-            Operand::Some(Value::Ref(
+            Value::Ref(
                 GloomString::new(string)
-            ))
+            )
         })
     )));
     map.insert(String::from("append"),0);
