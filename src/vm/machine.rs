@@ -142,6 +142,11 @@ impl GloomVM {
                 ByteCode::CollectQueue(_, _) => {}
                 ByteCode::Construct(_) => {}
                 ByteCode::JumpIfNot(_) => {}
+                ByteCode::LoadNamelessFn(_) => {}
+                ByteCode::RangeIter => {}
+                ByteCode::InvokeIter => {}
+                ByteCode::InvokeNext => {}
+                ByteCode::JumpIfNone(_) => {}
             }
         }
         result

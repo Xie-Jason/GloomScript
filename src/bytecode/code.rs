@@ -59,6 +59,7 @@ pub enum ByteCode {
     LogicOr,
 
     LoadDirectDefFn(u16),
+    LoadNamelessFn(u16),
 
     // the arg of fn call is reversed, the first popped value if the last arg
     // pop the fn obj of stack top and call it, push result
@@ -109,6 +110,7 @@ impl ByteCode {
             | ByteCode::LoadBuiltinType(_)
             | ByteCode::ReadField(_, _)
             | ByteCode::LoadDirectDefFn(_)
+            | ByteCode::LoadNamelessFn(_)
             | ByteCode::ReadLocal(_, _)
             | ByteCode::CopyTop => 1,
 

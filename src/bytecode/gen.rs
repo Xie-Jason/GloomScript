@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use crate::builtin::string::GloomString;
 use crate::bytecode::code::ByteCode;
-use crate::frontend::ast::{Chain, Expression, ExprType, ForIter, LeftValue, Statement, Var};
+use crate::frontend::ast::{Chain, Expression, ExprType, ForIter, FuncExpr, LeftValue, Statement, Var};
 use crate::frontend::ops::{BinOp, LeftValueOp};
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{FuncBody, GloomFunc};
@@ -443,9 +443,19 @@ impl CodeGenerator {
                     panic!()
                 }
             }
-            Expression::Cast(_) => {}
-            Expression::Func(_) => {}
-            Expression::Match(_) => {}
+            Expression::Func(func) => {
+                let func = match func.deref() {
+                    FuncExpr::Parsed(f) => panic!("{:?}", f),
+                    FuncExpr::Analysed(func) => func,
+                };
+                let fn_idx = self.constant_pool.nameless_fn.len();
+                self.constant_pool.nameless_fn.push(func.clone());
+                context.push(ByteCode::LoadNamelessFn(fn_idx as u16));
+
+                self.generate_func(&mut func.inner_mut());
+            }
+            Expression::Cast(cast) => panic!("not support now : {:#?}",cast),
+            Expression::Match(m) => panic!("not support now {:#?}",m),
         }
     }
     #[inline]
