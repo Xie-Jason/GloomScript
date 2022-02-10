@@ -2,7 +2,7 @@ use std::any::{Any};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Deref};
 use std::rc::{Rc, Weak};
-use crate::builtin::iter::GloomIter;
+use crate::vm::frame::Operand;
 use crate::vm::value::Value;
 use crate::vm::machine::GloomVM;
 
@@ -42,19 +42,26 @@ impl GloomObjRef {
         Rc::ptr_eq(&self.obj,&other.obj)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn drop_by_vm(&self, vm : &GloomVM){
         self.obj.drop_by_vm(vm,self);
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn at(&self, index :&mut usize) -> Option<Value>{
         self.obj.at(index)
     }
 
-    #[inline]
-    pub fn iterator(&self) -> GloomIter{
-        GloomIter::new(self.clone())
+    #[inline(always)]
+    pub fn iter(&self) -> GloomObjRef {
+        self.obj.iter(self)
+    }
+    #[inline(always)]
+    pub fn next(&self) -> Operand{
+        match self.obj.next() {
+            None => Operand::Void,
+            Some(val) => Operand::Some(val)
+        }
     }
 }
 
@@ -66,10 +73,17 @@ impl Debug for GloomObjRef {
 
 
 pub trait Object : Debug {
+    // any type should impl this two fn
     fn obj_type(&self) -> ObjectType;
     fn as_any(&self) -> &dyn Any;
+    // any type have Gloom type should impl
     fn drop_by_vm(&self, vm : &GloomVM, rf: &GloomObjRef);
+    // a type could return a iterator should impl
+    fn iter(&self, rf : &GloomObjRef) -> GloomObjRef;
+    // list collection should impl
     fn at(&self, index : &mut usize) -> Option<Value>;
+    // iter type should impl
+    fn next(&self) -> Option<Value>;
 }
 
 pub enum ObjectType {
@@ -89,4 +103,6 @@ pub enum ObjectType {
     Array,
     Queue,
     Tuple,
+    ListIter,
+    RangeIter,
 }

@@ -226,7 +226,15 @@ impl Object for GloomClassObj {
     }
     fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
 
+    fn iter(&self, _ : &GloomObjRef) -> GloomObjRef {
+        todo!()
+    }
+
     fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
+
+    fn next(&self) -> Option<Value> {
         panic!()
     }
 }

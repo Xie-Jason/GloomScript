@@ -2,6 +2,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+use crate::builtin::iter::GloomListIter;
 use crate::vm::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::vm::machine::GloomVM;
@@ -25,11 +26,20 @@ impl Object for GloomTuple {
             }
         }
     }
+
+    fn iter(&self, rf: &GloomObjRef) -> GloomObjRef {
+        GloomListIter::new(rf.clone())
+    }
+
     #[inline]
     fn at(&self, index : &mut usize) -> Option<Value> {
         let option = self.vec.borrow().get(*index).map(|val| { val.clone() });
         *index += 1;
         option
+    }
+
+    fn next(&self) -> Option<Value> {
+        panic!()
     }
 }
 

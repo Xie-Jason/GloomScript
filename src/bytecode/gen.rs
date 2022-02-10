@@ -394,9 +394,10 @@ impl CodeGenerator {
                 self.generate_statements(&while_loop.statements,context);
                 context.push(ByteCode::Jump(start_idx as u32));
 
+                let end_idx = context.bytecodes.len() as u32;
                 if let ByteCode::JumpIfNot(label) = context.bytecodes.get_mut(jump_end_idx).unwrap(){
                     if *label == Self::INVALID_LABEL {
-                        *label = context.bytecodes.len() as u32;
+                        *label = end_idx;
                     }else {
                         panic!()
                     }
@@ -407,9 +408,39 @@ impl CodeGenerator {
             Expression::For(for_loop) => {
                 match &for_loop.for_iter {
                     ForIter::Range(start_expr,end_expr,step_expr) => {
+                        self.generate_expression(step_expr,context);
+                        self.generate_expression(end_expr,context);
+                        self.generate_expression(start_expr,context);
+                        context.push(ByteCode::RangeIter);
 
                     }
-                    ForIter::Iter(_) => {}
+                    ForIter::Iter(expr) => {
+                        self.generate_expression(expr,context);
+                        context.push(ByteCode::InvokeIter);
+                    }
+                };
+                // now stack top have a iter obj
+
+                let start_judge_idx = context.bytecodes.len() as u32;
+                context.push(ByteCode::InvokeNext);
+
+                // if result of next() is none, jump to end, else, just execute
+                let jump_idx = context.bytecodes.len();
+                context.push(ByteCode::JumpIfNone(Self::INVALID_LABEL));
+
+                // loop body
+                self.generate_statements(&for_loop.statements,context);
+                for idx in for_loop.drop_slots.iter() {
+                    context.push(ByteCode::DropLocal(*idx));
+                }
+                // jump to start of loop
+                context.push(ByteCode::Jump(start_judge_idx));
+
+                let end_idx = context.bytecodes.len() as u32;
+                if let ByteCode::JumpIfNone(label) = context.bytecodes.get_mut(jump_idx).unwrap(){
+                    *label = end_idx;
+                }else {
+                    panic!()
                 }
             }
             Expression::Cast(_) => {}

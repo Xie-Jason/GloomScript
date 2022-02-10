@@ -26,7 +26,15 @@ impl Object for GloomInt {
 
     fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
 
+    fn iter(&self, _ : &GloomObjRef) -> GloomObjRef {
+        panic!()
+    }
+
     fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
+
+    fn next(&self) -> Option<Value> {
         panic!()
     }
 }
@@ -56,7 +64,16 @@ impl Object for GloomNum {
         self
     }
     fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
+
+    fn iter(&self, _ : &GloomObjRef) -> GloomObjRef {
+        panic!()
+    }
+
     fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
+
+    fn next(&self) -> Option<Value> {
         panic!()
     }
 }
@@ -86,7 +103,16 @@ impl Object for GloomChar {
         self
     }
     fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
+
+    fn iter(&self, _ : &GloomObjRef) -> GloomObjRef {
+        panic!()
+    }
+
     fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
+
+    fn next(&self) -> Option<Value> {
         panic!()
     }
 }
@@ -116,7 +142,16 @@ impl Object for GloomBool {
         self
     }
     fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
+
+    fn iter(&self, _ : &GloomObjRef) -> GloomObjRef {
+        panic!()
+    }
+
     fn at(&self, _:&mut  usize) -> Option<Value> {
+        panic!()
+    }
+
+    fn next(&self) -> Option<Value> {
         panic!()
     }
 }

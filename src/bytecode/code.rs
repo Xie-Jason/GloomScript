@@ -60,19 +60,33 @@ pub enum ByteCode {
 
     LoadDirectDefFn(u16),
 
-    CallTopFn { nargs: u16 }, // call the func obj of stack top 调用栈顶的函数对象
+    // the arg of fn call is reversed, the first popped value if the last arg
+    // pop the fn obj of stack top and call it, push result
+    CallTopFn { nargs: u16 },
+    // call a fn in the class of obj
     CallStaticFn { index: u16, nargs: u16 },
+    // call a fn in the class of obj, need self
     CallMethod { index: u16, nargs: u16 },
 
     CollectTuple(u16),
     CollectArray(BasicType,u16),
     CollectQueue(BasicType,u16),
 
+    // pop three int and push RangeIter
+    RangeIter,
+
+    // pop
+    InvokeIter,
+    InvokeNext,
+
     Construct(u16),
 
+    // pop the condition after jump
     JumpIf(u32),
     JumpIfNot(u32),
     Jump(u32),
+    JumpIfNone(u32),
+
     Return,
 }
 
@@ -115,7 +129,8 @@ impl ByteCode {
             | ByteCode::WriteFieldRef(_) => -1,
 
             ByteCode::JumpIf(_)
-            | ByteCode::JumpIfNot(_) => 0,
+            | ByteCode::JumpIfNot(_)
+            | ByteCode::JumpIfNone(_) => -1,
 
             ByteCode::Jump(_) | ByteCode::DropLocal(_) | ByteCode::NotOp | ByteCode::NegOp => 0,
 
@@ -143,6 +158,13 @@ impl ByteCode {
             | ByteCode::CollectQueue(_,i) => - (i as i16),
 
             ByteCode::Construct(_) => 1,
+
+            // pop source object after invoke iter() fn
+            ByteCode::InvokeIter => 0,
+
+            ByteCode::InvokeNext => 1,
+
+            ByteCode::RangeIter => -2,
         }
     }
 }

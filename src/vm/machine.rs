@@ -1,7 +1,4 @@
-use std::cell::RefCell;
 use std::mem::ManuallyDrop;
-use std::rc::Rc;
-use crate::builtin::string::GloomString;
 use crate::bytecode::code::ByteCode;
 use crate::vm::static_table::StaticTable;
 use crate::vm::value::{GloomArgs, Value};
@@ -143,6 +140,8 @@ impl GloomVM {
                 ByteCode::CollectTuple(_) => {}
                 ByteCode::CollectArray(_, _) => {}
                 ByteCode::CollectQueue(_, _) => {}
+                ByteCode::Construct(_) => {}
+                ByteCode::JumpIfNot(_) => {}
             }
         }
         result

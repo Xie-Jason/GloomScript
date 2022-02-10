@@ -10,3 +10,4 @@ pub mod gloom_object;
 pub mod table;
 pub mod interface;
 pub mod func;
+pub mod range;

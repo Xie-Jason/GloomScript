@@ -32,7 +32,15 @@ impl Object for GloomFuncObj {
         }
     }
 
+    fn iter(&self, _ : &GloomObjRef) -> GloomObjRef {
+        todo!()
+    }
+
     fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
+
+    fn next(&self) -> Option<Value> {
         panic!()
     }
 }

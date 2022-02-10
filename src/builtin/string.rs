@@ -4,6 +4,7 @@ use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use hashbrown::HashMap;
 use crate::builtin::classes::BuiltinClass;
+use crate::builtin::iter::GloomListIter;
 use crate::vm::value::Value;
 use crate::obj::func::{GloomFunc, Param, ReturnType};
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
@@ -30,6 +31,10 @@ impl Object for GloomString {
 
     fn drop_by_vm(&self, _ : &GloomVM, _ : &GloomObjRef) {}
 
+    fn iter(&self, rf: &GloomObjRef) -> GloomObjRef {
+        GloomListIter::new(rf.clone())
+    }
+
     fn at(&self, index : &mut usize) -> Option<Value> {
         let string = self.0.borrow();
         if *index < string.len() {
@@ -52,6 +57,10 @@ impl Object for GloomString {
         }else{
             Option::None
         }
+    }
+
+    fn next(&self) -> Option<Value> {
+        panic!()
     }
 }
 

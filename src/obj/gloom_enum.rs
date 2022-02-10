@@ -58,7 +58,15 @@ impl Object for GloomEnum {
         }
     }
 
+    fn iter(&self, _ : &GloomObjRef) -> GloomObjRef {
+        panic!()
+    }
+
     fn at(&self, _ : &mut usize) -> Option<Value> {
+        panic!()
+    }
+
+    fn next(&self) -> Option<Value> {
         panic!()
     }
 }
