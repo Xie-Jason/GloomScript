@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use crate::builtin::string::GloomString;
 use crate::bytecode::code::ByteCode;
-use crate::frontend::ast::{Chain, Expression, ExprType, LeftValue, Statement, Var};
+use crate::frontend::ast::{Chain, Expression, ExprType, ForIter, LeftValue, Statement, Var};
 use crate::frontend::ops::{BinOp, LeftValueOp};
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{FuncBody, GloomFunc};
@@ -385,8 +385,33 @@ impl CodeGenerator {
                     }
                 }
             }
-            Expression::While(_) => {}
-            Expression::For(_) => {}
+            Expression::While(while_loop) => {
+                let start_idx = context.bytecodes.len();
+                self.generate_expression(&while_loop.condition,context);
+                let jump_end_idx = context.bytecodes.len();
+                // if condition is true, just execute, if false, jump to the end of while-loop
+                context.push(ByteCode::JumpIfNot(Self::INVALID_LABEL));
+                self.generate_statements(&while_loop.statements,context);
+                context.push(ByteCode::Jump(start_idx as u32));
+
+                if let ByteCode::JumpIfNot(label) = context.bytecodes.get_mut(jump_end_idx).unwrap(){
+                    if *label == Self::INVALID_LABEL {
+                        *label = context.bytecodes.len() as u32;
+                    }else {
+                        panic!()
+                    }
+                }else{
+                    panic!()
+                }
+            }
+            Expression::For(for_loop) => {
+                match &for_loop.for_iter {
+                    ForIter::Range(start_expr,end_expr,step_expr) => {
+
+                    }
+                    ForIter::Iter(_) => {}
+                }
+            }
             Expression::Cast(_) => {}
             Expression::Func(_) => {}
             Expression::Match(_) => {}

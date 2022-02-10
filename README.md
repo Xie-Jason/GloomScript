@@ -30,6 +30,6 @@ All codes in this directory are supported yet by the interpreter if the project 
 
 ### Contribution
 
-本项目欢迎各位的贡献，你可以阅读这个文件来获取基础的开发信息 [/doc/dev.md]("https://github.com/Xie-Jason/GloomScript/blob/master/doc/dev.md")
+本项目欢迎各位的贡献，你可以阅读这个文件来获取基础的开发信息 [/doc/dev.md](https://github.com/Xie-Jason/GloomScript/blob/master/doc/dev.md)
 
-This project welcome contributions, you could read this file to get some basic information of development [/doc/dev.md]("https://github.com/Xie-Jason/GloomScript/blob/master/doc/dev.md")
+This project welcome contributions, you could read this file to get some basic information of development [/doc/dev.md](https://github.com/Xie-Jason/GloomScript/blob/master/doc/dev.md)
