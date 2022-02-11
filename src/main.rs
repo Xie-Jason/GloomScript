@@ -3,7 +3,6 @@ use std::io::Read;
 
 use clap::{App, Arg};
 
-use crate::bytecode::code::ByteCode;
 use crate::bytecode::gen::CodeGenerator;
 use crate::frontend::analysis::Analyzer;
 use crate::frontend::import::Importer;
@@ -24,19 +23,19 @@ mod jit;
 fn main() -> Result<(), String> {
     let mut app = App::new("Gloom Script")
         .version(env!("CARGO_PKG_VERSION"))
-        .about("A language made by rust.")
+        .about("GloomScript language interpreter implemented in Rust.")
         .author("Xie Jason")
         .subcommand(
             App::new("run")
                 .about("Run a script")
                 .arg(
-                    Arg::with_name("FILE")
+                    Arg::new("FILE")
                         .help("Sets the script to run")
                         .required(true)
                         .index(1),
                 ).arg(
-                Arg::with_name("debug")
-                    .short("d")
+                Arg::new("debug")
+                    .short('d')
                     .long("debug")
                     .help("Enable debug mode"),
             )
@@ -44,14 +43,14 @@ fn main() -> Result<(), String> {
         App::new("check")
             .about("Check a script")
             .arg(
-                Arg::with_name("FILE")
+                Arg::new("FILE")
                     .help("Check the script")
                     .required(true)
                     .index(1)
             )
             .arg(
-                Arg::with_name("debug")
-                    .short("d")
+                Arg::new("debug")
+                    .short('d')
                     .long("debug")
                     .help("Enable debug mode")
             )
