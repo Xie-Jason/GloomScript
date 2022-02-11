@@ -20,44 +20,12 @@ impl Debug for Slot {
             Slot::Num(arr) => write!(f,"{:?}",arr),
             Slot::Char(arr) => write!(f,"{:?}",arr),
             Slot::Bool(arr) => write!(f,"{:?}",arr),
-            Slot::Ref(rf) => write!(f,"{:?}",rf),
+            Slot::Ref(rf) => write!(f,"{:?}",ManuallyDrop::deref(rf)),
         }
     }
 }
 
 impl Slot {
-    #[inline(always)]
-    pub fn get_int(&self, idx : u8) -> i64 {
-        if let Slot::Int(arr) = self {
-            arr[idx as usize]
-        }else {
-            panic!()
-        }
-    }
-    #[inline(always)]
-    pub fn get_num(&self, idx : u8) -> f64 {
-        if let Slot::Num(arr) = self {
-            arr[idx as usize]
-        }else {
-            panic!()
-        }
-    }
-    #[inline(always)]
-    pub fn get_char(&self, idx : u8) -> char {
-        if let Slot::Char(arr) = self {
-            arr[idx as usize]
-        }else {
-            panic!()
-        }
-    }
-    #[inline(always)]
-    pub fn get_bool(&self, idx : u8) -> bool {
-        if let Slot::Bool(arr) = self {
-            arr[idx as usize]
-        }else {
-            panic!()
-        }
-    }
     #[inline(always)]
     pub fn get_ref(&self) -> &GloomObjRef {
         if let Slot::Ref(rf) = self {

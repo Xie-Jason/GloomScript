@@ -9,6 +9,9 @@ use std::any::Any;
 use std::fmt::{Debug, Formatter};
 use std::mem::ManuallyDrop;
 use std::ops::Deref;
+use std::rc::Rc;
+use crate::frontend::status::GloomStatus;
+use crate::obj::func::GloomFunc;
 use crate::vm::machine::GloomVM;
 
 pub struct GloomObject {
@@ -45,19 +48,29 @@ impl Object for GloomObject {
         todo!()
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
         panic!()
+    }
+
+    fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
+        self.class.inner().funcs.get(index as usize).unwrap().clone()
+    }
+
+    fn field(&self, i1: u16, i2: u8) -> Value {
+        self.read_field(i1,i2)
     }
 }
 
 impl GloomObject {
     #[inline]
-    pub fn new(class: RefCount<GloomClass>) -> GloomObject {
+    pub fn new(class: RefCount<GloomClass>) -> GloomObjRef {
         let size = class.inner().field_indexer.size();
-        GloomObject {
-            table: Table::new(size),
-            class,
-        }
+        GloomObjRef::new(Rc::new(
+            GloomObject {
+                table: Table::new(size),
+                class,
+            }
+        ))
     }
 
     #[inline]

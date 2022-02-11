@@ -4,8 +4,11 @@ use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use crate::builtin::iter::GloomListIter;
+use crate::frontend::status::GloomStatus;
+use crate::obj::func::GloomFunc;
 use crate::vm::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
+use crate::obj::refcount::RefCount;
 use crate::vm::machine::GloomVM;
 
 pub struct GloomQueue(RefCell<RawQueue>);
@@ -69,7 +72,15 @@ impl Object for GloomQueue {
         option
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
+        panic!()
+    }
+
+    fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
+        todo!()
+    }
+
+    fn field(&self, _ : u16, _ : u8) -> Value {
         panic!()
     }
 }

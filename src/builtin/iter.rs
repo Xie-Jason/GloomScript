@@ -2,8 +2,11 @@ use std::any::Any;
 use std::cell::Cell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+use crate::frontend::status::GloomStatus;
+use crate::obj::func::GloomFunc;
 use crate::vm::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
+use crate::obj::refcount::RefCount;
 use crate::vm::machine::GloomVM;
 
 pub struct GloomListIter {
@@ -48,10 +51,21 @@ impl Object for GloomListIter{
         panic!()
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
         let mut index = self.curr.get();
         let option = self.rf.at(&mut index);
         self.curr.set(index);
-        option
+        match option {
+            None => Value::None,
+            Some(val) => val
+        }
+    }
+
+    fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
+        panic!()
+    }
+
+    fn field(&self, _ : u16, _ : u8) -> Value {
+        panic!()
     }
 }

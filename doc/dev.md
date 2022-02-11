@@ -2,8 +2,8 @@
 
 #### Current Target
 
-- [ ] ByteCode generation
-- [ ] ByteCode interpret
+- [x] ByteCode generation
+- [x] ByteCode interpret
 - [ ] async runtime and API support
 - [ ] better interpretation entrance
 

@@ -8,7 +8,8 @@ use hashbrown::HashMap;
 use crate::vm::value::Value;
 use crate::frontend::ast::{Statement};
 use crate::frontend::index::SlotIndexer;
-use crate::obj::func::{GloomFunc, Param, ReturnType};
+use crate::frontend::status::GloomStatus;
+use crate::obj::func::{GloomFunc, GloomFuncObj, Param, ReturnType};
 use crate::obj::types::{DataType, RefType};
 use crate::obj::refcount::RefCount;
 use crate::obj::interface::Interface;
@@ -234,8 +235,20 @@ impl Object for GloomClassObj {
         panic!()
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
         panic!()
+    }
+
+    fn method(&self, _ : u16, _ : &GloomStatus) -> RefCount<GloomFunc> {
+        todo!()
+    }
+
+    fn field(&self, i1: u16, _ : u8) -> Value {
+        Value::Ref(
+            GloomFuncObj::new_func(
+            self.class.inner().funcs.get(i1 as usize).unwrap().clone()
+            )
+        )
     }
 }
 

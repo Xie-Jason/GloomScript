@@ -46,13 +46,6 @@ impl DataType {
     }
 
     #[inline]
-    pub fn is_ref_type(&self) -> bool{
-        match self {
-            DataType::Ref(_) => true,
-            _ => false
-        }
-    }
-    #[inline]
     pub fn is_num_liked(&self) -> bool {
         match self {
             DataType::Int => true,
@@ -64,30 +57,7 @@ impl DataType {
             _ => false,
         }
     }
-    #[inline]
-    pub fn is_basic(&self) -> bool{
-        match self {
-            DataType::Int => true,
-            DataType::Num => true,
-            DataType::Char => true,
-            DataType::Bool => true,
-            _ => false,
-        }
-    }
-    #[inline]
-    pub fn is_basic_or_box(&self) -> bool{
-        match self {
-            DataType::Int => true,
-            DataType::Num => true,
-            DataType::Char => true,
-            DataType::Bool => true,
-            DataType::Ref(RefType::Int) => true,
-            DataType::Ref(RefType::Num) => true,
-            DataType::Ref(RefType::Char) => true,
-            DataType::Ref(RefType::Bool) => true,
-            _ => false,
-        }
-    }
+
     #[inline]
     pub fn is_int_or_num(&self) -> bool{
         match self {
@@ -122,13 +92,7 @@ impl DataType {
             _ => false
         }
     }
-    #[inline]
-    pub fn is_func(&self) -> bool {
-        match self {
-            DataType::Ref(RefType::Func(_)) => true,
-            _ => false,
-        }
-    }
+
     #[inline]
     pub fn as_ref_type(&self) -> RefType{
         match self {
@@ -154,14 +118,6 @@ impl DataType {
             DataType::Char => BasicType::Char,
             DataType::Bool => BasicType::Bool,
             DataType::Ref(_) => BasicType::Ref
-        }
-    }
-    #[inline]
-    pub fn is_queue(&self) -> bool{
-        if let DataType::Ref(RefType::Queue(_)) = self {
-            true
-        }else{
-            false
         }
     }
 }

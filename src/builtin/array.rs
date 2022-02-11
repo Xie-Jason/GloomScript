@@ -3,8 +3,11 @@ use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use crate::builtin::iter::GloomListIter;
+use crate::frontend::status::GloomStatus;
+use crate::obj::func::GloomFunc;
 use crate::vm::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
+use crate::obj::refcount::RefCount;
 use crate::vm::machine::GloomVM;
 
 
@@ -71,8 +74,16 @@ impl Object for GloomArray {
         option
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
         todo!()
+    }
+
+    fn method(&self, _ : u16, _ : &GloomStatus) -> RefCount<GloomFunc> {
+        todo!()
+    }
+
+    fn field(&self, _ : u16, _ : u8) -> Value {
+        panic!()
     }
 }
 

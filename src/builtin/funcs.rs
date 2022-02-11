@@ -21,7 +21,7 @@ impl BuiltInFuncs {
             ReturnType::Void,
             false,
             Rc::new(|_,mut args| {
-                let obj = args.vec.pop().unwrap().assert_into_ref();
+                let obj = args.vec.pop().unwrap();
                 println!("{:?}",obj);
                 Value::None
             })

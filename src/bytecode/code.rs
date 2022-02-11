@@ -34,6 +34,7 @@ pub enum ByteCode {
     WriteStaticRef(u16),
 
     ReadField(u16, u8),
+    ReadFieldAndPop(u16, u8),
 
     WriteFieldInt(u16, u8),
     WriteFieldNum(u16, u8),
@@ -80,8 +81,9 @@ pub enum ByteCode {
     // pop three int and push RangeIter
     RangeIter,
 
-    // pop
+    // pop source object after invoke iter() fn
     InvokeIter,
+    // do not pop the source iter obj
     InvokeNext,
 
     Construct(u16),
@@ -117,6 +119,8 @@ impl ByteCode {
             | ByteCode::LoadNamelessFn(_)
             | ByteCode::ReadLocal(_, _)
             | ByteCode::CopyTop => 1,
+
+            ByteCode::ReadFieldAndPop(_,_) => 0,
 
             ByteCode::WriteLocalInt(_, _)
             | ByteCode::WriteLocalNum(_, _)

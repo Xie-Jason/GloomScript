@@ -2,7 +2,9 @@ use std::any::{Any};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Deref};
 use std::rc::{Rc, Weak};
-use crate::vm::frame::Operand;
+use crate::frontend::status::GloomStatus;
+use crate::obj::func::GloomFunc;
+use crate::obj::refcount::RefCount;
 use crate::vm::value::Value;
 use crate::vm::machine::GloomVM;
 
@@ -56,12 +58,20 @@ impl GloomObjRef {
     pub fn iter(&self) -> GloomObjRef {
         self.obj.iter(self)
     }
+
     #[inline(always)]
-    pub fn next(&self) -> Operand{
-        match self.obj.next() {
-            None => Operand::Void,
-            Some(val) => Operand::Some(val)
-        }
+    pub fn next(&self) -> Value {
+        self.obj.next()
+    }
+
+    #[inline(always)]
+    pub fn method(&self, index : u16, status : &GloomStatus) -> RefCount<GloomFunc>{
+        self.obj.method(index,status)
+    }
+
+    #[inline(always)]
+    pub fn read_field(&self, slot_idx : u16, sub_idx : u8) -> Value{
+        self.obj.field(slot_idx,sub_idx)
     }
 }
 
@@ -83,7 +93,10 @@ pub trait Object : Debug {
     // list collection should impl
     fn at(&self, index : &mut usize) -> Option<Value>;
     // iter type should impl
-    fn next(&self) -> Option<Value>;
+    fn next(&self) -> Value;
+    // object type should impl
+    fn method(&self, index : u16, status : &GloomStatus) -> RefCount<GloomFunc>;
+    fn field(&self, i1 : u16, i2 : u8) -> Value;
 }
 
 pub enum ObjectType {

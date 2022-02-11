@@ -2,9 +2,11 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
+use crate::builtin::classes::BuiltinClass;
 use crate::bytecode::code::ByteCode;
 use crate::vm::value::{GloomArgs, Value};
 use crate::frontend::ast::Statement;
+use crate::frontend::status::GloomStatus;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{BasicType, DataType, RefType};
@@ -39,7 +41,16 @@ impl Object for GloomFuncObj {
         panic!()
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
+        panic!()
+    }
+
+    fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
+        status.builtin_classes.get(BuiltinClass::FUNC_INDEX).unwrap().inner()
+            .funcs.get(index as usize).unwrap().clone()
+    }
+
+    fn field(&self, _ : u16, _ : u8) -> Value {
         panic!()
     }
 }
@@ -65,7 +76,12 @@ impl GloomFuncObj {
 
 impl Debug for GloomFuncObj {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{:?} {:?}",self.func,self.captures.borrow())
+        let captures = self.captures.borrow();
+        if captures.len() == 0 {
+            write!(f,"{:?}",self.func)
+        }else {
+            write!(f,"{:?} {:?}",self.func,captures)
+        }
     }
 }
 
@@ -145,7 +161,12 @@ impl GloomFunc {
 
 impl Debug for GloomFunc {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"Func {} {:?}->{:?} {:?}",self.info.name,self.info.params,self.info.return_type,self.info.captures)
+        let mut string = format!("{}(",self.info.name);
+        for param in self.info.params.iter() {
+            string.push_str(format!("{},",param.data_type).as_str());
+        }
+        string.remove(string.len()-1);
+        write!(f,"{})->{}",string,self.info.return_type)
     }
 }
 

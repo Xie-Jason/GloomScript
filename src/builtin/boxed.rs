@@ -2,8 +2,11 @@ use std::any::Any;
 use std::cell::Cell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+use crate::frontend::status::GloomStatus;
+use crate::obj::func::GloomFunc;
 use crate::vm::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
+use crate::obj::refcount::RefCount;
 use crate::vm::machine::GloomVM;
 
 pub struct GloomInt(pub Cell<i64>);
@@ -34,7 +37,15 @@ impl Object for GloomInt {
         panic!()
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
+        panic!()
+    }
+
+    fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
+        todo!()
+    }
+
+    fn field(&self, _ : u16, _ : u8) -> Value {
         panic!()
     }
 }
@@ -73,7 +84,15 @@ impl Object for GloomNum {
         panic!()
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
+        panic!()
+    }
+
+    fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
+        todo!()
+    }
+
+    fn field(&self, _ : u16, _ : u8) -> Value {
         panic!()
     }
 }
@@ -112,7 +131,14 @@ impl Object for GloomChar {
         panic!()
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
+        panic!()
+    }
+    fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
+        todo!()
+    }
+
+    fn field(&self, _ : u16, _ : u8) -> Value {
         panic!()
     }
 }
@@ -151,7 +177,15 @@ impl Object for GloomBool {
         panic!()
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
+        panic!()
+    }
+
+    fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
+        todo!()
+    }
+
+    fn field(&self, _ : u16, _ : u8) -> Value {
         panic!()
     }
 }

@@ -446,6 +446,7 @@ impl Parser {
                 }
                 Expression::IfElse(Box::new(IfElse {
                     branches,
+                    return_void: false
                 }))
             }
             // 元组 或 (计算表达式) tuple or (calculation expression)
@@ -502,8 +503,9 @@ impl Parser {
                 Expression::While(Box::new(WhileLoop {
                     condition,
                     statements,
-                    drop_vec: Vec::with_capacity(0),
-                    line
+                    drop_slots: Vec::with_capacity(0),
+                    line,
+                    return_void: false
                 }))
             }
             // for-循环 for-loop
@@ -537,7 +539,8 @@ impl Parser {
                     for_iter,
                     statements,
                     drop_slots: Vec::new(),
-                    line
+                    line,
+                    return_void: false
                 }))
             }
             // 匹配 match

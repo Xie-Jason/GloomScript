@@ -6,6 +6,7 @@ use std::rc::Rc;
 use hashbrown::HashMap;
 use crate::vm::value::Value;
 use crate::frontend::ast::{Statement};
+use crate::frontend::status::GloomStatus;
 use crate::obj::func::{FuncBody, FuncInfo, GloomFunc, Param, ReturnType};
 use crate::obj::gloom_class::IsPub;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
@@ -66,7 +67,15 @@ impl Object for GloomEnum {
         panic!()
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
+        panic!()
+    }
+
+    fn method(&self, index: u16, _ : &GloomStatus) -> RefCount<GloomFunc> {
+        self.class.inner().funcs.get(index as usize).unwrap().clone()
+    }
+
+    fn field(&self, _ : u16, _ : u8) -> Value {
         panic!()
     }
 }

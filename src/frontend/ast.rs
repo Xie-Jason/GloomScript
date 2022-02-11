@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
 use crate::frontend::ops::{BinOp, LeftValueOp};
-use crate::obj::func::GloomFunc;
+use crate::obj::func::{GloomFunc};
 use crate::obj::gloom_class::IsPub;
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{BasicType, DataType};
@@ -173,6 +173,7 @@ pub struct IfElse{
     pub branches: Vec<IfBranch>,
     // else 分支的条件为 Expr::Bool(true)
     // the condition of else branch is Expr::Bool(true)
+    pub return_void : bool
 }
 
 impl Debug for IfElse {
@@ -262,10 +263,11 @@ impl Debug for TypeTuple {
 pub struct WhileLoop {
     pub condition : Expression,
     pub statements : Vec<Statement>,
-    pub drop_vec : Vec<u16>,
-    pub line : Line,
+    pub drop_slots : Vec<u16>,
     // 如果循环中有局部变量声明 那么它们应当在每次循环结束时被析构
     // if some local variables declare in loop, them should be dropped after every loop
+    pub line : Line,
+    pub return_void : bool
 }
 
 impl Debug for WhileLoop {
@@ -279,7 +281,8 @@ pub struct ForLoop{
     pub for_iter : ForIter,
     pub statements : Vec<Statement>,
     pub drop_slots : Vec<u16>,
-    pub line : u16
+    pub line : u16,
+    pub return_void : bool
 }
 
 #[derive(Debug)]
@@ -382,32 +385,22 @@ pub enum LeftValue{
 
 // 用来报错时打印详细信息 used for print details when error occurs
 pub enum SyntaxType{
-    Let,
-    Static,
-    PubStatic,
-    Assign,
     While,
     ForIn,
     IfElseBranch,
     Break,
     Return,
     Match,
-    Chain
 }
 
 impl Debug for SyntaxType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f,"{}",match self {
-            SyntaxType::Let => "let",
-            SyntaxType::Static => "static",
-            SyntaxType::PubStatic => "pub static",
-            SyntaxType::Assign => "assign",
             SyntaxType::While => "while",
             SyntaxType::IfElseBranch => "if-else branch",
             SyntaxType::Break => "break",
             SyntaxType::Return => "return",
             SyntaxType::Match => "match",
-            SyntaxType::Chain => "chain operation",
             SyntaxType::ForIn => "for-in",
         })
     }

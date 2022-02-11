@@ -186,6 +186,14 @@ impl Value {
         self.into_ref().unwrap()
     }
 
+    #[inline(always)]
+    pub fn is_none(&self) -> bool {
+        match self {
+            Value::None => true,
+            _ => false
+        }
+    }
+
     #[inline]
     pub fn not(&mut self){
         match self {

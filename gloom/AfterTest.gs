@@ -81,7 +81,8 @@ while n > 0 {
 }
 println([count,n])
 
-Func.printBody(Test.olderThan)
+let newFn = Test.olderThan;
+//Func.printBody()
 
 let test1 = Test{
     name : "Tester",

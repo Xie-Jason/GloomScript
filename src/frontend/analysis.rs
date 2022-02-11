@@ -978,11 +978,24 @@ impl Analyzer {
 
         context.expr_stack.pop();
         context.block_stack.pop();
-        while_loop.drop_vec = context.indexer.level_sub_block();
+        while_loop.drop_slots = context.indexer.level_sub_block();
         match context.break_stack.pop().unwrap() {
-            BreakType::Type(data_type) => ReturnType::Have(data_type),
-            BreakType::Uninit => ReturnType::Void,
-            BreakType::Void => ReturnType::Void
+            BreakType::Type(data_type) => {
+                if data_type.is_none() {
+                    while_loop.return_void = true;
+                    ReturnType::Void
+                }else {
+                    ReturnType::Have(data_type)
+                }
+            },
+            BreakType::Uninit => {
+                while_loop.return_void = true;
+                ReturnType::Void
+            },
+            BreakType::Void => {
+                while_loop.return_void = true;
+                ReturnType::Void
+            }
         }
     }
 
@@ -1046,9 +1059,22 @@ impl Analyzer {
         for_loop.drop_slots = context.indexer.level_sub_block();
         context.expr_stack.pop();
         match context.break_stack.pop().unwrap() {
-            BreakType::Type(data_type) => ReturnType::Have(data_type),
-            BreakType::Uninit => ReturnType::Void,
-            BreakType::Void => ReturnType::Void,
+            BreakType::Type(data_type) => {
+                if data_type.is_none() {
+                    for_loop.return_void = true;
+                    ReturnType::Void
+                }else {
+                    ReturnType::Have(data_type)
+                }
+            },
+            BreakType::Uninit => {
+                for_loop.return_void = true;
+                ReturnType::Void
+            },
+            BreakType::Void => {
+                for_loop.return_void = true;
+                ReturnType::Void
+            }
         }
     }
 
@@ -1376,9 +1402,22 @@ impl Analyzer {
         }
         context.block_stack.pop();
         match context.break_stack.pop().unwrap() {
-            BreakType::Type(data_type) => ReturnType::Have(data_type),
-            BreakType::Void => ReturnType::Void,
-            BreakType::Uninit => ReturnType::Void,
+            BreakType::Type(data_type) => {
+                if data_type.is_none() {
+                    if_else.return_void = true;
+                    ReturnType::Void
+                }else {
+                    ReturnType::Have(data_type)
+                }
+            },
+            BreakType::Uninit => {
+                if_else.return_void = true;
+                ReturnType::Void
+            },
+            BreakType::Void => {
+                if_else.return_void = true;
+                ReturnType::Void
+            }
         }
     }
 

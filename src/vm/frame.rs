@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use std::mem::ManuallyDrop;
 use crate::vm::value::{GloomArgs, Value};
 use crate::obj::func::{Capture, Param};
@@ -11,11 +12,12 @@ pub struct Frame{
     local : Box<[Slot]>
 }
 
-#[derive(Debug,Clone)]
-pub enum Operand{
-    Some(Value),
-    Void
+impl Debug for Frame {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f,"stack{:?} | local{:?}",self.stack,self.local)
+    }
 }
+
 
 impl Frame {
     #[inline]
@@ -67,6 +69,10 @@ impl Frame {
                 }
             }
         }
+    }
+    #[inline]
+    pub fn stack_not_empty(&self) -> bool{
+        ! self.stack.is_empty()
     }
     #[inline(always)]
     pub fn pop(&mut self) -> Value {
@@ -122,7 +128,7 @@ impl Frame {
     #[inline]
     pub fn read(&self, slot_idx : u16, sub_idx : u8) -> Value{
         match &self.local[slot_idx as usize] {
-            Slot::Null => panic!(),
+            Slot::Null => Value::None,
             Slot::Int(val) => Value::Int(val[sub_idx as usize]),
             Slot::Num(val) => Value::Num(val[sub_idx as usize]),
             Slot::Char(val) => Value::Char(val[sub_idx as usize]),

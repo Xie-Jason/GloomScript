@@ -5,6 +5,7 @@ use std::rc::Rc;
 use hashbrown::HashMap;
 use crate::builtin::classes::BuiltinClass;
 use crate::builtin::iter::GloomListIter;
+use crate::frontend::status::GloomStatus;
 use crate::vm::value::Value;
 use crate::obj::func::{GloomFunc, Param, ReturnType};
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
@@ -16,7 +17,7 @@ pub struct GloomString(pub RefCell<String>);
 
 impl Debug for GloomString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"\"{}\"",self.0.borrow())
+        write!(f,"{}",self.0.borrow())
     }
 }
 
@@ -58,7 +59,16 @@ impl Object for GloomString {
         }
     }
 
-    fn next(&self) -> Option<Value> {
+    fn next(&self) -> Value {
+        panic!()
+    }
+
+    fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
+        status.builtin_classes.get(BuiltinClass::STRING_INDEX).unwrap().inner()
+            .funcs.get(index as usize).unwrap().clone()
+    }
+
+    fn field(&self, _ : u16, _ : u8) -> Value {
         panic!()
     }
 }

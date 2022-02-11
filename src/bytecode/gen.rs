@@ -46,7 +46,7 @@ impl CodeGenerator {
             FuncBody::AST(vec) => {
                 let mut context = GenerateContext::new(func.info.local_size * 4);
                 self.generate_statements(vec, &mut context);
-                context.push(ByteCode::Return);
+                // context.push(ByteCode::Return);
                 func.info.stack_size = context.stack_size();
                 func.body = FuncBody::ByteCodes(context.bytecodes());
             }
@@ -92,7 +92,7 @@ impl CodeGenerator {
                                 // do nothing
                             } else {
                                 // 需要先读取值 need read value firstly
-                                match var {
+                                let read_code = match var {
                                     Var::LocalInt(i1, i2)
                                     | Var::LocalNum(i1, i2)
                                     | Var::LocalChar(i1, i2)
@@ -105,6 +105,7 @@ impl CodeGenerator {
                                     Var::StaticRef(i) => ByteCode::ReadStatic(*i, 0),
                                     _ => panic!(),
                                 };
+                                context.push(read_code);
                             };
                             match operation {
                                 LeftValueOp::Assign(expr) => {
@@ -125,7 +126,7 @@ impl CodeGenerator {
                                     context.push(ByteCode::SubOne);
                                 }
                             }
-                            match var {
+                            let write_code = match var {
                                 Var::LocalInt(i1, i2) => ByteCode::WriteLocalInt(*i1, *i2),
                                 Var::LocalNum(i1, i2) => ByteCode::WriteLocalNum(*i1, *i2),
                                 Var::LocalChar(i1, i2) => ByteCode::WriteLocalChar(*i1, *i2),
@@ -138,6 +139,7 @@ impl CodeGenerator {
                                 Var::StaticRef(i) => ByteCode::WriteLocalRef(*i),
                                 _ => panic!(),
                             };
+                            context.push(write_code);
                         }
                         LeftValue::Chain(first_elem, chains) => {
                             self.generate_expression(first_elem, context);
@@ -189,7 +191,19 @@ impl CodeGenerator {
                 }
                 Statement::Expr(expr, _) | Statement::Discard(expr, _) => {
                     self.generate_expression(expr, context);
-                    context.push(ByteCode::Pop);
+                    match expr {
+                        Expression::None => {} // no return value
+                        Expression::IfElse(if_else)  => if ! if_else.return_void {
+                            context.push(ByteCode::Pop);
+                        }
+                        Expression::While(while_loop) => if ! while_loop.return_void {
+                            context.push(ByteCode::Pop);
+                        }
+                        Expression::For(for_loop) => if ! for_loop.return_void {
+                            context.push(ByteCode::Pop);
+                        }
+                        _ => context.push(ByteCode::Pop)
+                    }
                 }
                 Statement::Continue(_) => {
                     context.push(ByteCode::Jump(Self::INVALID_LABEL));
@@ -387,18 +401,30 @@ impl CodeGenerator {
                 let jump_end_idx = context.bytecodes.len();
                 // if condition is true, just execute, if false, jump to the end of while-loop
                 context.push(ByteCode::JumpIfNot(Self::INVALID_LABEL));
+
+                let body_start_idx = context.bytecodes.len();
                 self.generate_statements(&while_loop.statements,context);
+                for idx in while_loop.drop_slots.iter() {
+                    context.push(ByteCode::DropLocal(*idx));
+                }
+                let body_end_limit = context.bytecodes.len();
+
                 context.push(ByteCode::Jump(start_idx as u32));
+
 
                 let end_idx = context.bytecodes.len() as u32;
                 if let ByteCode::JumpIfNot(label) = context.bytecodes.get_mut(jump_end_idx).unwrap(){
-                    if *label == Self::INVALID_LABEL {
-                        *label = end_idx;
-                    }else {
-                        panic!()
-                    }
+                    *label = end_idx;
                 }else{
                     panic!()
+                }
+
+                for code in context.bytecodes.as_mut_slice()[body_start_idx..body_end_limit].iter_mut() {
+                    if let ByteCode::Jump(label) = code {
+                        if *label == Self::INVALID_LABEL {
+                            *label = end_idx;
+                        }
+                    }
                 }
             }
             Expression::For(for_loop) => {
@@ -408,7 +434,6 @@ impl CodeGenerator {
                         self.generate_expression(end_expr,context);
                         self.generate_expression(start_expr,context);
                         context.push(ByteCode::RangeIter);
-
                     }
                     ForIter::Iter(expr) => {
                         self.generate_expression(expr,context);
@@ -420,23 +445,44 @@ impl CodeGenerator {
                 let start_judge_idx = context.bytecodes.len() as u32;
                 context.push(ByteCode::InvokeNext);
 
-                // if result of next() is none, jump to end, else, just execute
-                let jump_idx = context.bytecodes.len();
+                // if result of next() is none, pop and jump to end, else, just execute
+                let jump_if_none_idx = context.bytecodes.len();
                 context.push(ByteCode::JumpIfNone(Self::INVALID_LABEL));
 
+                // write the result of next() into local
+                context.push(match for_loop.var {
+                    Var::LocalInt(slot_idx, sub_idx) => ByteCode::WriteLocalInt(slot_idx,sub_idx),
+                    Var::LocalNum(slot_idx, sub_idx) => ByteCode::WriteLocalNum(slot_idx,sub_idx),
+                    Var::LocalChar(slot_idx, sub_idx) => ByteCode::WriteLocalChar(slot_idx,sub_idx),
+                    Var::LocalBool(slot_idx, sub_idx) => ByteCode::WriteLocalBool(slot_idx,sub_idx),
+                    Var::LocalRef(slot_idx) => ByteCode::WriteLocalRef(slot_idx),
+                    _ => panic!()
+                });
+
                 // loop body
+                let body_start_idx = context.bytecodes.len();
                 self.generate_statements(&for_loop.statements,context);
                 for idx in for_loop.drop_slots.iter() {
                     context.push(ByteCode::DropLocal(*idx));
                 }
+                let body_end_limit = context.bytecodes.len();
+
                 // jump to start of loop
                 context.push(ByteCode::Jump(start_judge_idx));
 
-                let end_idx = context.bytecodes.len() as u32;
-                if let ByteCode::JumpIfNone(label) = context.bytecodes.get_mut(jump_idx).unwrap(){
-                    *label = end_idx;
+                let end_idx = context.bytecodes.len();
+                if let ByteCode::JumpIfNone(label) = context.bytecodes.get_mut(jump_if_none_idx).unwrap(){
+                    *label = end_idx as u32;
                 }else {
                     panic!()
+                }
+
+                for code in context.bytecodes.as_mut_slice()[body_start_idx..body_end_limit].iter_mut() {
+                    if let ByteCode::Jump(label) = code {
+                        if *label == Self::INVALID_LABEL {
+                            *label = end_idx as u32;
+                        }
+                    }
                 }
             }
             Expression::Func(func) => {
@@ -459,7 +505,7 @@ impl CodeGenerator {
         match chain {
             Chain::Access(field, _) => {
                 let (slot_idx, sub_idx) = field.index();
-                context.push(ByteCode::ReadField(slot_idx, sub_idx));
+                context.push(ByteCode::ReadFieldAndPop(slot_idx, sub_idx));
             }
             Chain::FnCall {
                 func,
