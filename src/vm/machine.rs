@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use std::mem::ManuallyDrop;
+use std::mem::{ManuallyDrop, transmute};
 
 use crate::builtin::array::{GloomArray, RawArray};
 use crate::builtin::obj::BuiltinClassObj;
@@ -56,7 +56,10 @@ impl GloomVM {
                 }
                 value
             }
-            FuncBody::Jit(ptr) => {}
+            FuncBody::Jit(ptr) => {
+                let func = unsafe { transmute::<_, extern "C" fn(GloomArgs) -> Value>(ptr) };
+                func(args)
+            }
             unknown => panic!("unknown func body {:?} of {:?}", unknown, func)
         }
     }
@@ -75,6 +78,10 @@ impl GloomVM {
                     frame.drop_local(self, *idx);
                 }
                 value
+            }
+            FuncBody::Jit(ptr) => {
+                let func = unsafe { transmute::<_, extern "C" fn(GloomArgs) -> Value>(ptr) };
+                func(args)
             }
             unknown => panic!("unknown func body {:?} of {:?}", unknown, func)
         }
