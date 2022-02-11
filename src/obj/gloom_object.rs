@@ -1,18 +1,19 @@
-use crate::vm::value::{GloomArgs, Value};
-use crate::obj::gloom_class::GloomClass;
-use crate::obj::object::{GloomObjRef, Object, ObjectType};
-use crate::obj::refcount::RefCount;
-use crate::vm::slot::Slot;
-use crate::obj::table::Table;
-use crate::obj::types::BasicType;
 use std::any::Any;
 use std::fmt::{Debug, Formatter};
 use std::mem::ManuallyDrop;
 use std::ops::Deref;
 use std::rc::Rc;
+
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::GloomFunc;
+use crate::obj::gloom_class::GloomClass;
+use crate::obj::object::{GloomObjRef, Object, ObjectType};
+use crate::obj::refcount::RefCount;
+use crate::obj::table::Table;
+use crate::obj::types::BasicType;
 use crate::vm::machine::GloomVM;
+use crate::vm::slot::Slot;
+use crate::vm::value::{GloomArgs, Value};
 
 pub struct GloomObject {
     pub table: Table,
@@ -27,12 +28,12 @@ impl Object for GloomObject {
         self
     }
 
-    fn drop_by_vm(&self, vm: &GloomVM, rf : &GloomObjRef) {
+    fn drop_by_vm(&self, vm: &GloomVM, rf: &GloomObjRef) {
         let class = self.class.inner();
         if class.fn_drop_idx < u16::MAX {
             vm.call_fn(
                 &*class.funcs.get(class.fn_drop_idx as usize).unwrap().inner(),
-                GloomArgs::new(vec![Value::Ref(rf.clone())])
+                GloomArgs::new(vec![Value::Ref(rf.clone())]),
             );
         }
         for idx in class.ref_index_iter() {
@@ -40,11 +41,11 @@ impl Object for GloomObject {
         }
     }
 
-    fn iter(&self, _ : &GloomObjRef) -> GloomObjRef {
+    fn iter(&self, _: &GloomObjRef) -> GloomObjRef {
         todo!()
     }
 
-    fn at(&self, _ : &mut usize) -> Option<Value> {
+    fn at(&self, _: &mut usize) -> Option<Value> {
         todo!()
     }
 
@@ -57,7 +58,7 @@ impl Object for GloomObject {
     }
 
     fn field(&self, i1: u16, i2: u8) -> Value {
-        self.read_field(i1,i2)
+        self.read_field(i1, i2)
     }
 }
 
@@ -74,7 +75,7 @@ impl GloomObject {
     }
 
     #[inline]
-    pub fn read_field(&self, slot_idx: u16, sub_idx: u8) -> Value{
+    pub fn read_field(&self, slot_idx: u16, sub_idx: u8) -> Value {
         let sub_idx = sub_idx as usize;
         match self.table.slot(slot_idx) {
             Slot::Null => Value::None,
@@ -87,27 +88,27 @@ impl GloomObject {
     }
 
     #[inline]
-    pub fn write_field_int(&self, slot_idx : u16, sub_idx : u8, val : i64){
-        self.table.slot_mut(slot_idx).set_int(sub_idx,val);
+    pub fn write_field_int(&self, slot_idx: u16, sub_idx: u8, val: i64) {
+        self.table.slot_mut(slot_idx).set_int(sub_idx, val);
     }
     #[inline]
-    pub fn write_field_num(&self, slot_idx : u16, sub_idx : u8, val : f64){
-        self.table.slot_mut(slot_idx).set_num(sub_idx,val);
+    pub fn write_field_num(&self, slot_idx: u16, sub_idx: u8, val: f64) {
+        self.table.slot_mut(slot_idx).set_num(sub_idx, val);
     }
     #[inline]
-    pub fn write_field_char(&self, slot_idx : u16, sub_idx : u8, val : char){
-        self.table.slot_mut(slot_idx).set_char(sub_idx,val);
+    pub fn write_field_char(&self, slot_idx: u16, sub_idx: u8, val: char) {
+        self.table.slot_mut(slot_idx).set_char(sub_idx, val);
     }
     #[inline]
-    pub fn write_field_bool(&self, slot_idx : u16, sub_idx : u8, val : bool){
-        self.table.slot_mut(slot_idx).set_bool(sub_idx,val);
+    pub fn write_field_bool(&self, slot_idx: u16, sub_idx: u8, val: bool) {
+        self.table.slot_mut(slot_idx).set_bool(sub_idx, val);
     }
     #[inline]
-    pub fn write_field_ref(&self, slot_idx : u16, val : GloomObjRef) -> Option<ManuallyDrop<GloomObjRef>> {
+    pub fn write_field_ref(&self, slot_idx: u16, val: GloomObjRef) -> Option<ManuallyDrop<GloomObjRef>> {
         match self.table.slot_mut(slot_idx).replace(Slot::Ref(ManuallyDrop::new(val))) {
             Slot::Ref(rf) => Option::Some(rf),
             Slot::Null => Option::None,
-            slot => panic!("{:?}",slot)
+            slot => panic!("{:?}", slot)
         }
     }
 }
@@ -121,18 +122,18 @@ impl Drop for GloomObject {
 impl Debug for GloomObject {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let class = self.class.inner();
-        let mut string : String = class.name.deref().clone();
+        let mut string: String = class.name.deref().clone();
         string.push_str(" { ");
-        for (name, (slot_idx, sub_idx, _ , is_fn)) in class.map.iter() {
-            if ! *is_fn {
+        for (name, (slot_idx, sub_idx, _, is_fn)) in class.map.iter() {
+            if !*is_fn {
                 string.push_str(name.as_str());
                 string.push_str(" : ");
-                string.push_str(format!("{:?}",self.read_field(*slot_idx,*sub_idx)).as_str());
+                string.push_str(format!("{:?}", self.read_field(*slot_idx, *sub_idx)).as_str());
                 string.push_str(" , ");
             }
         }
-        string.remove(string.len()-2);
+        string.remove(string.len() - 2);
         string.push_str("}");
-        write!(f,"{}",string.as_str())
+        write!(f, "{}", string.as_str())
     }
 }

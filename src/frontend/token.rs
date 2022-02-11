@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
 #[derive(PartialEq)]
-pub enum Token{
+pub enum Token {
     Int(i64),
     Num(f64),
     Id(Rc<String>),
@@ -10,37 +10,56 @@ pub enum Token{
     Char(char),
     Bool(bool),
 
-    Plus, // +
-    Sub,  // -
-    Mul,  // *
+    Plus,
+    // +
+    Sub,
+    // -
+    Mul,
+    // *
     Div,  // /
 
-    Eq,   // =
-    Eqs,  // ==
-    Gt,   // >
-    Lt,   // >
-    GtEq, // >=
-    LtEq, // <=
+    Eq,
+    // =
+    Eqs,
+    // ==
+    Gt,
+    // >
+    Lt,
+    // >
+    GtEq,
+    // >=
+    LtEq,
+    // <=
     NotEq,// !=
 
-    PlusEq,  // +=
-    SubEq,   // -=
-    PlusPlus,// ++
+    PlusEq,
+    // +=
+    SubEq,
+    // -=
+    PlusPlus,
+    // ++
     SubSub,  // --
 
-    LParen, // (
+    LParen,
+    // (
     RParen, // )
 
-    LBrace, // {
+    LBrace,
+    // {
     RBrace, // }
 
-    LBracket, // [
+    LBracket,
+    // [
     RBracket, // ]
 
-    Semi, // ;
-    Comma,// ,
-    Not,  // !
-    Dot,  // .
+    Semi,
+    // ;
+    Comma,
+    // ,
+    Not,
+    // !
+    Dot,
+    // .
     Colon,// :
 
     // key words
@@ -71,14 +90,14 @@ pub enum Token{
 
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{:?}",self)
+        write!(f, "{:?}", self)
     }
 }
 
 impl Debug for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let s : String;
-        write!(f,"{}",match self {
+        let s: String;
+        write!(f, "{}", match self {
             Token::Plus => "'+'",
             Token::Sub => "'-'",
             Token::Mul => "'*'",
@@ -130,27 +149,27 @@ impl Debug for Token {
             Token::As => "'as'",
 
             Token::Int(n) => {
-                s = format!("'{}'",n);
+                s = format!("'{}'", n);
                 s.as_str()
             }
             Token::Num(n) => {
-                s = format!("'{}'",n);
+                s = format!("'{}'", n);
                 s.as_str()
             }
             Token::Id(n) => {
-                s = format!("'{}'",n);
+                s = format!("'{}'", n);
                 s.as_str()
             }
             Token::Str(n) => {
-                s = format!("\"{}\"",n);
+                s = format!("\"{}\"", n);
                 s.as_str()
             }
             Token::Char(n) => {
-                s = format!("'{}'",n);
+                s = format!("'{}'", n);
                 s.as_str()
             }
             Token::Bool(n) => {
-                s = format!("'{}'",n);
+                s = format!("'{}'", n);
                 s.as_str()
             }
         })

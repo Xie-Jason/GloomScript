@@ -2,7 +2,8 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
-use crate::frontend::ast::{Expression, IfElse, Statement, ParsedType, Var, BinOpVec, VarId, TypeTuple, SingleType, ParsedFunc, WhileLoop, ForLoop, ParsedClass, ParsedInterface, ParsedEnum, Construction, ExprType, ForIter, FuncExpr, Chain, IfBranch, LeftValue};
+
+use crate::frontend::ast::{BinOpVec, Chain, Construction, Expression, ExprType, ForIter, ForLoop, FuncExpr, IfBranch, IfElse, LeftValue, ParsedClass, ParsedEnum, ParsedFunc, ParsedInterface, ParsedType, SingleType, Statement, TypeTuple, Var, VarId, WhileLoop};
 use crate::frontend::import::Importer;
 use crate::frontend::ops::{BinOp, LeftValueOp};
 use crate::frontend::script::ParsedFile;
@@ -10,52 +11,52 @@ use crate::frontend::token::Token;
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{BasicType, DataType, RefType};
 
-pub struct Parser{
-    tokens : Vec<Token>,
-    curr : usize,
-    classes : Vec<(ParsedClass,bool)>,
-    interfaces : Vec<(ParsedInterface,bool)>,
-    enums : Vec<(ParsedEnum,bool)>,
-    funcs : Vec<(Rc<String>, ParsedFunc, bool)>,
-    imports : Vec<ParsedFile>,
-    importer : RefCount<Importer>,
+pub struct Parser {
+    tokens: Vec<Token>,
+    curr: usize,
+    classes: Vec<(ParsedClass, bool)>,
+    interfaces: Vec<(ParsedInterface, bool)>,
+    enums: Vec<(ParsedEnum, bool)>,
+    funcs: Vec<(Rc<String>, ParsedFunc, bool)>,
+    imports: Vec<ParsedFile>,
+    importer: RefCount<Importer>,
     pub lines: Vec<u16>,
 }
 
 impl Parser {
-    pub fn parse(mut self) -> ParsedFile{
+    pub fn parse(mut self) -> ParsedFile {
         let vec = self.statements();
-        ParsedFile{
+        ParsedFile {
             imports: self.imports,
             classes: self.classes,
             interfaces: self.interfaces,
             funcs: self.funcs,
-            enums : self.enums,
+            enums: self.enums,
             statements: vec,
-            index : 0
+            index: 0,
         }
     }
 
-    fn statements(&mut self) -> Vec<Statement>{
+    fn statements(&mut self) -> Vec<Statement> {
         let mut statements = Vec::new();
-        while self.has_next() && ! self.test_next(Token::RBrace) {
+        while self.has_next() && !self.test_next(Token::RBrace) {
             let statement = match self.next() {
                 Token::Continue => {
                     if self.has_next() && self.test_next(Token::Semi) {
                         self.forward();
                     }
                     Statement::Continue(self.line())
-                },
+                }
                 Token::Return => {
                     let index = self.curr;
                     let line = self.line();
                     let result_statement = match self.expr() {
                         Err(_) => {
                             self.rollback(index);
-                            Statement::Return(Expression::None,line)
+                            Statement::Return(Expression::None, line)
                         }
                         Ok(expr) => {
-                            Statement::Return(expr,line)
+                            Statement::Return(expr, line)
                         }
                     };
                     if self.has_next() && self.test_next(Token::Semi) {
@@ -69,10 +70,10 @@ impl Parser {
                     let result_statement = match self.expr() {
                         Err(_) => {
                             self.rollback(index);
-                            Statement::Break(Expression::None,line)
+                            Statement::Break(Expression::None, line)
                         }
                         Ok(expr) => {
-                            Statement::Break(expr,line)
+                            Statement::Break(expr, line)
                         }
                     };
                     if self.has_next() && self.test_next(Token::Semi) {
@@ -114,44 +115,44 @@ impl Parser {
                 }
                 Token::RBrace => {
                     self.backward();
-                    break
+                    break;
                 }
                 Token::Comma => {
                     self.backward();
-                    break
+                    break;
                 }
                 Token::Semi => {
-                    continue
+                    continue;
                 }
                 Token::Import => {
                     let import_path = self.identifier();
                     let file = self.importer.inner_mut().import_file(import_path.as_str(), self.importer.clone());
                     self.imports.push(file);
-                    continue
+                    continue;
                 }
                 // public declaration
                 Token::Pub => {
                     match self.next() {
                         Token::Class => {
                             let class = self.parse_class();
-                            self.classes.push((class,true));
-                            continue
+                            self.classes.push((class, true));
+                            continue;
                         }
                         Token::Interface => {
                             let interface = self.parse_interface();
-                            self.interfaces.push((interface,true));
-                            continue
+                            self.interfaces.push((interface, true));
+                            continue;
                         }
                         Token::Enum => {
                             let parsed_enum = self.parse_enum();
-                            self.enums.push((parsed_enum,true));
-                            continue
+                            self.enums.push((parsed_enum, true));
+                            continue;
                         }
                         Token::Func => {
                             let func_name = self.identifier();
                             let func = self.parse_func(false);
-                            self.funcs.push((func_name,func,true));
-                            continue
+                            self.funcs.push((func_name, func, true));
+                            continue;
                         }
                         Token::Static => {
                             let var_name = self.identifier();
@@ -168,33 +169,33 @@ impl Parser {
                             }
                             Statement::PubStatic(Box::new((Var::Name(var_name), parsed_type, expr)))
                         }
-                        token => panic!("expect class interface enum or func, found {:?}",token),
+                        token => panic!("expect class interface enum or func, found {:?}", token),
                     }
                 }
                 // private declaration
                 Token::Class => {
                     let class = self.parse_class();
-                    self.classes.push((class,false));
+                    self.classes.push((class, false));
                     if self.has_next() && self.test_next(Token::Semi) {
                         self.forward();
                     }
-                    continue
+                    continue;
                 }
                 Token::Interface => {
                     let interface = self.parse_interface();
-                    self.interfaces.push((interface,false));
+                    self.interfaces.push((interface, false));
                     if self.has_next() && self.test_next(Token::Semi) {
                         self.forward();
                     }
-                    continue
+                    continue;
                 }
                 Token::Enum => {
                     let parsed_enum = self.parse_enum();
-                    self.enums.push((parsed_enum,false));
+                    self.enums.push((parsed_enum, false));
                     if self.has_next() && self.test_next(Token::Semi) {
                         self.forward();
                     }
-                    continue
+                    continue;
                 }
                 Token::Func => {
                     if self.test_next(Token::LParen) {
@@ -202,19 +203,19 @@ impl Parser {
                         // let curr pointer to Token::Func
                         self.backward();
                         let line = self.line();
-                        let expr = self.expr().expect(format!("{:?}",statements).as_str());
+                        let expr = self.expr().expect(format!("{:?}", statements).as_str());
                         if self.has_next() && self.test_next(Token::Semi) {
                             self.forward();
-                            Statement::Discard(expr,line)
+                            Statement::Discard(expr, line)
                         } else {
-                            Statement::Expr(expr,line)
+                            Statement::Expr(expr, line)
                         }
-                    }else {
+                    } else {
                         // function declaration
                         let func_name = self.identifier();
                         let func = self.parse_func(false);
-                        self.funcs.push((func_name,func,false));
-                        continue
+                        self.funcs.push((func_name, func, false));
+                        continue;
                     }
                 }
                 _ => {
@@ -224,7 +225,7 @@ impl Parser {
                     if self.has_next() {
                         let token = self.next();
                         match token {
-                            Token::Semi => Statement::Discard(expr,line),
+                            Token::Semi => Statement::Discard(expr, line),
                             Token::Eq | Token::SubEq | Token::PlusEq | Token::SubSub | Token::PlusPlus => {
                                 let left_value = match expr {
                                     Expression::Var(var) => {
@@ -232,7 +233,7 @@ impl Parser {
                                     }
                                     Expression::Chain(chain_box) => {
                                         let (_, chains) = chain_box.deref();
-                                        if let Chain::Access(_,_) = chains.last().unwrap() {} else {
+                                        if let Chain::Access(_, _) = chains.last().unwrap() {} else {
                                             panic!()
                                         }
                                         let (expr, chains) = *chain_box;
@@ -252,15 +253,15 @@ impl Parser {
                                     // handle ';'
                                     self.forward();
                                 }
-                                Statement::LeftValueOp(Box::new((left_value,left_value_op)))
+                                Statement::LeftValueOp(Box::new((left_value, left_value_op)))
                             }
                             _ => {
                                 self.backward();
-                                Statement::Expr(expr,line)
+                                Statement::Expr(expr, line)
                             }
                         }
-                    }else {
-                        Statement::Expr(expr,line)
+                    } else {
+                        Statement::Expr(expr, line)
                     }
                 }
             };
@@ -269,11 +270,11 @@ impl Parser {
         statements
     }
 
-    fn expr(&mut self) -> Result<Expression,ParseError>{
+    fn expr(&mut self) -> Result<Expression, ParseError> {
         let expr = self.medium_expr()?;
-        let mut op_vec : Option<Vec<(BinOp,Expression)>> = Option::None;
+        let mut op_vec: Option<Vec<(BinOp, Expression)>> = Option::None;
         while self.has_next() {
-            let bin_op_expr : Option<(BinOp,Expression)>;
+            let bin_op_expr: Option<(BinOp, Expression)>;
             match self.next() {
                 Token::Plus => bin_op_expr = Some((BinOp::Plus, self.medium_expr()?)),
                 Token::Sub => bin_op_expr = Some((BinOp::Sub, self.medium_expr()?)),
@@ -281,7 +282,7 @@ impl Parser {
                 Token::Or => bin_op_expr = Some((BinOp::Or, self.medium_expr()?)),
                 _ => {
                     self.backward();
-                    break
+                    break;
                 }
             }
             match bin_op_expr {
@@ -291,7 +292,7 @@ impl Parser {
                             let mut vec = Vec::new();
                             vec.push(op_tuple);
                             op_vec = Some(vec);
-                        },
+                        }
                         Some(vec) => vec.push(op_tuple),
                     }
                 }
@@ -300,16 +301,16 @@ impl Parser {
         }
         match op_vec {
             Some(vec) => {
-                Result::Ok(Expression::BinaryOp(Box::new(BinOpVec{
+                Result::Ok(Expression::BinaryOp(Box::new(BinOpVec {
                     left: expr,
-                    vec
+                    vec,
                 })))
             }
             None => Result::Ok(expr),
         }
     }
 
-    fn medium_expr(&mut self) -> Result<Expression,ParseError>{
+    fn medium_expr(&mut self) -> Result<Expression, ParseError> {
         let mut expr = self.primary_expr()?;
         if self.has_next() && self.test_next(Token::As) {
             self.forward();
@@ -320,9 +321,9 @@ impl Parser {
                 DataType::Ref(RefType::Any)
             )));
         }
-        let mut op_vec : Option<Vec<(BinOp,Expression)>> = Option::None;
+        let mut op_vec: Option<Vec<(BinOp, Expression)>> = Option::None;
         while self.has_next() {
-            let bin_op_expr : Option<(BinOp,Expression)>;
+            let bin_op_expr: Option<(BinOp, Expression)>;
             match self.next() {
                 Token::Mul => bin_op_expr = Some((BinOp::Mul, self.primary_expr()?)),
                 Token::Div => bin_op_expr = Some((BinOp::Div, self.primary_expr()?)),
@@ -334,7 +335,7 @@ impl Parser {
                 Token::NotEq => bin_op_expr = Some((BinOp::NotEq, self.primary_expr()?)),
                 _ => {
                     self.backward();
-                    break
+                    break;
                 }
             }
             match bin_op_expr {
@@ -343,25 +344,25 @@ impl Parser {
                         let mut vec = Vec::new();
                         vec.push(op_tuple);
                         op_vec = Some(vec);
-                    },
+                    }
                     Some(vec) => {
                         vec.push(op_tuple);
-                    },
+                    }
                 },
                 None => break,
             }
         }
         match op_vec {
             Some(vec) => {
-                Result::Ok(Expression::BinaryOp(Box::new(BinOpVec{
+                Result::Ok(Expression::BinaryOp(Box::new(BinOpVec {
                     left: expr,
-                    vec
+                    vec,
                 })))
             }
             None => Result::Ok(expr),
         }
     }
-    fn primary_expr(&mut self) -> Result<Expression,ParseError> {
+    fn primary_expr(&mut self) -> Result<Expression, ParseError> {
         let line = self.line();
         let mut expr = match self.next() {
             // 字面量 literal value : int num char bool str
@@ -387,21 +388,21 @@ impl Parser {
                                 let field_name = self.identifier();
                                 self.assert_next(Token::Colon);
                                 let expr = self.expr()?;
-                                fields.push((VarId::Name(field_name),BasicType::Ref,expr));
+                                fields.push((VarId::Name(field_name), BasicType::Ref, expr));
                             }
                         }
                     }
                     Expression::Construct(Box::new(Construction {
                         class_type: ExprType::Parsed(ParsedType::Single(SingleType {
                             name: class_name,
-                            generic: None
+                            generic: None,
                         })),
-                        fields
+                        fields,
                     }))
-                }else{
+                } else {
                     Expression::Var(Box::new(Var::Name(var_name)))
                 }
-            },
+            }
             Token::If => {
                 let mut branches = Vec::new();
                 while self.has_next() {
@@ -410,43 +411,43 @@ impl Parser {
                     let branch = self.statements();
                     self.assert_next(Token::RBrace);
                     let line = self.line();
-                    branches.push(IfBranch{
+                    branches.push(IfBranch {
                         condition,
                         statements: branch,
                         drop_vec: Vec::with_capacity(0),
-                        line
+                        line,
                     });
                     if !self.has_next() {
-                        break
+                        break;
                     }
                     if !self.test_next(Token::Else) {
-                        break
+                        break;
                     }
                     self.forward();
                     if self.test_next(Token::If) {
                         // 继续 if(){}else if(){}
                         self.forward();
-                        continue
+                        continue;
                     } else if self.test_next(Token::LBrace) {
                         // if(){}else{}
                         self.forward();
                         let line = self.line();
-                        branches.push(IfBranch{
-                            condition : Expression::Bool(true),
+                        branches.push(IfBranch {
+                            condition: Expression::Bool(true),
                             statements: self.statements(),
                             drop_vec: Vec::with_capacity(0),
-                            line
+                            line,
                         });
                         self.assert_next(Token::RBrace);
-                        break
+                        break;
                     } else {
                         println!("unexpected token near if-else {:?}", self.peek());
-                        break
+                        break;
                     }
                 }
                 Expression::IfElse(Box::new(IfElse {
                     branches,
-                    return_void: false
+                    return_void: false,
                 }))
             }
             // 元组 或 (计算表达式) tuple or (calculation expression)
@@ -456,11 +457,11 @@ impl Parser {
                     vec.push(self.expr()?);
                     if self.test_next(Token::RParen) {
                         self.forward();
-                        break
+                        break;
                     } else if self.test_next(Token::Comma) {
                         self.forward();
                     } else {
-                        println!("unexpected token {:?} near tuple parse, line {}", self.peek(),self.line())
+                        println!("unexpected token {:?} near tuple parse, line {}", self.peek(), self.line())
                     }
                 }
                 if vec.len() == 1 {
@@ -477,15 +478,15 @@ impl Parser {
                     let line = self.line();
                     match self.next() {
                         Token::RBracket => {
-                            break
+                            break;
                         }
                         Token::Comma => {}
                         token => {
-                            return Err(ParseError::new(line,format!("unexpect token when parse array, expect ']' or ',', found {:?}",token)))
+                            return Err(ParseError::new(line, format!("unexpect token when parse array, expect ']' or ',', found {:?}", token)));
                         }
                     }
                 }
-                Expression::Array(Box::new((vec,BasicType::Ref,false)))
+                Expression::Array(Box::new((vec, BasicType::Ref, false)))
             }
             // 匿名函数 Anonymous Function
             // 立即执行函数 immediate exec func
@@ -505,7 +506,7 @@ impl Parser {
                     statements,
                     drop_slots: Vec::with_capacity(0),
                     line,
-                    return_void: false
+                    return_void: false,
                 }))
             }
             // for-循环 for-loop
@@ -514,8 +515,8 @@ impl Parser {
                 let line = self.line();
                 self.assert_next(Token::In);
                 let expr = self.expr()?;
-                let for_iter : ForIter = if let Expression::Tuple(mut tuple) = expr {
-                    let vec= tuple.deref_mut();
+                let for_iter: ForIter = if let Expression::Tuple(mut tuple) = expr {
+                    let vec = tuple.deref_mut();
                     if vec.len() == 2 {
                         let end = vec.pop().unwrap();
                         let start = vec.pop().unwrap();
@@ -540,7 +541,7 @@ impl Parser {
                     statements,
                     drop_slots: Vec::new(),
                     line,
-                    return_void: false
+                    return_void: false,
                 }))
             }
             // 匹配 match
@@ -576,7 +577,7 @@ impl Parser {
             Token::Not => Expression::NotOp(Box::new(self.expr()?)),
             Token::Sub => Expression::NegOp(Box::new(self.expr()?)),
             token => {
-                return Result::Err(ParseError::new(line,format!("unexpected token {:?} when parse primary expression",token)));
+                return Result::Err(ParseError::new(line, format!("unexpected token {:?} when parse primary expression", token)));
             }
         };
         if self.has_next() && (self.test_next(Token::Dot) || self.test_next(Token::LParen)) {
@@ -600,15 +601,15 @@ impl Parser {
                                     }
                                 }
                             }
-                            chains.push(Chain::FnCall{
+                            chains.push(Chain::FnCall {
                                 func: VarId::Name(field_name),
-                                need_self : false,
-                                args
+                                need_self: false,
+                                args,
                             })
-                        }else{
+                        } else {
                             chains.push(Chain::Access(
                                 VarId::Name(field_name),
-                                BasicType::Ref
+                                BasicType::Ref,
                             ));
                         }
                     }
@@ -630,16 +631,16 @@ impl Parser {
                     }
                     _ => {
                         self.backward();
-                        break
+                        break;
                     }
                 }
             }// while loop end
-            expr = Expression::Chain(Box::new((expr,chains)))
+            expr = Expression::Chain(Box::new((expr, chains)))
         }
         Result::Ok(expr)
     }
 
-    fn parse_func(&mut self, is_mem_func : bool) -> ParsedFunc{
+    fn parse_func(&mut self, is_mem_func: bool) -> ParsedFunc {
         self.assert_next(Token::LParen);
         let mut param_vec = Vec::new();
         while self.has_next() {
@@ -648,30 +649,30 @@ impl Parser {
                 Token::Comma => continue,
                 _ => {
                     self.backward();
-                    if let Token::Id(name) = self.peek(){
+                    if let Token::Id(name) = self.peek() {
                         if is_mem_func && name.as_str().eq("self") {
                             param_vec.push((Rc::new(String::from("self")), ParsedType::MySelf));
                             self.forward();
-                            continue
+                            continue;
                         }
                     }
                     let param_type = self.parse_type();
                     let param_name = self.identifier();
-                    param_vec.push((param_name,param_type));
+                    param_vec.push((param_name, param_type));
                 }
             }
         }
         let mut return_type = Option::None;
-        if ! self.test_next(Token::LBrace) {
+        if !self.test_next(Token::LBrace) {
             return_type = Some(self.parse_type())
         }
         self.assert_next(Token::LBrace);
         let statements = self.statements();
         self.assert_next(Token::RBrace);
-        ParsedFunc{
+        ParsedFunc {
             params: param_vec,
             body: statements,
-            return_type
+            return_type,
         }
     }
     fn parse_class(&mut self) -> ParsedClass {
@@ -694,8 +695,8 @@ impl Parser {
                     self.forward();
                 }
                 if self.test_next(Token::LBrace) {
-                    break
-                }else {
+                    break;
+                } else {
                     panic!()
                 }
             }
@@ -716,23 +717,23 @@ impl Parser {
                     is_public = false;
                 }
             }
-            if self.test_next(Token::Func){ // function
+            if self.test_next(Token::Func) { // function
                 self.forward();
                 let func_name = self.identifier();
                 let parsed_func = self.parse_func(true);
-                func_vec.push((is_public,func_name,parsed_func));
-            }else{ // field
+                func_vec.push((is_public, func_name, parsed_func));
+            } else { // field
                 let parsed_type = self.parse_type();
                 let name = self.identifier();
-                field_vec.push((is_public,parsed_type,name));
+                field_vec.push((is_public, parsed_type, name));
             }
         }
-        ParsedClass{
+        ParsedClass {
             name,
             parent: parent_class,
             impl_interfaces: impl_vec,
-            fields : field_vec,
-            funcs : func_vec
+            fields: field_vec,
+            funcs: func_vec,
         }
     }
     fn parse_interface(&mut self) -> ParsedInterface {
@@ -744,31 +745,31 @@ impl Parser {
                 match self.next() {
                     Token::LBrace => break,
                     Token::Comma => continue,
-                    Token::Id(id)=> parents.push(id.clone()),
+                    Token::Id(id) => parents.push(id.clone()),
                     token => {
-                        panic!("unexpect token {:?} when parse interface parent define, expect identifier as parent interface name",token)
+                        panic!("unexpect token {:?} when parse interface parent define, expect identifier as parent interface name", token)
                     }
                 }
             }
-        }else {
+        } else {
             self.assert_next(Token::LBrace);
         }
-        let mut funcs  = Vec::new();
+        let mut funcs = Vec::new();
         while self.has_next() {
             match self.next() {
                 Token::RBrace => {
-                    break
+                    break;
                 }
                 Token::Func => {
                     let func_name = self.identifier();
                     let mut params = Vec::new();
                     self.assert_next(Token::LParen);
                     // gloom self
-                    if let Token::Id(name) = self.peek(){
+                    if let Token::Id(name) = self.peek() {
                         if name.as_str().eq("self") {
-                            params.push(ParsedType::Single(SingleType{
-                                name : name.clone(),
-                                generic : None
+                            params.push(ParsedType::Single(SingleType {
+                                name: name.clone(),
+                                generic: None,
                             }));
                             self.forward();
                         }
@@ -788,24 +789,24 @@ impl Parser {
                     }
                     // parse return type
                     let mut return_type = Option::None;
-                    if ! self.test_next(Token::Func) && ! self.test_next(Token::RBrace) {
+                    if !self.test_next(Token::Func) && !self.test_next(Token::RBrace) {
                         return_type = Option::Some(self.parse_type());
                     }
-                    funcs.push((func_name,params,return_type));
+                    funcs.push((func_name, params, return_type));
                 }
                 token => {
-                    panic!("expect token 'func', found {:?}",token);
+                    panic!("expect token 'func', found {:?}", token);
                 }
             }
         }
-        ParsedInterface{
+        ParsedInterface {
             name,
             parents,
-            funcs
+            funcs,
         }
     }
     fn parse_enum(&mut self) -> ParsedEnum {
-        let enum_name= self.identifier();
+        let enum_name = self.identifier();
         let mut enum_values = Vec::new();
         let mut funcs = Vec::new();
         self.assert_next(Token::LBrace);
@@ -818,97 +819,97 @@ impl Parser {
                         self.assert_next(Token::LParen);
                         let parsed_type = self.parse_type();
                         self.assert_next(Token::RParen);
-                        enum_values.push((value_name,Some(parsed_type)));
-                    }else {
-                        enum_values.push((value_name,None))
+                        enum_values.push((value_name, Some(parsed_type)));
+                    } else {
+                        enum_values.push((value_name, None))
                     }
                 }
                 Token::Pub => {
                     if let Token::Func = self.next() {
                         let name = self.identifier();
                         let func = self.parse_func(true);
-                        funcs.push((name,true,func));
-                    }else{
-                        panic!("expect 'func' after 'pub', found token {:?}",self.peek())
+                        funcs.push((name, true, func));
+                    } else {
+                        panic!("expect 'func' after 'pub', found token {:?}", self.peek())
                     }
                 }
                 Token::Func => {
                     let name = self.identifier();
                     let func = self.parse_func(true);
-                    funcs.push((name,false,func));
+                    funcs.push((name, false, func));
                 }
-                token => panic!("expect identifier as enum value, found {:?}",token),
+                token => panic!("expect identifier as enum value, found {:?}", token),
             }
         }
-        ParsedEnum{
+        ParsedEnum {
             name: enum_name,
             values: enum_values,
-            funcs
+            funcs,
         }
     }
 
     #[inline]
-    fn peek(&self) -> &Token{
+    fn peek(&self) -> &Token {
         self.tokens.get(self.curr).unwrap()
     }
     #[inline]
-    fn next(&mut self) -> &Token{
+    fn next(&mut self) -> &Token {
         let token = self.tokens.get(self.curr).unwrap();
         self.curr += 1;
         token
     }
     #[inline]
-    fn assert_next(&mut self, token : Token){
+    fn assert_next(&mut self, token: Token) {
         let curr = self.tokens.get(self.curr).unwrap();
         if token.eq(curr) {
             self.curr += 1;
-        }else {
-            panic!("[assert_next] expect token {:?} in fact {:?}",token,curr)
+        } else {
+            panic!("[assert_next] expect token {:?} in fact {:?}", token, curr)
         }
     }
     #[inline]
-    fn test_next(&self, token : Token) -> bool {
+    fn test_next(&self, token: Token) -> bool {
         token.eq(self.tokens.get(self.curr).unwrap())
     }
     #[inline]
-    fn has_next(&self) -> bool{
+    fn has_next(&self) -> bool {
         self.curr + 1 < self.tokens.len()
     }
     #[inline]
-    fn forward(&mut self){
-        self.curr+= 1;
+    fn forward(&mut self) {
+        self.curr += 1;
     }
     #[inline]
-    fn backward(&mut self){
+    fn backward(&mut self) {
         self.curr -= 1;
     }
     #[inline]
-    fn rollback(&mut self, index : usize){
+    fn rollback(&mut self, index: usize) {
         self.curr = index;
     }
 
     #[inline]
-    fn identifier(&mut self) -> Rc<String>{
+    fn identifier(&mut self) -> Rc<String> {
         let curr = self.tokens.get(self.curr).unwrap();
         self.curr += 1;
         if let Token::Id(name) = curr {
-            return name.clone()
-        }else {
-            panic!("expect identifier in fact found token {:?}",curr)
+            return name.clone();
+        } else {
+            panic!("expect identifier in fact found token {:?}", curr)
         }
     }
 
     #[inline]
-    fn line(&self) -> u16{
+    fn line(&self) -> u16 {
         match self.lines.get(self.curr) {
             None => {
-                panic!("curr : {} lines len : {}",self.curr,self.lines.len())
+                panic!("curr : {} lines len : {}", self.curr, self.lines.len())
             }
             Some(line) => *line
         }
     }
 
-    fn parse_type(&mut self) -> ParsedType{
+    fn parse_type(&mut self) -> ParsedType {
         if self.test_next(Token::LParen) {
             self.forward();
             let mut vec = Vec::new();
@@ -922,18 +923,18 @@ impl Parser {
                     }
                 }
             }
-            return ParsedType::Tuple(TypeTuple{vec})
+            return ParsedType::Tuple(TypeTuple { vec });
         }
         let type_name = self.identifier();
-        let mut generic : Option<Vec<ParsedType>> = Option::None;
+        let mut generic: Option<Vec<ParsedType>> = Option::None;
         if self.has_next() && self.test_next(Token::Lt) {
-            let mut vec : Vec<ParsedType> = Vec::new();
+            let mut vec: Vec<ParsedType> = Vec::new();
             self.forward();
             while self.has_next() {
                 vec.push(self.parse_type());
                 if self.test_next(Token::Gt) {
                     self.forward();
-                    break
+                    break;
                 }
                 if self.test_next(Token::Comma) {
                     self.forward();
@@ -941,51 +942,51 @@ impl Parser {
             }
             generic = Some(vec)
         }
-        ParsedType::Single(SingleType{
+        ParsedType::Single(SingleType {
             name: type_name,
-            generic
+            generic,
         })
     }
 
-    pub fn new(tokens : Vec<Token>, lines: Vec<u16>, importer : RefCount<Importer>) -> Parser{
-        return Parser{
+    pub fn new(tokens: Vec<Token>, lines: Vec<u16>, importer: RefCount<Importer>) -> Parser {
+        return Parser {
             tokens,
             lines,
-            curr : 0,
+            curr: 0,
             classes: Vec::with_capacity(0),
             interfaces: Vec::with_capacity(0),
-            enums : Vec::with_capacity(0),
-            funcs : Vec::new(),
+            enums: Vec::with_capacity(0),
+            funcs: Vec::new(),
             imports: Vec::new(),
             importer,
-        }
+        };
     }
 }
 
 pub struct ParseError {
-    pub line : u16,
-    pub reason : String,
+    pub line: u16,
+    pub reason: String,
 }
 
 impl ParseError {
-    pub fn new(line : u16, reason : String) -> ParseError{
-        ParseError{
+    pub fn new(line: u16, reason: String) -> ParseError {
+        ParseError {
             line,
-            reason
+            reason,
         }
     }
 }
 
 impl Debug for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"Parse error line {} : {}",self.line,self.reason)
+        write!(f, "Parse error line {} : {}", self.line, self.reason)
     }
 }
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"Parse error line {} : {}",self.line,self.reason)
+        write!(f, "Parse error line {} : {}", self.line, self.reason)
     }
 }
 
-impl Error for ParseError{}
+impl Error for ParseError {}

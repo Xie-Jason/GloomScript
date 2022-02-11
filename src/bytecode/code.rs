@@ -75,8 +75,8 @@ pub enum ByteCode {
     CallMethod { index: u16, nargs: u16 },
 
     CollectTuple(u16),
-    CollectArray(BasicType,u16),
-    CollectQueue(BasicType,u16),
+    CollectArray(BasicType, u16),
+    CollectQueue(BasicType, u16),
 
     // pop three int and push RangeIter
     RangeIter,
@@ -120,7 +120,7 @@ impl ByteCode {
             | ByteCode::ReadLocal(_, _)
             | ByteCode::CopyTop => 1,
 
-            ByteCode::ReadFieldAndPop(_,_) => 0,
+            ByteCode::ReadFieldAndPop(_, _) => 0,
 
             ByteCode::WriteLocalInt(_, _)
             | ByteCode::WriteLocalNum(_, _)
@@ -167,8 +167,8 @@ impl ByteCode {
             | ByteCode::SubOne => 0,
 
             ByteCode::CollectTuple(i)
-            | ByteCode::CollectArray(_,i)
-            | ByteCode::CollectQueue(_,i) => - (i as i16),
+            | ByteCode::CollectArray(_, i)
+            | ByteCode::CollectQueue(_, i) => -(i as i16),
 
             ByteCode::Construct(_) => 1,
 

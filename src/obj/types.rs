@@ -1,44 +1,44 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
+
 use crate::obj::func::ReturnType;
 use crate::obj::gloom_class::GloomClass;
 use crate::obj::gloom_enum::GloomEnumClass;
-use crate::obj::refcount::RefCount;
 use crate::obj::interface::Interface;
-
+use crate::obj::refcount::RefCount;
 
 // 16bytes   rustc did optimization here
-#[derive(Clone,PartialEq)]
-pub enum DataType{
+#[derive(Clone, PartialEq)]
+pub enum DataType {
     Int,
     Num,
     Char,
     Bool,
-    Ref(RefType)
+    Ref(RefType),
 }
 
 
 impl DataType {
-    pub fn belong_to(&self,other : &DataType) -> bool{
+    pub fn belong_to(&self, other: &DataType) -> bool {
         if self.eq(other)
             || other.as_ref_type().eq(&RefType::Any) ||
-            ( self.is_int_or_num() && other.is_int_or_num() ) {
+            (self.is_int_or_num() && other.is_int_or_num()) {
             true
-        }else {
+        } else {
             if let DataType::Ref(self_type) = self {
                 if let DataType::Ref(other_type) = other {
                     self_type.belong_to(other_type)
-                }else{
+                } else {
                     false
                 }
-            }else{
+            } else {
                 false
             }
         }
     }
 
     #[inline]
-    pub fn equal_interface(&self, interface : &RefCount<Interface>) -> bool {
+    pub fn equal_interface(&self, interface: &RefCount<Interface>) -> bool {
         match self {
             DataType::Ref(RefType::Interface(myself)) => myself.eq(interface),
             _ => false,
@@ -59,7 +59,7 @@ impl DataType {
     }
 
     #[inline]
-    pub fn is_int_or_num(&self) -> bool{
+    pub fn is_int_or_num(&self) -> bool {
         match self {
             DataType::Int => true,
             DataType::Num => true,
@@ -69,7 +69,7 @@ impl DataType {
         }
     }
     #[inline]
-    pub fn is_num(&self) -> bool{
+    pub fn is_num(&self) -> bool {
         match self {
             DataType::Num => true,
             DataType::Ref(RefType::Num) => true,
@@ -77,7 +77,7 @@ impl DataType {
         }
     }
     #[inline]
-    pub fn is_int(&self) -> bool{
+    pub fn is_int(&self) -> bool {
         match self {
             DataType::Int => true,
             DataType::Ref(RefType::Int) => true,
@@ -94,7 +94,7 @@ impl DataType {
     }
 
     #[inline]
-    pub fn as_ref_type(&self) -> RefType{
+    pub fn as_ref_type(&self) -> RefType {
         match self {
             DataType::Int => RefType::Int,
             DataType::Num => RefType::Num,
@@ -104,14 +104,14 @@ impl DataType {
         }
     }
     #[inline]
-    pub fn is_none(&self) -> bool{
+    pub fn is_none(&self) -> bool {
         match self {
             DataType::Ref(RefType::None) => true,
             _ => false,
         }
     }
     #[inline]
-    pub fn as_basic(&self) -> BasicType{
+    pub fn as_basic(&self) -> BasicType {
         match self {
             DataType::Int => BasicType::Int,
             DataType::Num => BasicType::Num,
@@ -124,10 +124,10 @@ impl DataType {
 
 impl Display for DataType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let s : String;
+        let s: String;
         // 用于保证format!返回的String对象不会被立即释放
         // to sure that the returned String obj won't be drop immediately
-        write!(f,"{}",match self {
+        write!(f, "{}", match self {
             DataType::Int => "int",
             DataType::Num => "num",
             DataType::Char => "char",
@@ -142,13 +142,13 @@ impl Display for DataType {
 
 impl Debug for DataType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",self)
+        write!(f, "{}", self)
     }
 }
 
 // 16byte
-#[derive(Clone,Debug,PartialEq)]
-pub enum RefType{
+#[derive(Clone, Debug, PartialEq)]
+pub enum RefType {
     Any,
     None,
     MySelf,
@@ -165,7 +165,7 @@ pub enum RefType{
     MataBuiltinType(BuiltinType),
 
     Tuple(Box<Vec<DataType>>),
-    Func(Box<(Vec<DataType>,ReturnType,bool)>),
+    Func(Box<(Vec<DataType>, ReturnType, bool)>),
     Weak(Box<DataType>),
     Array(Box<DataType>),
     Queue(Box<DataType>),
@@ -178,7 +178,7 @@ pub enum RefType{
 }
 
 impl RefType {
-    pub fn belong_to(&self, other : &RefType) -> bool {
+    pub fn belong_to(&self, other: &RefType) -> bool {
         if let RefType::Any = other {
             return true;
         }
@@ -201,14 +201,14 @@ impl RefType {
             RefType::Func(func_type) => {
                 if let RefType::Func(other_func_type) = other {
                     let func_type_borrow = func_type.deref();
-                    let (vec1,ret_type1,_) = func_type_borrow.deref();
+                    let (vec1, ret_type1, _) = func_type_borrow.deref();
                     let other_fn_type_borrow = other_func_type.deref();
-                    let (vec2,ret_type2,all_ok) = other_fn_type_borrow.deref();
+                    let (vec2, ret_type2, all_ok) = other_fn_type_borrow.deref();
                     if *all_ok {
-                        return true
+                        return true;
                     }
                     vec1.eq(vec2) && ret_type1.eq(ret_type2)
-                }else {
+                } else {
                     false
                 }
             }
@@ -218,7 +218,7 @@ impl RefType {
         }
     }
     #[inline]
-    pub fn as_built_type(&self) -> BuiltinType{
+    pub fn as_built_type(&self) -> BuiltinType {
         match self {
             RefType::Func(_) => BuiltinType::Func,
             RefType::Weak(_) => BuiltinType::Weak,
@@ -236,22 +236,22 @@ impl RefType {
 
 impl Display for RefType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",match self {
+        write!(f, "{}", match self {
             RefType::Class(cls) => format!("{}", cls.inner()),
-            RefType::Enum(cls) =>  format!("{}", cls.inner()),
-            RefType::Interface(inter) =>  format!("{}", inter.inner()),
-            RefType::Tuple(vec) => format!("{:?}",vec),
-            RefType::Func(func) => format!("Func<{:?}>",func),
-            RefType::Weak(generic) => format!("Weak<{:?}>",generic),
-            RefType::Array(generic) => format!("Array<{:?}>",generic),
-            RefType::Queue(generic) => format!("Queue<{:?}>",generic),
-            ref_type => format!("{:?}",ref_type),
+            RefType::Enum(cls) => format!("{}", cls.inner()),
+            RefType::Interface(inter) => format!("{}", inter.inner()),
+            RefType::Tuple(vec) => format!("{:?}", vec),
+            RefType::Func(func) => format!("Func<{:?}>", func),
+            RefType::Weak(generic) => format!("Weak<{:?}>", generic),
+            RefType::Array(generic) => format!("Array<{:?}>", generic),
+            RefType::Queue(generic) => format!("Queue<{:?}>", generic),
+            ref_type => format!("{:?}", ref_type),
         })
     }
 }
 
-#[derive(Copy,Clone,Debug,Hash,Eq,PartialEq)]
-pub enum BuiltinType{
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub enum BuiltinType {
     Int,
     Num,
     Char,
@@ -264,7 +264,7 @@ pub enum BuiltinType{
 }
 
 impl BuiltinType {
-    pub fn try_from_str(name : &str) -> Option<BuiltinType>{
+    pub fn try_from_str(name: &str) -> Option<BuiltinType> {
         let builtin_type = match name {
             "int" => BuiltinType::Int,
             "Int" => BuiltinType::Int,
@@ -283,7 +283,7 @@ impl BuiltinType {
         };
         Option::Some(builtin_type)
     }
-    pub fn to_str(&self) -> &str{
+    pub fn to_str(&self) -> &str {
         match self {
             BuiltinType::Int => "Int",
             BuiltinType::Num => "Num",
@@ -298,28 +298,28 @@ impl BuiltinType {
     }
 }
 
-#[derive(Debug,Clone)]
-pub enum DeclaredType{
+#[derive(Debug, Clone)]
+pub enum DeclaredType {
     Class(RefCount<GloomClass>),
     Enum(RefCount<GloomEnumClass>),
     Interface(RefCount<Interface>),
-    IsNot
+    IsNot,
 }
 
 impl DeclaredType {
-    pub fn equal_class(&self, class : &RefCount<GloomClass>) -> bool{
+    pub fn equal_class(&self, class: &RefCount<GloomClass>) -> bool {
         match self {
             DeclaredType::Class(myself) => myself.eq(class),
             _ => false
         }
     }
-    pub fn equal_enum(&self, class : &RefCount<GloomEnumClass>) -> bool{
+    pub fn equal_enum(&self, class: &RefCount<GloomEnumClass>) -> bool {
         match self {
             DeclaredType::Enum(myself) => myself.eq(class),
             _ => false
         }
     }
-    pub fn equal_interface(&self, inter : &RefCount<Interface>) -> bool{
+    pub fn equal_interface(&self, inter: &RefCount<Interface>) -> bool {
         match self {
             DeclaredType::Interface(myself) => myself.eq(inter),
             _ => false
@@ -327,11 +327,11 @@ impl DeclaredType {
     }
 }
 
-#[derive(Debug,Clone)]
-pub enum BreakType{
+#[derive(Debug, Clone)]
+pub enum BreakType {
     Type(DataType),
     Uninit,
-    Void
+    Void,
 }
 
 impl BreakType {
@@ -353,19 +353,19 @@ impl Display for BreakType {
     }
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[repr(u8)]
-pub enum BasicType{
+pub enum BasicType {
     Int,
     Num,
     Char,
     Bool,
-    Ref
+    Ref,
 }
 
 impl Debug for BasicType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",match self {
+        write!(f, "{}", match self {
             BasicType::Int => "int",
             BasicType::Num => "num",
             BasicType::Char => "char",
@@ -377,10 +377,10 @@ impl Debug for BasicType {
 
 impl BasicType {
     #[inline(always)]
-    pub fn is_ref(&self) -> bool{
+    pub fn is_ref(&self) -> bool {
         if let BasicType::Ref = self {
             true
-        }else {
+        } else {
             false
         }
     }

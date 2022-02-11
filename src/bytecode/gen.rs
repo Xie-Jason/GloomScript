@@ -1,4 +1,6 @@
 use std::borrow::Borrow;
+use std::ops::Deref;
+
 use crate::builtin::string::GloomString;
 use crate::bytecode::code::ByteCode;
 use crate::frontend::ast::{Chain, Expression, ExprType, ForIter, FuncExpr, LeftValue, Statement, Var};
@@ -7,7 +9,6 @@ use crate::frontend::status::GloomStatus;
 use crate::obj::func::{FuncBody, GloomFunc};
 use crate::obj::types::{BasicType, DataType, RefType};
 use crate::vm::constant::ConstantPool;
-use std::ops::Deref;
 
 pub struct CodeGenerator {
     constant_pool: ConstantPool,
@@ -53,7 +54,6 @@ impl CodeGenerator {
             FuncBody::Builtin(_) => {}
             _ => panic!(),
         };
-
     }
     fn generate_statements(&mut self, statements: &Vec<Statement>, context: &mut GenerateContext) {
         for stmt in statements.iter() {
@@ -193,13 +193,13 @@ impl CodeGenerator {
                     self.generate_expression(expr, context);
                     match expr {
                         Expression::None => {} // no return value
-                        Expression::IfElse(if_else)  => if ! if_else.return_void {
+                        Expression::IfElse(if_else) => if !if_else.return_void {
                             context.push(ByteCode::Pop);
                         }
-                        Expression::While(while_loop) => if ! while_loop.return_void {
+                        Expression::While(while_loop) => if !while_loop.return_void {
                             context.push(ByteCode::Pop);
                         }
-                        Expression::For(for_loop) => if ! for_loop.return_void {
+                        Expression::For(for_loop) => if !for_loop.return_void {
                             context.push(ByteCode::Pop);
                         }
                         _ => context.push(ByteCode::Pop)
@@ -266,8 +266,8 @@ impl CodeGenerator {
                     Var::StaticInt(i1, i2)
                     | Var::StaticNum(i1, i2)
                     | Var::StaticChar(i1, i2)
-                    | Var::StaticBool(i1, i2) => ByteCode::ReadStatic(*i1,*i2),
-                    Var::StaticRef(i) => ByteCode::ReadStatic(*i,0),
+                    | Var::StaticBool(i1, i2) => ByteCode::ReadStatic(*i1, *i2),
+                    Var::StaticRef(i) => ByteCode::ReadStatic(*i, 0),
                     Var::Class(i) => ByteCode::LoadClass(*i),
                     Var::Enum(i) => ByteCode::LoadEnum(*i),
                     Var::BuiltinType(i) => ByteCode::LoadBuiltinType(*i),
@@ -278,34 +278,34 @@ impl CodeGenerator {
             }
             Expression::Tuple(tuple) => {
                 for expr in tuple.deref().iter().rev() {
-                    self.generate_expression(expr,context);
+                    self.generate_expression(expr, context);
                 }
                 context.push(ByteCode::CollectTuple(tuple.len() as u16));
             }
             Expression::Array(array) => {
-                let (array,basic_type,is_queue) = array.deref();
+                let (array, basic_type, is_queue) = array.deref();
                 for expr in array.iter().rev() {
-                    self.generate_expression(expr,context);
+                    self.generate_expression(expr, context);
                 }
                 let code = if *is_queue {
-                    ByteCode::CollectQueue(*basic_type,array.len() as u16)
-                }else {
-                    ByteCode::CollectArray(*basic_type,array.len() as u16)
+                    ByteCode::CollectQueue(*basic_type, array.len() as u16)
+                } else {
+                    ByteCode::CollectArray(*basic_type, array.len() as u16)
                 };
                 context.push(code);
             }
             Expression::NegOp(expr) => {
-                self.generate_expression(expr,context);
+                self.generate_expression(expr, context);
                 context.push(ByteCode::NegOp);
             }
             Expression::NotOp(expr) => {
-                self.generate_expression(expr,context);
+                self.generate_expression(expr, context);
                 context.push(ByteCode::NotOp);
             }
             Expression::BinaryOp(bin_op_vec) => {
-                self.generate_expression(&bin_op_vec.left,context);
-                for (bin_op,expr) in bin_op_vec.vec.iter() {
-                    self.generate_expression(expr,context);
+                self.generate_expression(&bin_op_vec.left, context);
+                for (bin_op, expr) in bin_op_vec.vec.iter() {
+                    self.generate_expression(expr, context);
                     context.push(match bin_op {
                         BinOp::Plus => ByteCode::Plus,
                         BinOp::Sub => ByteCode::Sub,
@@ -330,36 +330,36 @@ impl CodeGenerator {
                     _ => panic!()
                 };
                 context.push(ByteCode::Construct(class_index));
-                for (var_idx,field_type,expr) in construction.fields.iter(){
-                    self.generate_expression(expr,context);
-                    let (slot_idx,sub_idx) = var_idx.index();
+                for (var_idx, field_type, expr) in construction.fields.iter() {
+                    self.generate_expression(expr, context);
+                    let (slot_idx, sub_idx) = var_idx.index();
                     context.push(match field_type {
-                        BasicType::Int => ByteCode::WriteFieldInt(slot_idx,sub_idx),
-                        BasicType::Num => ByteCode::WriteFieldNum(slot_idx,sub_idx),
-                        BasicType::Char => ByteCode::WriteFieldChar(slot_idx,sub_idx),
-                        BasicType::Bool => ByteCode::WriteFieldBool(slot_idx,sub_idx),
+                        BasicType::Int => ByteCode::WriteFieldInt(slot_idx, sub_idx),
+                        BasicType::Num => ByteCode::WriteFieldNum(slot_idx, sub_idx),
+                        BasicType::Char => ByteCode::WriteFieldChar(slot_idx, sub_idx),
+                        BasicType::Bool => ByteCode::WriteFieldBool(slot_idx, sub_idx),
                         BasicType::Ref => ByteCode::WriteFieldRef(slot_idx),
                     });
                 }
             }
             Expression::Chain(chain) => {
-                let (expr,chains) = chain.deref();
-                self.generate_expression(expr,context);
+                let (expr, chains) = chain.deref();
+                self.generate_expression(expr, context);
                 for chain in chains.iter() {
-                    self.generate_chain(chain,context);
+                    self.generate_chain(chain, context);
                 }
             }
             Expression::IfElse(if_else) => {
                 let start_idx = context.bytecodes.len();
-                let mut last_cond_idx ;
+                let mut last_cond_idx;
                 let max_idx = if_else.branches.len() - 1;
-                for (idx,branch) in if_else.branches.iter().enumerate() {
-                    self.generate_expression(&branch.condition,context);
+                for (idx, branch) in if_else.branches.iter().enumerate() {
+                    self.generate_expression(&branch.condition, context);
                     last_cond_idx = context.bytecodes.len();
                     // 如果条件为真 就顺序执行 如果为假 则跳转到下一个条件判断
                     // if condition is true, execute orderly, or if false, jump to next condition judge
                     context.push(ByteCode::JumpIfNot(Self::INVALID_LABEL));
-                    self.generate_statements(&branch.statements,context);
+                    self.generate_statements(&branch.statements, context);
                     // Drop所有的Slot::Ref drop all the Slot::Ref
                     for slot_idx in branch.drop_vec.iter() {
                         context.push(ByteCode::DropLocal(*slot_idx));
@@ -379,7 +379,7 @@ impl CodeGenerator {
                         if *label == Self::INVALID_LABEL {
                             *label = curr_idx as u32;
                         }
-                    }else{
+                    } else {
                         panic!()
                     }
                 }
@@ -397,13 +397,13 @@ impl CodeGenerator {
             }
             Expression::While(while_loop) => {
                 let start_idx = context.bytecodes.len();
-                self.generate_expression(&while_loop.condition,context);
+                self.generate_expression(&while_loop.condition, context);
                 let jump_end_idx = context.bytecodes.len();
                 // if condition is true, just execute, if false, jump to the end of while-loop
                 context.push(ByteCode::JumpIfNot(Self::INVALID_LABEL));
 
                 let body_start_idx = context.bytecodes.len();
-                self.generate_statements(&while_loop.statements,context);
+                self.generate_statements(&while_loop.statements, context);
                 for idx in while_loop.drop_slots.iter() {
                     context.push(ByteCode::DropLocal(*idx));
                 }
@@ -413,9 +413,9 @@ impl CodeGenerator {
 
 
                 let end_idx = context.bytecodes.len() as u32;
-                if let ByteCode::JumpIfNot(label) = context.bytecodes.get_mut(jump_end_idx).unwrap(){
+                if let ByteCode::JumpIfNot(label) = context.bytecodes.get_mut(jump_end_idx).unwrap() {
                     *label = end_idx;
-                }else{
+                } else {
                     panic!()
                 }
 
@@ -429,14 +429,14 @@ impl CodeGenerator {
             }
             Expression::For(for_loop) => {
                 match &for_loop.for_iter {
-                    ForIter::Range(start_expr,end_expr,step_expr) => {
-                        self.generate_expression(step_expr,context);
-                        self.generate_expression(end_expr,context);
-                        self.generate_expression(start_expr,context);
+                    ForIter::Range(start_expr, end_expr, step_expr) => {
+                        self.generate_expression(step_expr, context);
+                        self.generate_expression(end_expr, context);
+                        self.generate_expression(start_expr, context);
                         context.push(ByteCode::RangeIter);
                     }
                     ForIter::Iter(expr) => {
-                        self.generate_expression(expr,context);
+                        self.generate_expression(expr, context);
                         context.push(ByteCode::InvokeIter);
                     }
                 };
@@ -451,17 +451,17 @@ impl CodeGenerator {
 
                 // write the result of next() into local
                 context.push(match for_loop.var {
-                    Var::LocalInt(slot_idx, sub_idx) => ByteCode::WriteLocalInt(slot_idx,sub_idx),
-                    Var::LocalNum(slot_idx, sub_idx) => ByteCode::WriteLocalNum(slot_idx,sub_idx),
-                    Var::LocalChar(slot_idx, sub_idx) => ByteCode::WriteLocalChar(slot_idx,sub_idx),
-                    Var::LocalBool(slot_idx, sub_idx) => ByteCode::WriteLocalBool(slot_idx,sub_idx),
+                    Var::LocalInt(slot_idx, sub_idx) => ByteCode::WriteLocalInt(slot_idx, sub_idx),
+                    Var::LocalNum(slot_idx, sub_idx) => ByteCode::WriteLocalNum(slot_idx, sub_idx),
+                    Var::LocalChar(slot_idx, sub_idx) => ByteCode::WriteLocalChar(slot_idx, sub_idx),
+                    Var::LocalBool(slot_idx, sub_idx) => ByteCode::WriteLocalBool(slot_idx, sub_idx),
                     Var::LocalRef(slot_idx) => ByteCode::WriteLocalRef(slot_idx),
                     _ => panic!()
                 });
 
                 // loop body
                 let body_start_idx = context.bytecodes.len();
-                self.generate_statements(&for_loop.statements,context);
+                self.generate_statements(&for_loop.statements, context);
                 for idx in for_loop.drop_slots.iter() {
                     context.push(ByteCode::DropLocal(*idx));
                 }
@@ -471,9 +471,9 @@ impl CodeGenerator {
                 context.push(ByteCode::Jump(start_judge_idx));
 
                 let end_idx = context.bytecodes.len();
-                if let ByteCode::JumpIfNone(label) = context.bytecodes.get_mut(jump_if_none_idx).unwrap(){
+                if let ByteCode::JumpIfNone(label) = context.bytecodes.get_mut(jump_if_none_idx).unwrap() {
                     *label = end_idx as u32;
-                }else {
+                } else {
                     panic!()
                 }
 
@@ -496,8 +496,8 @@ impl CodeGenerator {
 
                 self.generate_func(&mut func.inner_mut());
             }
-            Expression::Cast(cast) => panic!("not support now : {:#?}",cast),
-            Expression::Match(m) => panic!("not support now {:#?}",m),
+            Expression::Cast(cast) => panic!("not support now : {:#?}", cast),
+            Expression::Match(m) => panic!("not support now {:#?}", m),
         }
     }
     #[inline]

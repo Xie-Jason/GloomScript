@@ -2,46 +2,46 @@ use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
 use crate::frontend::ops::{BinOp, LeftValueOp};
-use crate::obj::func::{GloomFunc};
+use crate::obj::func::GloomFunc;
 use crate::obj::gloom_class::IsPub;
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{BasicType, DataType};
 
-pub struct ParsedClass{
-    pub name : Rc<String>,
-    pub parent : Option<Rc<String>>,
-    pub impl_interfaces : Vec<Rc<String>>,
-    pub fields : Vec<(bool, ParsedType, Rc<String>)>,
-    pub funcs : Vec<(bool, Rc<String>, ParsedFunc)>
+pub struct ParsedClass {
+    pub name: Rc<String>,
+    pub parent: Option<Rc<String>>,
+    pub impl_interfaces: Vec<Rc<String>>,
+    pub fields: Vec<(bool, ParsedType, Rc<String>)>,
+    pub funcs: Vec<(bool, Rc<String>, ParsedFunc)>,
 }
 
 impl Debug for ParsedClass {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"Class {}:{:?} impl{:?} {:?} {:?}",self.name,self.parent,self.impl_interfaces,self.fields,self.funcs)
+        write!(f, "Class {}:{:?} impl{:?} {:?} {:?}", self.name, self.parent, self.impl_interfaces, self.fields, self.funcs)
     }
 }
 
-pub struct ParsedInterface{
-    pub name : Rc<String>,
-    pub parents : Vec<Rc<String>>,
-    pub funcs : Vec<(Rc<String>, Vec<ParsedType>, Option<ParsedType>)>
+pub struct ParsedInterface {
+    pub name: Rc<String>,
+    pub parents: Vec<Rc<String>>,
+    pub funcs: Vec<(Rc<String>, Vec<ParsedType>, Option<ParsedType>)>,
 }
 
 impl Debug for ParsedInterface {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"Interface {}:{:?} {:?}",self.name,self.parents,self.funcs)
+        write!(f, "Interface {}:{:?} {:?}", self.name, self.parents, self.funcs)
     }
 }
 
-pub struct ParsedEnum{
-    pub name : Rc<String>,
-    pub values : Vec<(Rc<String>, Option<ParsedType>)>,
-    pub funcs : Vec<(Rc<String>, IsPub, ParsedFunc)>
+pub struct ParsedEnum {
+    pub name: Rc<String>,
+    pub values: Vec<(Rc<String>, Option<ParsedType>)>,
+    pub funcs: Vec<(Rc<String>, IsPub, ParsedFunc)>,
 }
 
 impl Debug for ParsedEnum {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"Enum {} {:?} {:?}",self.name,self.values,self.funcs)
+        write!(f, "Enum {} {:?} {:?}", self.name, self.values, self.funcs)
     }
 }
 
@@ -49,25 +49,25 @@ pub type Line = u16;
 
 // 16byte
 #[derive(Debug)]
-pub enum Statement{
+pub enum Statement {
     Let(Box<(Var, Option<ParsedType>, Expression, Line)>),
     Static(Box<(Var, Option<ParsedType>, Expression)>),
     PubStatic(Box<(Var, Option<ParsedType>, Expression)>),
 
-    LeftValueOp(Box<(LeftValue,LeftValueOp)>),
+    LeftValueOp(Box<(LeftValue, LeftValueOp)>),
 
-    Expr(Expression,u16),
-    Discard(Expression,u16),
+    Expr(Expression, u16),
+    Discard(Expression, u16),
 
     Continue(u16),
-    Break(Expression,u16),
-    Return(Expression,u16),
-    IfResult(Expression,u16),
+    Break(Expression, u16),
+    Return(Expression, u16),
+    IfResult(Expression, u16),
 }
 
 // 16byte
 #[derive(Debug)]
-pub enum Expression{
+pub enum Expression {
     None,
     // 字面常量 literal constant value
     Int(i64),
@@ -78,14 +78,15 @@ pub enum Expression{
 
     Var(Box<Var>),
     Tuple(Box<Vec<Expression>>),
-    Array(Box<(Vec<Expression>,BasicType,bool)>), // is array to queue
+    Array(Box<(Vec<Expression>, BasicType, bool)>),
+    // is array to queue
     Construct(Box<Construction>),
 
     // 二元操作 binary operation
     BinaryOp(Box<BinOpVec>),
 
     // 一元操作 unary operation
-    Cast(Box<(Expression,ParsedType,DataType)>),
+    Cast(Box<(Expression, ParsedType, DataType)>),
     NegOp(Box<Expression>),
     NotOp(Box<Expression>),
 
@@ -100,15 +101,15 @@ pub enum Expression{
     Match(RefCount<(Expression, Vec<(Expression, Vec<Statement>)>)>),
 
     // 链式的成员变量访问和函数调用 field access and function call
-    Chain(Box<(Expression,Vec<Chain>)>),
+    Chain(Box<(Expression, Vec<Chain>)>),
 
     // 类函数定义 func-like define
-    Func(Box<FuncExpr>)
+    Func(Box<FuncExpr>),
 }
 
 impl Expression {
     #[inline]
-    pub fn is_none(&self) -> bool{
+    pub fn is_none(&self) -> bool {
         match self {
             Expression::None => true,
             _ => false
@@ -116,20 +117,20 @@ impl Expression {
     }
 }
 
-#[derive(Debug,Clone)]
-pub enum Var{
+#[derive(Debug, Clone)]
+pub enum Var {
     Name(Rc<String>),
 
-    LocalInt(u16,u8),
-    LocalNum(u16,u8),
-    LocalChar(u16,u8),
-    LocalBool(u16,u8),
+    LocalInt(u16, u8),
+    LocalNum(u16, u8),
+    LocalChar(u16, u8),
+    LocalBool(u16, u8),
     LocalRef(u16),
 
-    StaticInt(u16,u8),
-    StaticNum(u16,u8),
-    StaticChar(u16,u8),
-    StaticBool(u16,u8),
+    StaticInt(u16, u8),
+    StaticNum(u16, u8),
+    StaticChar(u16, u8),
+    StaticBool(u16, u8),
     StaticRef(u16),
 
     Class(u16),
@@ -137,43 +138,43 @@ pub enum Var{
     Interface(u16),
     BuiltinType(u16),
 
-    DirectFn(u16)
+    DirectFn(u16),
 }
 
 impl Var {
     pub fn name(&self) -> Rc<String> {
-        match self{
+        match self {
             Var::Name(name) => name.clone(),
-            var => panic!("{:?}",var)
+            var => panic!("{:?}", var)
         }
     }
     #[inline]
-    pub fn new_local(slot_idx : u16, sub_idx : u8, basic_type : BasicType) -> Var {
+    pub fn new_local(slot_idx: u16, sub_idx: u8, basic_type: BasicType) -> Var {
         match basic_type {
-            BasicType::Int => Var::LocalInt(slot_idx,sub_idx),
-            BasicType::Num => Var::LocalNum(slot_idx,sub_idx),
-            BasicType::Char => Var::LocalChar(slot_idx,sub_idx),
-            BasicType::Bool => Var::LocalBool(slot_idx,sub_idx),
+            BasicType::Int => Var::LocalInt(slot_idx, sub_idx),
+            BasicType::Num => Var::LocalNum(slot_idx, sub_idx),
+            BasicType::Char => Var::LocalChar(slot_idx, sub_idx),
+            BasicType::Bool => Var::LocalBool(slot_idx, sub_idx),
             BasicType::Ref => Var::LocalRef(slot_idx),
         }
     }
     #[inline]
-    pub fn new_static(slot_idx : u16, sub_idx : u8, basic_type : BasicType) -> Var {
+    pub fn new_static(slot_idx: u16, sub_idx: u8, basic_type: BasicType) -> Var {
         match basic_type {
-            BasicType::Int => Var::StaticInt(slot_idx,sub_idx),
-            BasicType::Num => Var::StaticNum(slot_idx,sub_idx),
-            BasicType::Char => Var::StaticChar(slot_idx,sub_idx),
-            BasicType::Bool => Var::StaticBool(slot_idx,sub_idx),
+            BasicType::Int => Var::StaticInt(slot_idx, sub_idx),
+            BasicType::Num => Var::StaticNum(slot_idx, sub_idx),
+            BasicType::Char => Var::StaticChar(slot_idx, sub_idx),
+            BasicType::Bool => Var::StaticBool(slot_idx, sub_idx),
             BasicType::Ref => Var::StaticRef(slot_idx),
         }
     }
 }
 
-pub struct IfElse{
+pub struct IfElse {
     pub branches: Vec<IfBranch>,
     // else 分支的条件为 Expr::Bool(true)
     // the condition of else branch is Expr::Bool(true)
-    pub return_void : bool
+    pub return_void: bool,
 }
 
 impl Debug for IfElse {
@@ -183,124 +184,125 @@ impl Debug for IfElse {
 }
 
 #[derive(Debug)]
-pub struct IfBranch{
-    pub condition : Expression,
-    pub statements : Vec<Statement>,
-    pub drop_vec : Vec<u16>,
-    pub line : Line,
+pub struct IfBranch {
+    pub condition: Expression,
+    pub statements: Vec<Statement>,
+    pub drop_vec: Vec<u16>,
+    pub line: Line,
 }
 
-pub struct BinOpVec{
-    pub left : Expression,
-    pub vec  : Vec<(BinOp,Expression)>
+pub struct BinOpVec {
+    pub left: Expression,
+    pub vec: Vec<(BinOp, Expression)>,
 }
 
 impl Debug for BinOpVec {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{:?} {:?}",self.left,self.vec)
+        write!(f, "{:?} {:?}", self.left, self.vec)
     }
 }
 
 #[derive(Debug)]
 pub enum VarId {
-    Index(u16,u8),
-    Name(Rc<String>)
+    Index(u16, u8),
+    Name(Rc<String>),
 }
 
 impl VarId {
     #[inline]
-    pub fn name(&self) -> Rc<String>{
+    pub fn name(&self) -> Rc<String> {
         match self {
-            VarId::Index(_,_) => panic!(),
+            VarId::Index(_, _) => panic!(),
             VarId::Name(name) => name.clone()
         }
     }
     #[inline]
-    pub fn index(&self) -> (u16,u8){
+    pub fn index(&self) -> (u16, u8) {
         match self {
-            VarId::Index(i1, i2) => (*i1,*i2),
+            VarId::Index(i1, i2) => (*i1, *i2),
             VarId::Name(_) => panic!()
         }
     }
 }
 
-pub enum ParsedType{
+pub enum ParsedType {
     Single(SingleType),
     Tuple(TypeTuple),
-    MySelf
+    MySelf,
 }
 
 impl Debug for ParsedType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParsedType::Single(tp) => write!(f,"{:?}",tp),
-            ParsedType::Tuple(tp) => write!(f,"{:?}",tp),
-            ParsedType::MySelf => { write!(f,"Self") }
+            ParsedType::Single(tp) => write!(f, "{:?}", tp),
+            ParsedType::Tuple(tp) => write!(f, "{:?}", tp),
+            ParsedType::MySelf => { write!(f, "Self") }
         }
     }
 }
 
-pub struct SingleType{
-    pub name : Rc<String>,
-    pub generic : Option<Vec<ParsedType>>
+pub struct SingleType {
+    pub name: Rc<String>,
+    pub generic: Option<Vec<ParsedType>>,
 }
+
 impl Debug for SingleType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}<{:?}>",self.name,self.generic)
+        write!(f, "{}<{:?}>", self.name, self.generic)
     }
 }
 
-pub struct TypeTuple{
-    pub vec : Vec<ParsedType>
+pub struct TypeTuple {
+    pub vec: Vec<ParsedType>,
 }
 
 impl Debug for TypeTuple {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{:?}",self.vec)
+        write!(f, "{:?}", self.vec)
     }
 }
 
 pub struct WhileLoop {
-    pub condition : Expression,
-    pub statements : Vec<Statement>,
-    pub drop_slots : Vec<u16>,
+    pub condition: Expression,
+    pub statements: Vec<Statement>,
+    pub drop_slots: Vec<u16>,
     // 如果循环中有局部变量声明 那么它们应当在每次循环结束时被析构
     // if some local variables declare in loop, them should be dropped after every loop
-    pub line : Line,
-    pub return_void : bool
+    pub line: Line,
+    pub return_void: bool,
 }
 
 impl Debug for WhileLoop {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"while {:?} {:?}",self.condition,self.statements)
+        write!(f, "while {:?} {:?}", self.condition, self.statements)
     }
 }
 
-pub struct ForLoop{
-    pub var : Var,
-    pub for_iter : ForIter,
-    pub statements : Vec<Statement>,
-    pub drop_slots : Vec<u16>,
-    pub line : u16,
-    pub return_void : bool
+pub struct ForLoop {
+    pub var: Var,
+    pub for_iter: ForIter,
+    pub statements: Vec<Statement>,
+    pub drop_slots: Vec<u16>,
+    pub line: u16,
+    pub return_void: bool,
 }
 
 #[derive(Debug)]
-pub enum ForIter{
+pub enum ForIter {
     Range(Expression, Expression, Expression),
-    Iter(Expression)
+    Iter(Expression),
 }
 
 impl Debug for ForLoop {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"for {:?} in {:?} {:?}",self.var,self.for_iter,self.statements)
+        write!(f, "for {:?} in {:?} {:?}", self.var, self.for_iter, self.statements)
     }
 }
 
 #[derive(Debug)]
-pub enum FuncExpr{
+pub enum FuncExpr {
     Parsed(ParsedFunc),
-    Analysed(RefCount<GloomFunc>)
+    Analysed(RefCount<GloomFunc>),
 }
 
 impl FuncExpr {
@@ -313,78 +315,76 @@ impl FuncExpr {
 }
 
 pub struct ParsedFunc {
-    pub params : Vec<(Rc<String>, ParsedType)>,
-    pub body : Vec<Statement>,
-    pub return_type : Option<ParsedType>
+    pub params: Vec<(Rc<String>, ParsedType)>,
+    pub body: Vec<Statement>,
+    pub return_type: Option<ParsedType>,
 }
 
 impl Debug for ParsedFunc {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"func{:?}->{:?} {:?}",self.params,self.return_type,self.body)
+        write!(f, "func{:?}->{:?} {:?}", self.params, self.return_type, self.body)
     }
 }
 
 #[derive(Debug)]
-pub struct MatchDef{
-    pub matched : Expression,
-    pub branches : Vec<(Expression,Vec<Statement>)>
+pub struct MatchDef {
+    pub matched: Expression,
+    pub branches: Vec<(Expression, Vec<Statement>)>,
 }
 
 #[derive(Debug)]
-pub enum ExprType{
+pub enum ExprType {
     Parsed(ParsedType),
-    Analyzed(DataType)
+    Analyzed(DataType),
 }
-
 
 
 #[derive(Debug)]
-pub struct Construction{
-    pub class_type : ExprType,
-    pub fields : Vec<(VarId,BasicType,Expression)>
+pub struct Construction {
+    pub class_type: ExprType,
+    pub fields: Vec<(VarId, BasicType, Expression)>,
 }
 
-pub enum Chain{
+pub enum Chain {
     // field of object, func of meta type
-    Access(VarId,BasicType),
+    Access(VarId, BasicType),
 
     // static func, caller : meta type
     // non-static func, caller : object
-    FnCall{
-        func : VarId,
-        need_self : bool,
-        args : Vec<Expression>
+    FnCall {
+        func: VarId,
+        need_self: bool,
+        args: Vec<Expression>,
     },
 
     // expr is func type
-    Call(Vec<Expression>)
+    Call(Vec<Expression>),
 }
 
 impl Debug for Chain {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Chain::Access(i,t) => {
-                write!(f,"->{:?}<{:?}>",i.index(),t)
+            Chain::Access(i, t) => {
+                write!(f, "->{:?}<{:?}>", i.index(), t)
             }
             Chain::FnCall { func, need_self: _need_self, args } => {
-                write!(f,"func[{:?}] {:?}",func,args)
+                write!(f, "func[{:?}] {:?}", func, args)
             }
             Chain::Call(call) => {
-                write!(f,"call({:?})",call)
+                write!(f, "call({:?})", call)
             }
         }
-
     }
 }
 
 #[derive(Debug)]
-pub enum LeftValue{
+pub enum LeftValue {
     Var(Var),
-    Chain(Expression,Vec<Chain>)
+    Chain(Expression, Vec<Chain>),
 }
 
 // 用来报错时打印详细信息 used for print details when error occurs
-pub enum SyntaxType{
+pub enum SyntaxType {
     While,
     ForIn,
     IfElseBranch,
@@ -395,7 +395,7 @@ pub enum SyntaxType{
 
 impl Debug for SyntaxType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",match self {
+        write!(f, "{}", match self {
             SyntaxType::While => "while",
             SyntaxType::IfElseBranch => "if-else branch",
             SyntaxType::Break => "break",
@@ -406,9 +406,9 @@ impl Debug for SyntaxType {
     }
 }
 
-#[derive(Copy,Clone,Debug)]
-pub enum BlockType{
+#[derive(Copy, Clone, Debug)]
+pub enum BlockType {
     Func,
     Loop,
-    IfElse
+    IfElse,
 }
