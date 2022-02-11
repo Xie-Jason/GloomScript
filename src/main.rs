@@ -19,6 +19,7 @@ mod frontend;
 mod builtin;
 mod bytecode;
 mod vm;
+mod jit;
 
 fn main() -> Result<(), String> {
     let mut app = App::new("Gloom Script")

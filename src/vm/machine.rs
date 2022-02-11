@@ -55,6 +55,9 @@ impl GloomVM {
                 }
                 value
             }
+            FuncBody::Jit(ptr)=>{
+
+            }
             unknown => panic!("unknown func body {:?} of {:?}",unknown,func)
         }
     }
