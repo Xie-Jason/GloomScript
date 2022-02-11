@@ -18,7 +18,6 @@ impl Debug for Frame {
     }
 }
 
-
 impl Frame {
     #[inline]
     pub fn new(stack_size : u16, local_size : u16) -> Frame {
@@ -103,6 +102,10 @@ impl Frame {
             }
             slot => panic!("{:?}",slot)
         }
+    }
+
+    pub fn print_stack(&self){
+        println!("{:?}",self.stack);
     }
 
     /*#[inline]

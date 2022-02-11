@@ -18,7 +18,7 @@ mod vm;
 fn main() {
     println!("ByteCode size : {}byte", std::mem::size_of::<ByteCode>());
     let debug = false;
-    let mut file = File::open(&String::from(r"D:\Rust\projects\gloomscript\gloom\AfterTest.gs")).unwrap();
+    let mut file = File::open(&String::from(r"D:\Rust\projects\gloomscript\gloom\DisplayByteCode.gs")).unwrap();
     let mut src : Vec<u8> = Vec::with_capacity(256);
     file.read_to_end(&mut src).unwrap();
     // lexer and parse

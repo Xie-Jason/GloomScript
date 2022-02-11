@@ -161,6 +161,9 @@ impl Tokenizer{
                         }
                     }
                 }
+                b'#' => {
+                    self.skip_annotation_line();
+                }
                 // 字面量字符串
                 b'"' => {
                     tokens.push(self.parse_str());
