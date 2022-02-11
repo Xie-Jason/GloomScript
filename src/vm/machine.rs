@@ -46,9 +46,9 @@ impl GloomVM {
             FuncBody::ByteCodes(bytecodes) => {
                 let mut frame = Frame::new(func.info.stack_size, func.info.local_size);
                 frame.fill_args(&func.info.params,args);
-                for (idx,code) in bytecodes.iter().enumerate() {
+                /*for (idx,code) in bytecodes.iter().enumerate() {
                     println!("#{:3} {:?}",idx,code);
-                }
+                }*/
                 let value = self.interpret(bytecodes, &mut frame);
                 for idx in func.info.drop_slots.iter() {
                     frame.drop_local(self,*idx);
@@ -85,7 +85,7 @@ impl GloomVM {
         let mut result = Value::None;
         while pc < length {
             let code = *bytecodes.get(pc).unwrap();
-            frame.print_stack();
+            // frame.print_stack();
             pc += 1;
             match code {
                 ByteCode::Pop => match frame.pop() {
