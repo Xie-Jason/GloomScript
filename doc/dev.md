@@ -4,8 +4,8 @@
 
 - [x] ByteCode generation
 - [x] ByteCode interpret
-- [ ] async runtime and API support
-- [ ] better interpretation entrance
+- [x] Better interpretation entrance
+- [ ] Async runtime and API support
 
 #### Code Organization
 
