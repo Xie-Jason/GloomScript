@@ -872,7 +872,7 @@ impl Parser {
     }
     #[inline]
     fn has_next(&self) -> bool{
-        self.curr < self.tokens.len() - 1
+        self.curr + 1 < self.tokens.len()
     }
     #[inline]
     fn forward(&mut self){

@@ -1115,8 +1115,9 @@ impl Analyzer {
                             // 已标记变量类型 with type mark
                             let data_type = self.get_type(data_type, context.file_index);
                             let basic_type = data_type.as_basic();
-                            if ! self.deduce_type(expr,context).belong_to(&data_type){
-                                panic!()
+                            let expr_type = self.deduce_type(expr, context);
+                            if ! expr_type.belong_to(&data_type){
+                                panic!("{} expect {} found {}",context.info(),data_type,expr_type);
                             }
                             let (slot_idx,sub_idx) = context.indexer.put(data_type);
                             // 检查变量名是否重复 check if the variable name occupied
