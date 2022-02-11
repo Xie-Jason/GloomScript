@@ -1,18 +1,19 @@
 use std::panic::panic_any;
 use std::rc::Rc;
 use std::str::FromStr;
+
 use crate::frontend::token::Token;
 
-pub struct Tokenizer{
-    src  : Vec<u8>,
-    curr : usize,
-    line : u16,
+pub struct Tokenizer {
+    src: Vec<u8>,
+    curr: usize,
+    line: u16,
 }
 
-impl Tokenizer{
+impl Tokenizer {
     pub fn tokenize(&mut self) -> (Vec<Token>, Vec<u16>) {
-        let mut tokens : Vec<Token> = Vec::with_capacity(self.src.len() / 2);
-        let mut lines : Vec<u16> = Vec::with_capacity(tokens.len());
+        let mut tokens: Vec<Token> = Vec::with_capacity(self.src.len() / 2);
+        let mut lines: Vec<u16> = Vec::with_capacity(tokens.len());
         while self.curr < self.src.len() {
             let byte = *self.src.get(self.curr).unwrap();
             match byte {
@@ -22,7 +23,7 @@ impl Tokenizer{
                 b'(' => {
                     tokens.push(Token::LParen);
                     lines.push(self.line);
-                },
+                }
                 b')' => {
                     tokens.push(Token::RParen);
                     lines.push(self.line);
@@ -30,7 +31,7 @@ impl Tokenizer{
                 b'*' => {
                     tokens.push(Token::Mul);
                     lines.push(self.line);
-                },
+                }
                 b';' => {
                     tokens.push(Token::Semi);
                     lines.push(self.line);
@@ -68,7 +69,7 @@ impl Tokenizer{
                         b'+' => {
                             self.curr += 1;
                             Token::PlusPlus
-                        },
+                        }
                         b'=' => {
                             self.curr += 1;
                             Token::PlusEq
@@ -82,7 +83,7 @@ impl Tokenizer{
                         b'-' => {
                             self.curr += 1;
                             Token::SubSub
-                        },
+                        }
                         b'=' => {
                             self.curr += 1;
                             Token::SubEq
@@ -92,10 +93,10 @@ impl Tokenizer{
                     lines.push(self.line);
                 }
                 b'!' => {
-                    tokens.push(if self.peek_u8() == b'='{
+                    tokens.push(if self.peek_u8() == b'=' {
                         self.curr += 1;
                         Token::NotEq
-                    }else {
+                    } else {
                         Token::Not
                     });
                     lines.push(self.line);
@@ -104,46 +105,46 @@ impl Tokenizer{
                     if self.peek_u8() == b'=' {
                         self.curr += 1;
                         tokens.push(Token::GtEq)
-                    }else {
+                    } else {
                         tokens.push(Token::Gt)
                     };
                     lines.push(self.line);
-                },
+                }
                 b'<' => {
                     if self.peek_u8() == b'=' {
                         self.curr += 1;
                         tokens.push(Token::LtEq)
-                    }else {
+                    } else {
                         tokens.push(Token::Lt)
                     };
                     lines.push(self.line);
-                },
+                }
                 b'&' => {
                     if self.peek_u8() == b'&' {
                         self.curr += 1;
                     }
                     tokens.push(Token::And);
                     lines.push(self.line);
-                },
+                }
                 b'|' => {
                     if self.peek_u8() == b'|' {
                         self.curr += 1;
                     }
                     tokens.push(Token::Or);
                     lines.push(self.line);
-                },
+                }
                 b'=' => {
                     if self.peek_u8() == b'=' {
                         self.curr += 1;
                         tokens.push(Token::Eqs);
-                    }else if self.peek_u8() == b'>' {
+                    } else if self.peek_u8() == b'>' {
                         self.curr += 1;
                         tokens.push(Token::Arrow);
                     } else {
                         tokens.push(Token::Eq);
                     }
                     lines.push(self.line);
-                },
+                }
                 // 除 或 注释
                 b'/' => {
                     match self.peek_u8() {
@@ -168,13 +169,13 @@ impl Tokenizer{
                 b'"' => {
                     tokens.push(self.parse_str());
                     lines.push(self.line);
-                },
+                }
                 // 数字
-                byte if ( byte >= b'0' && byte <= b'9' )|| byte == b'-'  => {
+                byte if (byte >= b'0' && byte <= b'9') || byte == b'-' => {
                     tokens.push(self.parse_num());
                     lines.push(self.line);
                     // 此时self.curr已经指向下一个u8了，不应当+1
-                    continue
+                    continue;
                 }
                 b'\'' => {
                     tokens.push(self.parse_char());
@@ -185,47 +186,47 @@ impl Tokenizer{
                     tokens.push(self.parse_identifier());
                     lines.push(self.line);
                     // 同上
-                    continue
+                    continue;
                 }
                 byte if byte <= b' ' => {}
-                _ => println!("{}",byte as char),
+                _ => println!("{}", byte as char),
             }
             self.curr += 1;
         }
-        lines.push(self.line+1);
-        (tokens,lines)
+        lines.push(self.line + 1);
+        (tokens, lines)
     }
-    fn parse_num(&mut self) -> Token{
+    fn parse_num(&mut self) -> Token {
         let mut vec: Vec<u8> = Vec::new();
-        let mut is_float : bool = false;
-        while self.curr < self.src.len(){
+        let mut is_float: bool = false;
+        while self.curr < self.src.len() {
             let byte = *self.src.get(self.curr).unwrap();
-            if (byte >= b'0' && byte <= b'9') || byte == b'-'  {
+            if (byte >= b'0' && byte <= b'9') || byte == b'-' {
                 vec.push(byte);
-            } else if byte == b'.' && ! is_float {
+            } else if byte == b'.' && !is_float {
                 vec.push(byte);
                 is_float = true;
-            } else{
+            } else {
                 break;
             }
             self.curr += 1;
         }
         let string = String::from_utf8(vec).unwrap();
         if is_float {
-            return Token::Num(f64::from_str(string.as_str()).unwrap())
+            return Token::Num(f64::from_str(string.as_str()).unwrap());
         }
         Token::Int(i64::from_str(string.as_str()).unwrap())
     }
-    fn parse_identifier(&mut self) -> Token{
+    fn parse_identifier(&mut self) -> Token {
         let mut vec: Vec<u8> = Vec::new();
         vec.push(*self.src.get(self.curr).unwrap());
         self.curr += 1;
-        while self.curr < self.src.len(){
+        while self.curr < self.src.len() {
             let byte = *self.src.get(self.curr).unwrap();
             if Self::is_valid_letter(byte) {
                 vec.push(byte);
-            }else {
-                break
+            } else {
+                break;
             }
             self.curr += 1;
         }
@@ -258,12 +259,12 @@ impl Tokenizer{
     }
     fn parse_str(&mut self) -> Token {
         let mut vec: Vec<u8> = Vec::new();
-        while self.curr < self.src.len(){
+        while self.curr < self.src.len() {
             self.curr += 1;
             let byte = *self.src.get(self.curr).unwrap();
             if byte == b'"' {
-                break
-            }else {
+                break;
+            } else {
                 vec.push(byte)
             }
         }
@@ -272,12 +273,12 @@ impl Tokenizer{
 
     fn parse_char(&mut self) -> Token {
         let mut vec: Vec<u8> = Vec::new();
-        while self.curr < self.src.len(){
+        while self.curr < self.src.len() {
             self.curr += 1;
             let byte = *self.src.get(self.curr).unwrap();
             if byte == b'\'' {
-                break
-            }else {
+                break;
+            } else {
                 vec.push(byte)
             }
         }
@@ -287,26 +288,26 @@ impl Tokenizer{
         }
         match String::from_utf8(vec) {
             Ok(str) => {
-                let chars : Vec<char>= str.chars().collect();
+                let chars: Vec<char> = str.chars().collect();
                 Token::Char(*chars.get(0).unwrap())
             }
             Err(_) => {
-                panic!("{}",INCORRECT_CHAR)
+                panic!("{}", INCORRECT_CHAR)
             }
         }
     }
 
-    fn skip_annotation_line(&mut self){
+    fn skip_annotation_line(&mut self) {
         while self.curr < self.src.len() {
             let byte = *self.src.get(self.curr).unwrap();
             if byte == b'\n' {
-                break
+                break;
             }
             self.curr += 1;
         }
-        self.line+=1;
+        self.line += 1;
     }
-    fn skip_annotation_block(&mut self){
+    fn skip_annotation_block(&mut self) {
         while self.curr < self.src.len() {
             let byte = *self.src.get(self.curr).unwrap();
             match byte {
@@ -315,14 +316,14 @@ impl Tokenizer{
                 }
                 b'*' if self.peek_u8() == b'/' => {
                     self.curr += 1;
-                    break
+                    break;
                 }
                 _ => {}
             }
             self.curr += 1;
         }
     }
-    fn peek_u8(&self) -> u8{
+    fn peek_u8(&self) -> u8 {
         let index = self.curr + 1;
         if index < self.src.len() {
             *self.src.get(index).unwrap()
@@ -330,25 +331,23 @@ impl Tokenizer{
             0
         }
     }
-    fn is_valid_letter(byte : u8) -> bool{
+    fn is_valid_letter(byte: u8) -> bool {
         (byte >= b'a' && byte <= b'z')
             || (byte >= b'0' && byte <= b'9')
             || (byte >= b'A' && byte <= b'Z')
             || byte == b'_'
     }
-    fn is_valid_header(byte : u8) -> bool{
+    fn is_valid_header(byte: u8) -> bool {
         (byte >= b'a' && byte <= b'z')
             || (byte >= b'A' && byte <= b'Z')
             || byte == b'_'
     }
 
-    pub(crate) fn new(src : Vec<u8>) -> Tokenizer {
-        Tokenizer{
+    pub(crate) fn new(src: Vec<u8>) -> Tokenizer {
+        Tokenizer {
             src,
-            curr : 0,
-            line : 1
+            curr: 0,
+            line: 1,
         }
     }
-
-
 }

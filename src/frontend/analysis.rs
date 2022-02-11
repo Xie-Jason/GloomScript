@@ -14,41 +14,44 @@ use crate::{
         index::SlotIndexer,
         ops::BinOpType,
         script::{ParsedFile, ScriptBody},
-        status::{GloomStatus, MetaType, TypeIndex}
+        status::{GloomStatus, MetaType, TypeIndex},
     },
     obj::func::{Capture, FuncBody, GloomFunc, Param, ReturnType},
     obj::gloom_class::{GloomClass, IsPub},
     obj::gloom_enum::GloomEnumClass,
     obj::interface::{AbstractFunc, Interface},
     obj::refcount::RefCount,
-    obj::types::{BreakType, BuiltinType, DataType, DeclaredType, RefType}
+    obj::types::{BreakType, BuiltinType, DataType, DeclaredType, RefType},
 };
 use crate::frontend::ast::BlockType;
 use crate::frontend::ops::LeftValueOp;
 use crate::obj::func::FuncInfo;
 use crate::vm::static_table::StaticTable;
 
-pub struct Analyzer{
-    status : GloomStatus,
+pub struct Analyzer {
+    status: GloomStatus,
 
-    file_count : u16,
+    file_count: u16,
     // 声明类型的后面的u16是该类型所属的文件索引，用于检查访问权限
     // the u16 after declared type is script file index, used for check the access auth
-    parsed_interfaces : Vec<(ParsedInterface,u16)>,
-    parsed_classes : Vec<(RefCount<ParsedClass>, u16)>,
-    parsed_enums : Vec<(RefCount<ParsedEnum>, u16)>,
-    pub func_map : HashMap<String,(u16,IsBuiltIn,IsPub,u16)>, // index is_builtin is_pub file_index
+    parsed_interfaces: Vec<(ParsedInterface, u16)>,
+    parsed_classes: Vec<(RefCount<ParsedClass>, u16)>,
+    parsed_enums: Vec<(RefCount<ParsedEnum>, u16)>,
+    pub func_map: HashMap<String, (u16, IsBuiltIn, IsPub, u16)>,
+    // index is_builtin is_pub file_index
     pub func_file_indexes: Vec<u16>,
-    pub type_map : HashMap<String, TypeIndex>,
-    pub static_map : RefCount<HashMap<String,(u16,u8)>>,
-    builtin_map : HashMap<BuiltinType,u16>,
-    static_indexer : RefCount<SlotIndexer>,
+    pub type_map: HashMap<String, TypeIndex>,
+    pub static_map: RefCount<HashMap<String, (u16, u8)>>,
+    builtin_map: HashMap<BuiltinType, u16>,
+    static_indexer: RefCount<SlotIndexer>,
 }
+
 // 这些字段被存储到Analyzer而非GloomStatus中，这意味着我想要它们在运行前被丢弃。
 // these fields are stored in Analyzer rather than GloomStatus, because I want to discard them before execution
 type IsLocal = bool;
+
 impl Analyzer {
-    pub fn analysis(&mut self, mut script : ParsedFile, debug : bool){
+    pub fn analysis(&mut self, mut script: ParsedFile, debug: bool) {
         // load types
         // 加载空的定义类型 load empty declared type : class interface and enum
         self.load_decl(&mut script);
@@ -72,17 +75,17 @@ impl Analyzer {
             for func in class.inner().funcs.iter() {
                 let func = func.clone();
                 let mut func_ref = func.inner_mut();
-                self.analysis_func(&mut *func_ref,file_index,Option::None,DeclaredType::Class(class.clone()));
+                self.analysis_func(&mut *func_ref, file_index, Option::None, DeclaredType::Class(class.clone()));
             }
         }
         // function in enums
         for enum_class in self.status.enums.iter() {
             let enum_class = enum_class.clone();
             let file_index = enum_class.inner().file_index;
-            for func in enum_class.inner().funcs.iter(){
+            for func in enum_class.inner().funcs.iter() {
                 let func = func.clone();
                 let mut func_ref = func.inner_mut();
-                self.analysis_func(&mut *func_ref,file_index,Option::None,DeclaredType::Enum(enum_class.clone()));
+                self.analysis_func(&mut *func_ref, file_index, Option::None, DeclaredType::Enum(enum_class.clone()));
             }
         }
         // functions that declared directly
@@ -90,42 +93,42 @@ impl Analyzer {
             let func = func.clone();
             let mut func_ref = func.inner_mut();
             let file_index = func_ref.info.file_index;
-            self.analysis_func(&mut *func_ref,file_index,Option::None,DeclaredType::IsNot);
+            self.analysis_func(&mut *func_ref, file_index, Option::None, DeclaredType::IsNot);
         }
         // script executable body
         for script_body in self.status.script_bodies.iter() {
             let file_index = script_body.inner().file_index;
             let script_body_rc = script_body.clone();
             let mut script_body_ref = script_body_rc.inner_mut();
-            self.analysis_func(&mut script_body_ref.func,file_index,Option::None,DeclaredType::IsNot);
+            self.analysis_func(&mut script_body_ref.func, file_index, Option::None, DeclaredType::IsNot);
         }
         if debug {
-            println!("{:?}",self.status)
+            println!("{:?}", self.status)
         }
     }
 
-    fn analysis_func(&self, func : &mut GloomFunc, file_index : u16, out_env : Option<&AnalyzeContext>, belonged_type : DeclaredType) {
+    fn analysis_func(&self, func: &mut GloomFunc, file_index: u16, out_env: Option<&AnalyzeContext>, belonged_type: DeclaredType) {
         let params = &mut func.info.params;
         let func_return_type = &func.info.return_type;
-        let mut context = AnalyzeContext::new(func.info.name.clone(),belonged_type,func_return_type.clone(),file_index,out_env);
+        let mut context = AnalyzeContext::new(func.info.name.clone(), belonged_type, func_return_type.clone(), file_index, out_env);
         // load param into symbol table and allocate local slot for parameters
         for param in params.iter_mut() {
             let param_name = &param.name;
             let param_type = &param.data_type;
-            let (slot_idx,sub_idx) = context.indexer.put(param_type.clone());
-            param.index = (slot_idx,sub_idx);
+            let (slot_idx, sub_idx) = context.indexer.put(param_type.clone());
+            param.index = (slot_idx, sub_idx);
             match context.symbol_table.entry(param_name.deref().clone()) {
                 Entry::Vacant(entry) => {
-                    entry.insert((slot_idx,sub_idx,true));
+                    entry.insert((slot_idx, sub_idx, true));
                 }
-                Entry::Occupied(_) => panic!("{} variable name {} already occupied",context.info(),param_name)
+                Entry::Occupied(_) => panic!("{} variable name {} already occupied", context.info(), param_name)
             };
         }
         // analysis per statement
         let body = &mut func.body;
         if let FuncBody::AST(body) = body {
             context.block_stack.push(BlockType::Func);
-            self.analysis_statements(&mut context,body);
+            self.analysis_statements(&mut context, body);
             context.block_stack.pop();
         }
         func.info.captures = context.captures;
@@ -134,7 +137,7 @@ impl Analyzer {
     }
 
     #[inline]
-    fn handle_left_value_op(&self, context : &mut AnalyzeContext, left_val_tuple: &mut Box<(LeftValue, LeftValueOp)>) -> DataType{
+    fn handle_left_value_op(&self, context: &mut AnalyzeContext, left_val_tuple: &mut Box<(LeftValue, LeftValueOp)>) -> DataType {
         let (left_val, left_val_op) = left_val_tuple.deref_mut();
         let left_val_type = match left_val {
             LeftValue::Var(var) => {
@@ -143,12 +146,12 @@ impl Analyzer {
                     Some((slot_idx, sub_idx, is_local)) => {
                         if *is_local {
                             let data_type = context.indexer.get_type(*slot_idx).clone();
-                            *var = Var::new_local(*slot_idx,*sub_idx,data_type.as_basic());
+                            *var = Var::new_local(*slot_idx, *sub_idx, data_type.as_basic());
                             data_type
-                        }else{
+                        } else {
                             let static_indexer = self.static_indexer.inner();
                             let data_type = static_indexer.get_type(*slot_idx).clone();
-                            *var = Var::new_static(*slot_idx,*sub_idx, data_type.as_basic());
+                            *var = Var::new_static(*slot_idx, *sub_idx, data_type.as_basic());
                             data_type
                         }
                     }
@@ -156,54 +159,54 @@ impl Analyzer {
                     None => panic!("{} unknown variable {}", context.info(), var_name_ref)
                 }
             }
-            LeftValue::Chain(_,_) => {
+            LeftValue::Chain(_, _) => {
                 DataType::Int
             }
         };
         match left_val_op {
             LeftValueOp::Assign(expr) => {
-                let expr_type = self.deduce_type(expr,context);
-                if ! expr_type.belong_to(&left_val_type) {
+                let expr_type = self.deduce_type(expr, context);
+                if !expr_type.belong_to(&left_val_type) {
                     panic!("{} mismatched type of assign, expression type {} do not belongs to left value type {}",
-                           context.info(),expr_type,left_val_type)
+                           context.info(), expr_type, left_val_type)
                 }
                 expr_type
             }
             LeftValueOp::PlusEq(expr) => {
-                if ! left_val_type.is_int_or_num(){
+                if !left_val_type.is_int_or_num() {
                     panic!("{} the left of operator '+=' should be a int or num, found {}",
-                           context.info(),left_val_type)
+                           context.info(), left_val_type)
                 }
-                let expr_type = self.deduce_type(expr,context);
-                if ! expr_type.is_int_or_num() {
+                let expr_type = self.deduce_type(expr, context);
+                if !expr_type.is_int_or_num() {
                     panic!("{} the right of operator '+=' should be a int or num, found {}",
-                           context.info(),expr_type)
+                           context.info(), expr_type)
                 }
                 left_val_type
             }
             LeftValueOp::SubEq(expr) => {
-                if ! left_val_type.is_int_or_num(){
+                if !left_val_type.is_int_or_num() {
                     panic!("{} the left of operator '-=' should be a int or num, found {}",
-                           context.info(),left_val_type)
+                           context.info(), left_val_type)
                 }
-                let expr_type = self.deduce_type(expr,context);
-                if ! expr_type.is_int_or_num() {
+                let expr_type = self.deduce_type(expr, context);
+                if !expr_type.is_int_or_num() {
                     panic!("{} the right of operator '-=' should be a int or num, found {}",
-                           context.info(),expr_type)
+                           context.info(), expr_type)
                 }
                 left_val_type
             }
             LeftValueOp::PlusOne => {
-                if ! left_val_type.is_int_or_num(){
+                if !left_val_type.is_int_or_num() {
                     panic!("{} the left of operator '++' should be a int or num, found {}",
-                           context.info(),left_val_type)
+                           context.info(), left_val_type)
                 }
                 left_val_type
             }
             LeftValueOp::SubOne => {
-                if ! left_val_type.is_int_or_num(){
+                if !left_val_type.is_int_or_num() {
                     panic!("{} the left of operator '--' should be a int or num, found {}",
-                           context.info(),left_val_type)
+                           context.info(), left_val_type)
                 }
                 left_val_type
             }
@@ -211,106 +214,106 @@ impl Analyzer {
     }
 
     #[inline]
-    fn handle_chains(&self, context : &mut AnalyzeContext, chains: &mut Box<(Expression, Vec<Chain>)>) -> DataType{
-        let (expr,chain_vec) = chains.deref_mut();
-        let mut expr_type = self.deduce_type(expr,context);
+    fn handle_chains(&self, context: &mut AnalyzeContext, chains: &mut Box<(Expression, Vec<Chain>)>) -> DataType {
+        let (expr, chain_vec) = chains.deref_mut();
+        let mut expr_type = self.deduce_type(expr, context);
         let mut new_type = DataType::Ref(RefType::None);
         let chains_len = chain_vec.len();
-        for (chain_idx,chain) in chain_vec.iter_mut().enumerate() {
+        for (chain_idx, chain) in chain_vec.iter_mut().enumerate() {
             match chain {
-                Chain::Access(field,basic_type) => {
+                Chain::Access(field, basic_type) => {
                     let field_name = field.name();
                     match &expr_type {
                         // find field
                         DataType::Ref(RefType::Class(class)) => {
                             match class.inner().map.get(field_name.as_str()) {
-                                Some((slot_idx,sub_idx,is_pub,is_mem_func)) => {
-                                    if ! *is_mem_func && (*is_pub || context.belonged_type.equal_class(class)) {
-                                        *field = VarId::Index(*slot_idx,*sub_idx);
+                                Some((slot_idx, sub_idx, is_pub, is_mem_func)) => {
+                                    if !*is_mem_func && (*is_pub || context.belonged_type.equal_class(class)) {
+                                        *field = VarId::Index(*slot_idx, *sub_idx);
                                         new_type = class.inner().field_indexer.get_type(*slot_idx).clone();
                                         *basic_type = new_type.as_basic();
-                                    }else{
+                                    } else {
                                         panic!("{} the '{}' of class {}  is not a field or not public ",
-                                               context.info(),field_name,class.inner().name)
+                                               context.info(), field_name, class.inner().name)
                                     }
                                 }
-                                None => panic!("{} class {} have no field {}",context.info(),class.inner().name,field_name)
+                                None => panic!("{} class {} have no field {}", context.info(), class.inner().name, field_name)
                             };
                         }
                         // find function
                         DataType::Ref(RefType::MetaClass(class)) => {
                             match class.inner().map.get(field_name.as_str()) {
-                                Some((index,_,is_pub,is_mem_func)) => {
+                                Some((index, _, is_pub, is_mem_func)) => {
                                     if *is_mem_func && (*is_pub || context.belonged_type.equal_class(class)) {
-                                        *field = VarId::Index(*index,0);
+                                        *field = VarId::Index(*index, 0);
                                         new_type = class.inner().funcs.get(*index as usize).unwrap().inner().get_type();
-                                    }else{
+                                    } else {
                                         panic!("{} the '{}' of class {} is not a function or not public ",
-                                               context.info(),field_name,class.inner().name)
+                                               context.info(), field_name, class.inner().name)
                                     }
                                 }
-                                None => panic!("{} class {} have no member function {}",context.info(),class.inner().name,field_name)
+                                None => panic!("{} class {} have no member function {}", context.info(), class.inner().name, field_name)
                             }
                         }
                         DataType::Ref(RefType::MetaEnum(class)) => {
                             match class.inner().func_map.get(field_name.as_str()) {
-                                Some((index,is_pub)) => {
+                                Some((index, is_pub)) => {
                                     if *is_pub || context.belonged_type.equal_enum(class) {
-                                        *field = VarId::Index(*index,0);
+                                        *field = VarId::Index(*index, 0);
                                         new_type = class.inner().funcs.get(*index as usize).unwrap().inner().get_type();
-                                    }else{
+                                    } else {
                                         panic!("{} the function '{}' of enum {} is not public ",
-                                               context.info(),field_name,class.inner().name)
+                                               context.info(), field_name, class.inner().name)
                                     }
                                 }
-                                None => panic!("{} enum {} have no member function {}",context.info(),class.inner().name,field_name)
+                                None => panic!("{} enum {} have no member function {}", context.info(), class.inner().name, field_name)
                             }
                         }
                         DataType::Ref(RefType::MetaInterface(class)) => {
                             match class.inner().map.get(field_name.deref()) {
                                 Some(index) => {
-                                    *field = VarId::Index(*index,0);
+                                    *field = VarId::Index(*index, 0);
                                     new_type = class.inner().funcs.get(*index as usize).unwrap().func_type();
                                 }
                                 None => panic!("{} interface {} have no function {}",
-                                               context.info(),class.inner().name,field_name)
+                                               context.info(), class.inner().name, field_name)
                             }
                         }
                         DataType::Ref(RefType::MataBuiltinType(builtin_type)) => {
                             match self.builtin_map.get(builtin_type) {
                                 Some(index) => {
-                                    *field = VarId::Index(*index,0);
+                                    *field = VarId::Index(*index, 0);
                                     new_type = DataType::Ref(self.status.builtin_classes
                                         .get(*index as usize).unwrap().inner().get_ref_type(Option::None).unwrap());
                                 }
-                                None => panic!("you may forgot import builtin type {:?} in std library",builtin_type)
+                                None => panic!("you may forgot import builtin type {:?} in std library", builtin_type)
                             }
                         }
                         other_type => {
-                            panic!("{} can't find any field in '{}' type", context.info(),other_type)
+                            panic!("{} can't find any field in '{}' type", context.info(), other_type)
                         }
                     }
                 }
                 Chain::Call(args) => {
                     match &expr_type {
                         DataType::Ref(RefType::Func(func_type)) => {
-                            let (param_types,return_type,_) = func_type.deref();
+                            let (param_types, return_type, _) = func_type.deref();
                             let in_fact_len = args.len();
-                            for (arg_idx,arg) in args.iter_mut().enumerate() {
+                            for (arg_idx, arg) in args.iter_mut().enumerate() {
                                 let arg_type = self.deduce_type(arg, context);
                                 let param_type = param_types.get(arg_idx)
                                     .expect(format!("{} mismatch arguments num of function {} call, expect {} arguments, found {}",
-                                                    context.info(),expr_type,param_types.len(),in_fact_len).as_str());
-                                if ! arg_type.belong_to(param_type){
+                                                    context.info(), expr_type, param_types.len(), in_fact_len).as_str());
+                                if !arg_type.belong_to(param_type) {
                                     panic!("{} mismatch argument type of {}st argument when call function {}, expect {} found {}",
-                                           context.info(), arg_idx +1,expr_type,param_type, arg_type)
+                                           context.info(), arg_idx + 1, expr_type, param_type, arg_type)
                                 }
                             }
                             match return_type {
                                 ReturnType::Void => {
-                                    if chain_idx != chains_len-1 {
+                                    if chain_idx != chains_len - 1 {
                                         panic!("{} function {} call return void but some chained operation are followed behind",
-                                               context.info(),expr_type)
+                                               context.info(), expr_type)
                                     }
                                 }
                                 ReturnType::Have(data_type) => {
@@ -318,7 +321,7 @@ impl Analyzer {
                                 }
                             }
                         }
-                        _ => panic!("{} the {} type is not a func type",context.info(),expr_type)
+                        _ => panic!("{} the {} type is not a func type", context.info(), expr_type)
                     }
                 }
                 Chain::FnCall {
@@ -327,7 +330,7 @@ impl Analyzer {
                     args
                 } => {
                     let func_name = func.name();
-                    let function : RefCount<GloomFunc>;
+                    let function: RefCount<GloomFunc>;
                     match &expr_type {
                         DataType::Ref(ref_type) => {
                             match ref_type {
@@ -335,66 +338,66 @@ impl Analyzer {
                                 RefType::Class(class) => {
                                     let class_ref = class.inner();
                                     match class_ref.map.get(func_name.as_str()) {
-                                        Some((index,sub_idx,is_pub,is_mem_func)) => {
+                                        Some((index, sub_idx, is_pub, is_mem_func)) => {
                                             if *is_mem_func && (*is_pub || context.belonged_type.equal_class(class)) {
                                                 function = class_ref.funcs.get(*index as usize).unwrap().clone();
                                                 let target_func = function.inner();
-                                                if ! target_func.info.need_self {
+                                                if !target_func.info.need_self {
                                                     panic!("{} function {} of class {} is not a non-static function, which don't have 'self' as first parameter",
-                                                           context.info(),func_name,class_ref.name)
+                                                           context.info(), func_name, class_ref.name)
                                                 }
                                                 *need_self = true;
-                                                *func = VarId::Index(*index,*sub_idx);
+                                                *func = VarId::Index(*index, *sub_idx);
                                                 match &target_func.info.return_type {
                                                     ReturnType::Void => {
-                                                        if chain_idx != chains_len-1 {
+                                                        if chain_idx != chains_len - 1 {
                                                             panic!("{} function {} call return void but some chained operation are followed behind",
-                                                                   context.info(),func_name)
+                                                                   context.info(), func_name)
                                                         }
                                                     }
                                                     ReturnType::Have(return_type) => {
                                                         new_type = return_type.clone();
                                                     }
                                                 }
-                                            }else{
+                                            } else {
                                                 panic!("{} the '{}' of class {}  is not a function or not public ",
-                                                       context.info(),func_name,class_ref.name)
+                                                       context.info(), func_name, class_ref.name)
                                             }
                                         }
-                                        None => panic!("{} class {} have no function {}",context.info(),class_ref.name,func_name)
+                                        None => panic!("{} class {} have no function {}", context.info(), class_ref.name, func_name)
                                     };
                                 }
                                 RefType::Enum(class) => {
                                     let class_ref = class.inner();
                                     match class_ref.func_map.get(func_name.as_str()) {
-                                        Some((index,is_pub)) => {
+                                        Some((index, is_pub)) => {
                                             if *is_pub || context.belonged_type.equal_enum(class) {
                                                 function = class_ref.funcs.get(*index as usize).unwrap().clone();
                                                 let target_func = function.inner();
-                                                if ! target_func.info.need_self {
+                                                if !target_func.info.need_self {
                                                     panic!("{} function {} of enum {} is not a non-static function, which don't have 'self' as first parameter",
-                                                           context.info(),func_name,class_ref.name)
+                                                           context.info(), func_name, class_ref.name)
                                                 }
                                                 *need_self = true;
-                                                *func = VarId::Index(*index,0);
+                                                *func = VarId::Index(*index, 0);
                                                 match &target_func.info.return_type {
                                                     ReturnType::Void => {
-                                                        if chain_idx != chains_len-1 {
+                                                        if chain_idx != chains_len - 1 {
                                                             panic!("{} function {} call return void but some chained operation are followed behind",
-                                                                   context.info(),func_name)
+                                                                   context.info(), func_name)
                                                         }
                                                     }
                                                     ReturnType::Have(return_type) => {
                                                         new_type = return_type.clone();
                                                     }
                                                 }
-                                            }else{
+                                            } else {
                                                 panic!("{} the function '{}' of enum {} is not public ",
-                                                       context.info(),func_name,class_ref.name)
+                                                       context.info(), func_name, class_ref.name)
                                             }
                                         }
                                         None => panic!("{} enum {} have no function {}",
-                                                       context.info(),class_ref.name,func_name)
+                                                       context.info(), class_ref.name, func_name)
                                     }
                                 }
                                 RefType::Interface(class) => {
@@ -405,10 +408,10 @@ impl Analyzer {
                                             let mut params = Vec::with_capacity(target_func.param_types.len());
                                             let empty_name = Rc::new("".to_string());
                                             for param_type in target_func.param_types.iter() {
-                                                params.push(Param::new(empty_name.clone(),param_type.clone()));
+                                                params.push(Param::new(empty_name.clone(), param_type.clone()));
                                             }
-                                            function = RefCount::new(GloomFunc{
-                                                info: FuncInfo{
+                                            function = RefCount::new(GloomFunc {
+                                                info: FuncInfo {
                                                     name: empty_name,
                                                     params,
                                                     return_type: ReturnType::Void,
@@ -417,21 +420,21 @@ impl Analyzer {
                                                     local_size: 0,
                                                     need_self: false,
                                                     file_index: 0,
-                                                    stack_size: 0
+                                                    stack_size: 0,
                                                 },
-                                                body: FuncBody::None
+                                                body: FuncBody::None,
                                             });
-                                            if ! target_func.have_self {
+                                            if !target_func.have_self {
                                                 panic!("{} function {} of interface {} is not a non-static function, which don't have 'self' as first parameter",
-                                                       context.info(),func_name,class_ref.name)
+                                                       context.info(), func_name, class_ref.name)
                                             }
                                             *need_self = true;
-                                            *func = VarId::Index(*index,0);
+                                            *func = VarId::Index(*index, 0);
                                             match &target_func.return_type {
                                                 ReturnType::Void => {
-                                                    if chain_idx != chains_len-1 {
+                                                    if chain_idx != chains_len - 1 {
                                                         panic!("{} function {} call return void but some chained operation are followed behind",
-                                                               context.info(),func_name)
+                                                               context.info(), func_name)
                                                     }
                                                 }
                                                 ReturnType::Have(return_type) => {
@@ -440,67 +443,67 @@ impl Analyzer {
                                             }
                                         }
                                         None => panic!("{} interface {} have no function {}",
-                                                       context.info(),class.inner().name,func_name)
+                                                       context.info(), class.inner().name, func_name)
                                     }
                                 }
                                 // caller is type, call member function
                                 RefType::MetaClass(class) => {
                                     let class_ref = class.inner();
                                     match class_ref.map.get(func_name.as_str()) {
-                                        Some((index,_,is_pub,is_mem_func)) => {
+                                        Some((index, _, is_pub, is_mem_func)) => {
                                             if *is_mem_func && (*is_pub || context.belonged_type.equal_class(class)) {
                                                 function = class_ref.funcs.get(*index as usize).unwrap().clone();
                                                 let target_func = function.inner();
-                                                *func = VarId::Index(*index,0);
+                                                *func = VarId::Index(*index, 0);
                                                 match &target_func.info.return_type {
                                                     ReturnType::Void => {
-                                                        if chain_idx != chains_len-1 {
+                                                        if chain_idx != chains_len - 1 {
                                                             panic!("{} function {} call return void but some chained operation are followed behind",
-                                                                   context.info(),func_name)
+                                                                   context.info(), func_name)
                                                         }
                                                     }
                                                     ReturnType::Have(return_type) => {
                                                         new_type = return_type.clone();
                                                     }
                                                 }
-                                            }else{
+                                            } else {
                                                 panic!("{} the '{}' of class {}  is not a function or not public ",
-                                                       context.info(),func_name,class_ref.name)
+                                                       context.info(), func_name, class_ref.name)
                                             }
                                         }
-                                        None => panic!("{} class {} have no function {}",context.info(),class_ref.name,func_name)
+                                        None => panic!("{} class {} have no function {}", context.info(), class_ref.name, func_name)
                                     };
                                 }
                                 RefType::MetaEnum(class) => {
                                     let class_ref = class.inner();
                                     match class_ref.func_map.get(func_name.as_str()) {
-                                        Some((index,is_pub)) => {
+                                        Some((index, is_pub)) => {
                                             if *is_pub || context.belonged_type.equal_enum(class) {
                                                 function = class_ref.funcs.get(*index as usize).unwrap().clone();
                                                 let target_func = function.inner();
-                                                *func = VarId::Index(*index,0);
+                                                *func = VarId::Index(*index, 0);
                                                 match &target_func.info.return_type {
                                                     ReturnType::Void => {
-                                                        if chain_idx != chains_len-1 {
+                                                        if chain_idx != chains_len - 1 {
                                                             panic!("{} function {} call return void but some chained operation are followed behind",
-                                                                   context.info(),func_name)
+                                                                   context.info(), func_name)
                                                         }
                                                     }
                                                     ReturnType::Have(return_type) => {
                                                         new_type = return_type.clone();
                                                     }
                                                 }
-                                            }else{
+                                            } else {
                                                 panic!("{} the function '{}' of enum {} is not public ",
-                                                       context.info(),func_name,class_ref.name)
+                                                       context.info(), func_name, class_ref.name)
                                             }
                                         }
                                         None => panic!("{} enum {} have no function {}",
-                                                       context.info(),class_ref.name,func_name)
+                                                       context.info(), class_ref.name, func_name)
                                     }
                                 }
                                 RefType::MetaInterface(class) => {
-                                    panic!("could not access the member function of Interface {}",class.inner())
+                                    panic!("could not access the member function of Interface {}", class.inner())
                                 }
                                 RefType::MataBuiltinType(builtin_type) => {
                                     match self.builtin_map.get(builtin_type) {
@@ -511,12 +514,12 @@ impl Analyzer {
                                                 Some(index) => {
                                                     function = class.funcs.get(*index as usize).unwrap().clone();
                                                     let target_func = function.inner();
-                                                    *func = VarId::Index(*index,0);
+                                                    *func = VarId::Index(*index, 0);
                                                     match &target_func.info.return_type {
                                                         ReturnType::Void => {
-                                                            if chain_idx != chains_len-1 {
+                                                            if chain_idx != chains_len - 1 {
                                                                 panic!("{} function {} call return void but some chained operation are followed behind",
-                                                                       context.info(),func_name)
+                                                                       context.info(), func_name)
                                                             }
                                                         }
                                                         ReturnType::Have(return_type) => {
@@ -526,17 +529,17 @@ impl Analyzer {
                                                 }
                                                 None => {
                                                     panic!("{} not found function {} in builtin type {}",
-                                                           context.info(),func_name,builtin_type.to_str())
+                                                           context.info(), func_name, builtin_type.to_str())
                                                 }
                                             }
                                         }
                                         None => {
-                                            panic!("you may forgot import builtin type {:?} in std library",builtin_type)
+                                            panic!("you may forgot import builtin type {:?} in std library", builtin_type)
                                         }
                                     }
                                 }
 
-                                RefType::Any | RefType::None | RefType::MySelf  => {
+                                RefType::Any | RefType::None | RefType::MySelf => {
                                     panic!()
                                 }
                                 // non-static function
@@ -546,21 +549,21 @@ impl Analyzer {
                                         Some(index) => {
                                             let class = self.status.builtin_classes.get(*index as usize).unwrap();
                                             let class = class.inner();
-                                            match class.map.get(func_name.as_str()){
+                                            match class.map.get(func_name.as_str()) {
                                                 Some(index) => {
                                                     function = class.funcs.get(*index as usize).unwrap().clone();
                                                     let target_func = function.inner();
-                                                    if ! target_func.info.need_self {
+                                                    if !target_func.info.need_self {
                                                         panic!("{} function {} of builtin type {} is not a non-static function, which don't have 'self' as first parameter",
-                                                               context.info(),func_name,builtin_type.to_str())
+                                                               context.info(), func_name, builtin_type.to_str())
                                                     }
-                                                    *func = VarId::Index(*index,0);
+                                                    *func = VarId::Index(*index, 0);
                                                     *need_self = true;
                                                     match &target_func.info.return_type {
                                                         ReturnType::Void => {
-                                                            if chain_idx != chains_len-1 {
+                                                            if chain_idx != chains_len - 1 {
                                                                 panic!("{} function {} call return void but some chained operation are followed behind",
-                                                                       context.info(),func_name)
+                                                                       context.info(), func_name)
                                                             }
                                                         }
                                                         ReturnType::Have(return_type) => {
@@ -570,12 +573,12 @@ impl Analyzer {
                                                 }
                                                 None => {
                                                     panic!("{} not found function {} in builtin type {}",
-                                                           context.info(),func_name,builtin_type.to_str())
+                                                           context.info(), func_name, builtin_type.to_str())
                                                 }
                                             }
                                         }
                                         None => {
-                                            panic!("you may forgot import builtin type {:?} in std library",builtin_type)
+                                            panic!("you may forgot import builtin type {:?} in std library", builtin_type)
                                         }
                                     }
                                 }
@@ -584,7 +587,7 @@ impl Analyzer {
                         // call non-static function
                         basic_type => {
                             panic!("basic data type value can't be caller of member function, found {} value as caller call function '{}'",
-                                   basic_type,func_name)
+                                   basic_type, func_name)
                         }
                     }
                     let function = function.inner();
@@ -592,28 +595,28 @@ impl Analyzer {
                     if *need_self {
                         let self_type = match param_iter.next() {
                             Some(param) => &param.data_type,
-                            None => panic!("function {:?} have no parameter but need self argument",function),
+                            None => panic!("function {:?} have no parameter but need self argument", function),
                         };
-                        if ! expr_type.belong_to(&self_type) {
+                        if !expr_type.belong_to(&self_type) {
                             panic!("{} mismatched argument type in first argument 'self' of function {:?} call, expect {}, found {}",
-                                   context.info(),function,self_type,expr_type)
+                                   context.info(), function, self_type, expr_type)
                         }
                     }
-                    for (idx,(arg_expr,param)) in args.iter_mut().zip(param_iter).enumerate() {
+                    for (idx, (arg_expr, param)) in args.iter_mut().zip(param_iter).enumerate() {
                         let arg_type = self.deduce_type(arg_expr, context);
-                        if ! arg_type.belong_to(&param.data_type) {
+                        if !arg_type.belong_to(&param.data_type) {
                             panic!("{} mismatched argument type in {}st argument of function {:?} call, expect {}, found {}",
-                                   context.info(),idx,function,param.data_type,arg_type)
+                                   context.info(), idx, function, param.data_type, arg_type)
                         }
                     }
                 }
             };
-            expr_type = std::mem::replace(&mut new_type,DataType::Ref(RefType::None));
+            expr_type = std::mem::replace(&mut new_type, DataType::Ref(RefType::None));
         }
         expr_type
     }
 
-    fn deduce_type(& self, expr : &mut Expression, context : &mut AnalyzeContext ) -> DataType{
+    fn deduce_type(&self, expr: &mut Expression, context: &mut AnalyzeContext) -> DataType {
         match expr {
             Expression::None => DataType::Ref(RefType::None),
             Expression::Int(_) => DataType::Int,
@@ -626,53 +629,53 @@ impl Analyzer {
                 let var_name = var_ref.name().clone();
                 // find as variable
                 let mut result_type = match context.symbol_table.get(var_name.as_str()) {
-                    Some((slot_idx,sub_idx,is_local)) => {
+                    Some((slot_idx, sub_idx, is_local)) => {
                         if *is_local {
                             // non-static local variable
                             let data_type = context.indexer.get_type(*slot_idx).clone();
-                            *var_ref = Var::new_local(*slot_idx,*sub_idx,data_type.as_basic());
+                            *var_ref = Var::new_local(*slot_idx, *sub_idx, data_type.as_basic());
                             data_type
-                        }else{
+                        } else {
                             // local variable
                             let data_type = self.static_indexer.inner().get_type(*slot_idx).clone();
-                            *var_ref = Var::new_static(*slot_idx,*sub_idx,data_type.as_basic());
+                            *var_ref = Var::new_static(*slot_idx, *sub_idx, data_type.as_basic());
                             data_type
                         }
                     }
                     None => match self.static_map.inner().get(var_name.as_str()) {
-                        Some((slot_idx,sub_idx)) => {
+                        Some((slot_idx, sub_idx)) => {
                             // public static variable
                             let data_type = self.static_indexer.inner().get_type(*slot_idx).clone();
-                            *var_ref = Var::new_static(*slot_idx,*sub_idx,data_type.as_basic());
+                            *var_ref = Var::new_static(*slot_idx, *sub_idx, data_type.as_basic());
                             data_type
                         }
                         None => match context.out_context {
                             Some(out_context) => {
-                                if let Some((out_slot_idx, out_sub_idx,is_local)) = out_context.symbol_table.get(var_name.as_str()) {
+                                if let Some((out_slot_idx, out_sub_idx, is_local)) = out_context.symbol_table.get(var_name.as_str()) {
                                     if *is_local {
                                         // 捕获非静态的局部变量 captured non-static local variable
                                         // 记录捕获 插入符号表 record capture, insert into symbol table
                                         let captured_type = out_context.indexer.get_type(*out_slot_idx).clone();
                                         let cap_basic_type = captured_type.as_basic();
-                                        let (slot_idx,sub_idx) = context.indexer.put(captured_type.clone());
+                                        let (slot_idx, sub_idx) = context.indexer.put(captured_type.clone());
                                         // 已经尝试通过该名称获取，所以不需要entry api。 try find this name before, so there are not same name variable here
-                                        context.symbol_table.insert(var_name.deref().clone(),(slot_idx,sub_idx,true));
+                                        context.symbol_table.insert(var_name.deref().clone(), (slot_idx, sub_idx, true));
                                         context.captures.push(Capture::new(
                                             *out_slot_idx,
                                             *out_sub_idx,
                                             slot_idx,
                                             sub_idx,
-                                            cap_basic_type
+                                            cap_basic_type,
                                         ));
-                                        *var_ref = Var::new_local(slot_idx,sub_idx,cap_basic_type);
+                                        *var_ref = Var::new_local(slot_idx, sub_idx, cap_basic_type);
                                         captured_type
-                                    }else{
+                                    } else {
                                         // captured static variable
                                         let data_type = self.static_indexer.inner().get_type(*out_slot_idx).clone();
-                                        *var_ref = Var::new_static(*out_slot_idx,*out_sub_idx,data_type.as_basic());
+                                        *var_ref = Var::new_static(*out_slot_idx, *out_sub_idx, data_type.as_basic());
                                         data_type
                                     }
-                                }else{
+                                } else {
                                     // capture failed
                                     DataType::Ref(RefType::None)
                                 }
@@ -710,29 +713,29 @@ impl Analyzer {
                                     MetaType::Builtin => {
                                         *var_ref = Var::BuiltinType(label.index);
                                         let ref_type = self.status.builtin_classes
-                                                .get(label.index as usize).unwrap()
-                                                .inner().get_ref_type(Option::None).unwrap();
+                                            .get(label.index as usize).unwrap()
+                                            .inner().get_ref_type(Option::None).unwrap();
                                         result_type = DataType::Ref(RefType::MataBuiltinType(ref_type.as_built_type()));
                                     }
                                 }
-                            }else{
-                                panic!("{} Type {} is not public",context.info(),var_name)
+                            } else {
+                                panic!("{} Type {} is not public", context.info(), var_name)
                             }
                         }
                         // function
                         None => {
                             match self.func_map.get(var_name.as_str()) {
-                                Some((index,_,is_pub,file_index)) => {
+                                Some((index, _, is_pub, file_index)) => {
                                     if *is_pub || *file_index == context.file_index {
                                         *var_ref = Var::DirectFn(*index);
                                         let func_type = self.status.funcs.get(*index as usize).unwrap().inner().get_ref_type();
                                         result_type = DataType::Ref(func_type);
-                                    }else{
-                                        panic!("{} unknown type {}",context.info(),var_name)
+                                    } else {
+                                        panic!("{} unknown type {}", context.info(), var_name)
                                     }
                                 }
                                 None => {
-                                    panic!("{} unknown type {}",context.info(),var_name)
+                                    panic!("{} unknown type {}", context.info(), var_name)
                                 }
                             }
                         }
@@ -745,27 +748,27 @@ impl Analyzer {
                 let vec = tuple.deref_mut();
                 let mut tuple_types = Vec::with_capacity(vec.len());
                 for expr in vec.iter_mut() {
-                    tuple_types.push(self.deduce_type(expr,context));
+                    tuple_types.push(self.deduce_type(expr, context));
                 }
                 DataType::Ref(RefType::Tuple(Box::new(tuple_types)))
             }
             Expression::Array(array) => {
-                let (array,basic_type,_) = array.deref_mut();
+                let (array, basic_type, _) = array.deref_mut();
                 if array.len() == 0 {
                     // without any array item
                     DataType::Ref(RefType::Array(Box::new(DataType::Ref(RefType::Any))))
-                }else{
+                } else {
                     // array with generic type
                     let mut iter = array.iter_mut();
                     let first_elem = iter.next().unwrap();
                     let mut data_type = self.deduce_type(first_elem, context);
                     if data_type.is_none() {
-                        panic!("{} expect a type, found void, in first expression of array literal : {:?}",context.info(),first_elem)
+                        panic!("{} expect a type, found void, in first expression of array literal : {:?}", context.info(), first_elem)
                     }
-                    for (idx,expr) in iter.enumerate() {
-                        let temp_type = self.deduce_type(expr,context);
+                    for (idx, expr) in iter.enumerate() {
+                        let temp_type = self.deduce_type(expr, context);
                         if temp_type.is_none() {
-                            panic!("{} expect a value or object, found void, in {}st expression of array literal : {:?}",context.info(),idx+2,expr)
+                            panic!("{} expect a value or object, found void, in {}st expression of array literal : {:?}", context.info(), idx + 2, expr)
                         }
                         if data_type != temp_type {
                             data_type = DataType::Ref(RefType::Any);
@@ -787,60 +790,60 @@ impl Analyzer {
                 let class_rc = match &class_type {
                     DataType::Ref(RefType::Class(class)) => class,
                     _ => panic!("{} the object construction expect a Class as type mark, found {}",
-                                context.info(),class_type)
+                                context.info(), class_type)
                 };
                 let class = class_rc.inner();
                 if class.field_count as usize != construction.fields.len() {
                     panic!("{} the fields of class have {}, found {} in the construction list",
-                           context.info(),class.field_count,construction.fields.len())
+                           context.info(), class.field_count, construction.fields.len())
                 }
                 for (var, field_basic_type, expr) in construction.fields.iter_mut() {
                     let field_name = var.name();
                     match class.map.get(field_name.as_str()) {
-                        Some((slot_idx,sub_idx,is_pub,is_fn)) => {
+                        Some((slot_idx, sub_idx, is_pub, is_fn)) => {
                             if *is_pub || context.belonged_type.equal_class(class_rc) {
                                 if *is_fn {
                                     panic!("{} {} in class {} is a function rather than field",
-                                           context.info(),field_name,class_type)
-                                }else{
+                                           context.info(), field_name, class_type)
+                                } else {
                                     let expr_type = self.deduce_type(expr, context);
                                     let field_type = class.field_indexer.get_type(*slot_idx);
                                     *field_basic_type = field_type.as_basic();
                                     if expr_type.belong_to(field_type) {
-                                        *var = VarId::Index(*slot_idx,*sub_idx);
-                                    }else{
+                                        *var = VarId::Index(*slot_idx, *sub_idx);
+                                    } else {
                                         panic!("{} the field {} of {} need a value/object with {} type, found {}",
-                                               context.info(),field_name,class_type,field_type,expr_type)
+                                               context.info(), field_name, class_type, field_type, expr_type)
                                     }
                                 }
-                            }else{
+                            } else {
                                 panic!("{} field {} is not public, so you can't construct the object of {} except in class member function",
-                                       context.info(),field_name,class_type)
+                                       context.info(), field_name, class_type)
                             }
                         }
                         None => panic!("{} unknown field '{}' in class_rc {}",
-                                        context.info(), field_name, class_type)
+                                       context.info(), field_name, class_type)
                     }
                 };
                 class_type.clone()
             }
             Expression::NegOp(expr) => {
-                self.deduce_type(expr.deref_mut(),context)
+                self.deduce_type(expr.deref_mut(), context)
             }
             Expression::NotOp(expr) => {
-                self.deduce_type(expr.deref_mut(),context)
+                self.deduce_type(expr.deref_mut(), context)
             }
             Expression::Cast(cast) => {
-                let (expr,parsed_type, data_type) = cast.deref_mut();
+                let (expr, parsed_type, data_type) = cast.deref_mut();
                 let cast_type = self.get_type(parsed_type, context.file_index);
                 let real_type = self.deduce_type(expr, context);
                 *data_type = cast_type.clone();
-                if ( cast_type.is_num_liked() && real_type.is_num_liked() )
+                if (cast_type.is_num_liked() && real_type.is_num_liked())
                     || cast_type.belong_to(&real_type)
                     || real_type.belong_to(&cast_type) {
                     cast_type
-                }else {
-                    panic!("object type cast error, from {} to {}",real_type,cast_type)
+                } else {
+                    panic!("object type cast error, from {} to {}", real_type, cast_type)
                 }
             }
             Expression::Func(func) => {
@@ -852,7 +855,7 @@ impl Analyzer {
                         for (name, parsed_type) in func.params.iter() {
                             params.push(Param::new(
                                 name.clone(),
-                                self.get_type(parsed_type, context.file_index)
+                                self.get_type(parsed_type, context.file_index),
                             ));
                         }
                         let return_type = match &func.return_type {
@@ -869,7 +872,7 @@ impl Analyzer {
                     }
                     FuncExpr::Analysed(_) => panic!(),
                 };
-                self.analysis_func(&mut func,context.file_index ,Option::Some(context),context.belonged_type.clone());
+                self.analysis_func(&mut func, context.file_index, Option::Some(context), context.belonged_type.clone());
                 let func_type = func.get_type();
                 let is_parsed = func_expr.is_parsed();
                 if is_parsed {
@@ -879,58 +882,58 @@ impl Analyzer {
             }
             Expression::BinaryOp(bin_op) => {
                 let bin_op = bin_op.deref_mut();
-                let mut left_type = self.deduce_type( &mut bin_op.left,context);
-                for (op,expr) in bin_op.vec.iter_mut() {
+                let mut left_type = self.deduce_type(&mut bin_op.left, context);
+                for (op, expr) in bin_op.vec.iter_mut() {
                     match op.to_type() {
                         BinOpType::Calculate => {
                             // number to number
                             if left_type.is_int_or_num() {
-                                let right_type = self.deduce_type(expr,context);
+                                let right_type = self.deduce_type(expr, context);
                                 if right_type.is_int_or_num() {
                                     if left_type.is_int() && right_type.is_int() {
                                         left_type = DataType::Int;
-                                    }else{
+                                    } else {
                                         // 两操作数中有一或两个num类型  one or two of two operand are num type
                                         left_type = DataType::Num;
                                     }
-                                }else{
-                                    panic!("{} binary operator '{}' have wrong right operand type {}",context.info(),op,right_type)
+                                } else {
+                                    panic!("{} binary operator '{}' have wrong right operand type {}", context.info(), op, right_type)
                                 }
-                            }else{
-                                panic!("{} binary operator '{}' have wrong left operand type {}",context.info(),op,left_type)
+                            } else {
+                                panic!("{} binary operator '{}' have wrong left operand type {}", context.info(), op, left_type)
                             }
                         }
                         BinOpType::Compare => {
                             // number or char to bool
                             if left_type.is_num_liked() {
-                                let right_type = self.deduce_type(expr,context);
+                                let right_type = self.deduce_type(expr, context);
                                 if right_type.is_num_liked() {
                                     left_type = DataType::Bool;
-                                }else{
-                                    panic!("{} binary operator '{}' have wrong right operand type {}",context.info(),op,right_type)
+                                } else {
+                                    panic!("{} binary operator '{}' have wrong right operand type {}", context.info(), op, right_type)
                                 }
-                            }else{
-                                panic!("{} binary operator '{}' have wrong left operand type {}",context.info(),op,left_type)
+                            } else {
+                                panic!("{} binary operator '{}' have wrong left operand type {}", context.info(), op, left_type)
                             }
                         }
                         BinOpType::Equal => {
-                            let right_type = self.deduce_type(expr,context);
+                            let right_type = self.deduce_type(expr, context);
                             if right_type.belong_to(&left_type) || left_type.belong_to(&right_type) {
                                 left_type = DataType::Bool;
-                            }else{
-                                panic!("{} binary operator '{}' have wrong operand type, left : {} , right : {}",context.info(),op,left_type,right_type)
+                            } else {
+                                panic!("{} binary operator '{}' have wrong operand type, left : {} , right : {}", context.info(), op, left_type, right_type)
                             }
                         }
                         BinOpType::Logic => {
                             if left_type.is_bool() {
-                                let right_type = self.deduce_type(expr,context);
+                                let right_type = self.deduce_type(expr, context);
                                 if right_type.is_bool() {
                                     left_type = DataType::Bool;
-                                }else{
-                                    panic!("{} binary operator '{}' have wrong right operand type, expect bool found {}",context.info(),op,right_type)
+                                } else {
+                                    panic!("{} binary operator '{}' have wrong right operand type, expect bool found {}", context.info(), op, right_type)
                                 }
-                            }else{
-                                panic!("{} binary operator '{}' have wrong left operand type, expect bool found {}",context.info(),op,left_type)
+                            } else {
+                                panic!("{} binary operator '{}' have wrong left operand type, expect bool found {}", context.info(), op, left_type)
                             }
                         }
                     }
@@ -950,31 +953,31 @@ impl Analyzer {
                 }
             }
             Expression::For(for_loop) => {
-                match self.analysis_for(for_loop.deref_mut(),context) {
+                match self.analysis_for(for_loop.deref_mut(), context) {
                     ReturnType::Void => DataType::Ref(RefType::None),
                     ReturnType::Have(data_type) => data_type
                 }
             }
-            expr => panic!("unsupported expression {:?} now",expr)
+            expr => panic!("unsupported expression {:?} now", expr)
         }
     }
 
-    fn analysis_while(& self, while_loop : &mut WhileLoop, context : &mut AnalyzeContext) -> ReturnType {
+    fn analysis_while(&self, while_loop: &mut WhileLoop, context: &mut AnalyzeContext) -> ReturnType {
         let line = while_loop.line;
         // check condition expression type
         let cond_expr = &mut while_loop.condition;
         let cond_type = self.deduce_type(cond_expr, context);
-        if ! cond_type.is_bool() {
-            panic!("{} line {}, the loop condition expression is not bool type but {}",context.info(),line,cond_type)
+        if !cond_type.is_bool() {
+            panic!("{} line {}, the loop condition expression is not bool type but {}", context.info(), line, cond_type)
         };
         let statements = &mut while_loop.statements;
 
-        context.expr_stack.push((SyntaxType::While,line));
+        context.expr_stack.push((SyntaxType::While, line));
         context.block_stack.push(BlockType::Loop);
         context.break_stack.push(BreakType::Uninit);
         context.indexer.enter_sub_block();
 
-        self.analysis_statements(context,statements);
+        self.analysis_statements(context, statements);
 
         context.expr_stack.pop();
         context.block_stack.pop();
@@ -984,14 +987,14 @@ impl Analyzer {
                 if data_type.is_none() {
                     while_loop.return_void = true;
                     ReturnType::Void
-                }else {
+                } else {
                     ReturnType::Have(data_type)
                 }
-            },
+            }
             BreakType::Uninit => {
                 while_loop.return_void = true;
                 ReturnType::Void
-            },
+            }
             BreakType::Void => {
                 while_loop.return_void = true;
                 ReturnType::Void
@@ -999,31 +1002,31 @@ impl Analyzer {
         }
     }
 
-    fn analysis_for(&self, for_loop : &mut ForLoop, context : &mut AnalyzeContext) -> ReturnType {
+    fn analysis_for(&self, for_loop: &mut ForLoop, context: &mut AnalyzeContext) -> ReturnType {
         let var_name;
         match &mut for_loop.for_iter {
             ForIter::Range(start, end, step) => {
                 let range_type = self.deduce_type(start, context);
-                if ! range_type.is_int() {
-                    panic!("{} expect int in start of for-in loop, found {}", context.info(),range_type)
+                if !range_type.is_int() {
+                    panic!("{} expect int in start of for-in loop, found {}", context.info(), range_type)
                 }
                 let range_type = self.deduce_type(end, context);
-                if ! range_type.is_int() {
-                    panic!("{} expect int in end of for-in loop, found {}",context.info(),range_type)
+                if !range_type.is_int() {
+                    panic!("{} expect int in end of for-in loop, found {}", context.info(), range_type)
                 }
                 let range_type = self.deduce_type(step, context);
-                if ! range_type.is_int() {
-                    panic!("{} expect int in step of for-in loop, found {}",context.info(),range_type)
+                if !range_type.is_int() {
+                    panic!("{} expect int in step of for-in loop, found {}", context.info(), range_type)
                 }
 
                 let var = &mut for_loop.var;
                 var_name = var.name();
-                let (slot_idx,sub_idx) = context.indexer.put(DataType::Int);
+                let (slot_idx, sub_idx) = context.indexer.put(DataType::Int);
                 match context.symbol_table.entry(var_name.deref().clone()) {
                     Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, true)),
                     Entry::Occupied(_) => panic!("{} variable '{}' already occupied", context.info(), var_name),
                 };
-                *var = Var::LocalInt(slot_idx,sub_idx);
+                *var = Var::LocalInt(slot_idx, sub_idx);
             }
             ForIter::Iter(iter_expr) => {
                 let mut iter_type = self.deduce_type(iter_expr, context);
@@ -1038,21 +1041,21 @@ impl Analyzer {
 
                 var_name = for_loop.var.name();
                 let basic_type = item_type.as_basic();
-                let (slot_idx,sub_idx) = context.indexer.put(item_type);
+                let (slot_idx, sub_idx) = context.indexer.put(item_type);
                 match context.symbol_table.entry(var_name.deref().clone()) {
                     Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, true)),
                     Entry::Occupied(_) => panic!("{} variable '{}' already occupied", context.info(), var_name),
                 };
-                for_loop.var = Var::new_local(slot_idx,sub_idx,basic_type);
+                for_loop.var = Var::new_local(slot_idx, sub_idx, basic_type);
             }
         }
 
-        context.expr_stack.push((SyntaxType::ForIn,for_loop.line));
+        context.expr_stack.push((SyntaxType::ForIn, for_loop.line));
         context.block_stack.push(BlockType::Loop);
         context.break_stack.push(BreakType::Uninit);
         context.indexer.enter_sub_block();
 
-        self.analysis_statements(context,&mut for_loop.statements);
+        self.analysis_statements(context, &mut for_loop.statements);
 
         context.symbol_table.remove(var_name.as_str());
         context.block_stack.pop();
@@ -1063,14 +1066,14 @@ impl Analyzer {
                 if data_type.is_none() {
                     for_loop.return_void = true;
                     ReturnType::Void
-                }else {
+                } else {
                     ReturnType::Have(data_type)
                 }
-            },
+            }
             BreakType::Uninit => {
                 for_loop.return_void = true;
                 ReturnType::Void
-            },
+            }
             BreakType::Void => {
                 for_loop.return_void = true;
                 ReturnType::Void
@@ -1079,87 +1082,87 @@ impl Analyzer {
     }
 
     #[inline]
-    fn analysis_statements(&self, context : &mut AnalyzeContext, statements : &mut Vec<Statement>){
+    fn analysis_statements(&self, context: &mut AnalyzeContext, statements: &mut Vec<Statement>) {
         let mut last_is_expr = false;
         let mut last_type = ReturnType::Void;
 
         let mut temp_var_table = Vec::new();
         let curr_block_type = *context.block_stack.last().unwrap();
-        let var_is_temp = match curr_block_type{
+        let var_is_temp = match curr_block_type {
             BlockType::Func => false,
             BlockType::Loop => true,
             BlockType::IfElse => true
         };
         let max_idx = if statements.len() > 0 { statements.len() - 1 } else { 0 };
-        for (idx,statement) in statements.iter_mut().enumerate() {
+        for (idx, statement) in statements.iter_mut().enumerate() {
             match statement {
                 Statement::Let(let_tuple) => {
-                    let (var,marked_type,expr,line) = let_tuple.deref_mut();
+                    let (var, marked_type, expr, line) = let_tuple.deref_mut();
                     match marked_type {
                         None => {
                             // 未标记变量类型 without type mark
-                            let deduced_type = self.deduce_type(expr,context);
+                            let deduced_type = self.deduce_type(expr, context);
                             let basic_type = deduced_type.as_basic();
                             // 检查变量名是否重复 check if the variable name occupied
-                            let (slot_idx,sub_idx) = context.indexer.put(deduced_type);
+                            let (slot_idx, sub_idx) = context.indexer.put(deduced_type);
                             match context.symbol_table.entry(var.name().deref().clone()) {
-                                Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,true)),
-                                Entry::Occupied(_) => panic!("{} line {} variable name {} occupied",context.info(),line,var.name().deref()),
+                                Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, true)),
+                                Entry::Occupied(_) => panic!("{} line {} variable name {} occupied", context.info(), line, var.name().deref()),
                             };
                             if var_is_temp {
                                 temp_var_table.push(var.name().deref().clone());
                             }
-                            *var = Var::new_local(slot_idx,sub_idx,basic_type);
+                            *var = Var::new_local(slot_idx, sub_idx, basic_type);
                         }
                         Some(data_type) => {
                             // 已标记变量类型 with type mark
                             let data_type = self.get_type(data_type, context.file_index);
                             let basic_type = data_type.as_basic();
                             let expr_type = self.deduce_type(expr, context);
-                            if ! expr_type.belong_to(&data_type){
-                                panic!("{} expect {} found {}",context.info(),data_type,expr_type);
+                            if !expr_type.belong_to(&data_type) {
+                                panic!("{} expect {} found {}", context.info(), data_type, expr_type);
                             }
-                            let (slot_idx,sub_idx) = context.indexer.put(data_type);
+                            let (slot_idx, sub_idx) = context.indexer.put(data_type);
                             // 检查变量名是否重复 check if the variable name occupied
                             match context.symbol_table.entry(var.name().deref().clone()) {
-                                Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx, true)),
-                                Entry::Occupied(_) => panic!("{} line {}, variable name {} occupied",context.info(),line,var.name().deref()),
+                                Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, true)),
+                                Entry::Occupied(_) => panic!("{} line {}, variable name {} occupied", context.info(), line, var.name().deref()),
                             };
                             if var_is_temp {
                                 temp_var_table.push(var.name().deref().clone());
                             }
-                            *var = Var::new_local(slot_idx,sub_idx,basic_type);
+                            *var = Var::new_local(slot_idx, sub_idx, basic_type);
                         }
                     }
                 }
                 Statement::LeftValueOp(left) => {
-                    self.handle_left_value_op(context,left);
+                    self.handle_left_value_op(context, left);
                 }
-                Statement::Expr(expr,_) => {
-                    let expr_type = self.deduce_type(expr,context);
-                    if max_idx == idx{
+                Statement::Expr(expr, _) => {
+                    let expr_type = self.deduce_type(expr, context);
+                    if max_idx == idx {
                         last_is_expr = true;
                         let is_void = expr_type.is_none();
-                        if ! is_void {
+                        if !is_void {
                             last_type = ReturnType::Have(expr_type)
                         };
                     }
                 }
-                Statement::Discard(expr,line) => {
-                    self.deduce_type(expr,context);
+                Statement::Discard(expr, line) => {
+                    self.deduce_type(expr, context);
                     if max_idx == idx {
                         match curr_block_type {
                             BlockType::Func => {
-                                if context.func_return_type.is_void() { } else {
+                                if context.func_return_type.is_void() {} else {
                                     panic!("{} expect return a value/object of type {}, found void in line {}",
-                                           context.info(),context.func_return_type,line)
+                                           context.info(), context.func_return_type, line)
                                 }
                             }
                             BlockType::IfElse => {
                                 match context.break_stack.last().unwrap() {
                                     BreakType::Type(data_type) => {
                                         panic!("{} expect the if-else branch have a result of type {}, found void",
-                                               context.info(),data_type)
+                                               context.info(), data_type)
                                     }
                                     // nothing to do
                                     BreakType::Uninit => {}
@@ -1170,56 +1173,56 @@ impl Analyzer {
                         }
                     }
                 }
-                Statement::Break(expr,line) => {
+                Statement::Break(expr, line) => {
                     if context.block_stack.iter().rfind(|block| {
                         if let BlockType::Loop = block { true } else { false }
-                    }).is_none(){
-                        panic!("{} unexpected 'break' in non-loop block line {}",context.info(),line)
+                    }).is_none() {
+                        panic!("{} unexpected 'break' in non-loop block line {}", context.info(), line)
                     }
-                    context.expr_stack.push((SyntaxType::Break,*line));
-                    let expr_type = self.deduce_type(expr,context);
+                    context.expr_stack.push((SyntaxType::Break, *line));
+                    let expr_type = self.deduce_type(expr, context);
                     let mut alert = Option::None;
                     let break_type = context.break_stack.last_mut().unwrap();
                     match break_type {
                         BreakType::Type(break_data_type) => {
                             if expr_type.belong_to(break_data_type) {
                                 // best situation, do nothing
-                            }else if break_data_type.belong_to(&expr_type) {
+                            } else if break_data_type.belong_to(&expr_type) {
                                 *break_data_type = expr_type;
-                            }else{
-                                alert = Option::Some(format!("line {}, mismatched break type of loop, expect {} found {}",line,break_data_type,expr_type));
+                            } else {
+                                alert = Option::Some(format!("line {}, mismatched break type of loop, expect {} found {}", line, break_data_type, expr_type));
                             }
                         }
                         BreakType::Uninit => {
                             *break_type = if expr_type.is_none() {
                                 BreakType::Void
-                            }else{
+                            } else {
                                 BreakType::Type(expr_type)
                             }
                         }
                         BreakType::Void => {
-                            if ! expr_type.is_none() {
-                                alert = Option::Some(format!("{} mismatch break type of while loop, expect void found {}",context.info(),expr_type));
+                            if !expr_type.is_none() {
+                                alert = Option::Some(format!("{} mismatch break type of while loop, expect void found {}", context.info(), expr_type));
                             }
                         }
                     };
                     if let Some(alert) = alert {
-                        panic!("{}{}",context.info(),alert)
+                        panic!("{}{}", context.info(), alert)
                     }
                     context.expr_stack.pop();
                 }
-                Statement::Return(expr,line) => {
-                    context.expr_stack.push((SyntaxType::Return,*line));
+                Statement::Return(expr, line) => {
+                    context.expr_stack.push((SyntaxType::Return, *line));
                     let data_type = self.deduce_type(expr, context);
                     match &context.func_return_type {
                         ReturnType::Have(return_type) => {
-                            if ! data_type.belong_to(return_type) {
-                                panic!("{} line {}, expect return type if {}, found return type is {}",line,context.info(),return_type,data_type)
+                            if !data_type.belong_to(return_type) {
+                                panic!("{} line {}, expect return type if {}, found return type is {}", line, context.info(), return_type, data_type)
                             }
                         }
                         ReturnType::Void => {
-                            if ! data_type.is_none() {
-                                panic!("{} expect return void, found return {} type",context.info(),data_type)
+                            if !data_type.is_none() {
+                                panic!("{} expect return void, found return {} type", context.info(), data_type)
                             }
                         }
                     }
@@ -1228,72 +1231,72 @@ impl Analyzer {
                 Statement::Continue(line) => {
                     if context.block_stack.iter().rfind(|block| {
                         if let BlockType::Loop = block { true } else { false }
-                    }).is_none(){
-                        panic!("{} unexpected 'continue' in non-loop block line {}",context.info(),line)
+                    }).is_none() {
+                        panic!("{} unexpected 'continue' in non-loop block line {}", context.info(), line)
                     }
                 }
                 Statement::Static(static_tuple) => {
-                    if let BlockType::Func = curr_block_type { } else {
-                        panic!("{} static variable can't declared in loop or is-else block",context.info())
+                    if let BlockType::Func = curr_block_type {} else {
+                        panic!("{} static variable can't declared in loop or is-else block", context.info())
                     }
-                    let (var,parsed_type,expr) = static_tuple.deref_mut();
+                    let (var, parsed_type, expr) = static_tuple.deref_mut();
                     match parsed_type {
                         Some(parsed_type) => {
                             let marked_type = self.get_type(parsed_type, context.file_index);
                             let basic_type = marked_type.as_basic();
-                            let expr_type = self.deduce_type(expr,context);
-                            if ! expr_type.belong_to(&marked_type) {
+                            let expr_type = self.deduce_type(expr, context);
+                            if !expr_type.belong_to(&marked_type) {
                                 panic!("{} the expression's type {} do not belongs to marked type {} when comes to static variable {} declare",
-                                       context.info(),expr_type,marked_type,var.name().deref())
+                                       context.info(), expr_type, marked_type, var.name().deref())
                             }
-                            let (slot_idx,sub_idx)  = self.static_indexer.inner_mut().put(marked_type);
+                            let (slot_idx, sub_idx) = self.static_indexer.inner_mut().put(marked_type);
                             match context.symbol_table.entry(var.name().deref().clone()) {
-                                Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,false)),
-                                Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
+                                Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, false)),
+                                Entry::Occupied(_) => panic!("{} variable name {} occupied", context.info(), var.name().deref())
                             };
                             *var = Var::new_static(slot_idx, sub_idx, basic_type);
                         }
                         None => {
-                            let expr_type = self.deduce_type(expr,context);
+                            let expr_type = self.deduce_type(expr, context);
                             let basic_type = expr_type.as_basic();
-                            let (slot_idx,sub_idx) = self.static_indexer.inner_mut().put(expr_type);
+                            let (slot_idx, sub_idx) = self.static_indexer.inner_mut().put(expr_type);
                             match context.symbol_table.entry(var.name().deref().clone()) {
-                                Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx,false)),
-                                Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
+                                Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, false)),
+                                Entry::Occupied(_) => panic!("{} variable name {} occupied", context.info(), var.name().deref())
                             };
                             *var = Var::new_static(slot_idx, sub_idx, basic_type);
                         }
                     };
                 }
                 Statement::PubStatic(static_tuple) => {
-                    if let BlockType::Func = curr_block_type { } else {
-                        panic!("{} static variable can't declared in loop or is-else block",context.info())
+                    if let BlockType::Func = curr_block_type {} else {
+                        panic!("{} static variable can't declared in loop or is-else block", context.info())
                     }
-                    let (var,parsed_type,expr) = static_tuple.deref_mut();
+                    let (var, parsed_type, expr) = static_tuple.deref_mut();
                     let pub_static_symbol_table = self.static_map.clone();
                     match parsed_type {
                         Some(parsed_type) => {
                             let marked_type = self.get_type(parsed_type, context.file_index);
                             let basic_type = marked_type.as_basic();
-                            let expr_type = self.deduce_type(expr,context);
-                            if ! expr_type.belong_to(&marked_type) {
+                            let expr_type = self.deduce_type(expr, context);
+                            if !expr_type.belong_to(&marked_type) {
                                 panic!("{} the expression's type {} do not belongs to marked type {} when comes to static variable {} declare",
-                                       context.info(),expr_type,marked_type,var.name().deref())
+                                       context.info(), expr_type, marked_type, var.name().deref())
                             }
-                            let (slot_idx,sub_idx)  = self.static_indexer.inner_mut().put(marked_type);
+                            let (slot_idx, sub_idx) = self.static_indexer.inner_mut().put(marked_type);
                             match pub_static_symbol_table.inner_mut().entry(var.name().deref().clone()) {
-                                Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx)),
-                                Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
+                                Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx)),
+                                Entry::Occupied(_) => panic!("{} variable name {} occupied", context.info(), var.name().deref())
                             };
                             *var = Var::new_static(slot_idx, sub_idx, basic_type);
                         }
                         None => {
-                            let expr_type = self.deduce_type(expr,context);
+                            let expr_type = self.deduce_type(expr, context);
                             let basic_type = expr_type.as_basic();
-                            let (slot_idx,sub_idx)  = self.static_indexer.inner_mut().put(expr_type);
+                            let (slot_idx, sub_idx) = self.static_indexer.inner_mut().put(expr_type);
                             match pub_static_symbol_table.inner_mut().entry(var.name().deref().clone()) {
-                                Entry::Vacant(entry) => entry.insert((slot_idx,sub_idx)),
-                                Entry::Occupied(_) => panic!("{} variable name {} occupied",context.info(),var.name().deref())
+                                Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx)),
+                                Entry::Occupied(_) => panic!("{} variable name {} occupied", context.info(), var.name().deref())
                             };
                             *var = Var::new_static(slot_idx, sub_idx, basic_type);
                         }
@@ -1307,18 +1310,18 @@ impl Analyzer {
                 BlockType::Func => {
                     if last_type.eq(&context.func_return_type) {
                         let last_statement = statements.last_mut().unwrap();
-                        let return_statement = if let Statement::Expr(expr,line) = last_statement{
+                        let return_statement = if let Statement::Expr(expr, line) = last_statement {
                             Statement::Return(
-                                std::mem::replace(expr,Expression::None),
-                                *line
+                                std::mem::replace(expr, Expression::None),
+                                *line,
                             )
-                        }else{
+                        } else {
                             panic!()
                         };
                         *last_statement = return_statement;
-                    }else if context.func_return_type.is_void() {
+                    } else if context.func_return_type.is_void() {
                         // nothing to do
-                    }else{
+                    } else {
                         panic!()
                     }
                 }
@@ -1334,24 +1337,24 @@ impl Analyzer {
                         BreakType::Type(already_type) => {
                             if already_type.is_none() && last_type.is_void() {
                                 // nothing to do
-                            }else if last_type.data_type().belong_to(already_type) {
-                                let result_statement = if let Statement::Expr(expr,line) = last_statement{
+                            } else if last_type.data_type().belong_to(already_type) {
+                                let result_statement = if let Statement::Expr(expr, line) = last_statement {
                                     Statement::IfResult(
-                                        std::mem::replace(expr,Expression::None),
-                                        *line
+                                        std::mem::replace(expr, Expression::None),
+                                        *line,
                                     )
-                                }else{
+                                } else {
                                     panic!()
                                 };
                                 *last_statement = result_statement;
-                            }else if already_type.belong_to(last_type.data_type()) {
+                            } else if already_type.belong_to(last_type.data_type()) {
                                 *already_type = last_type.data_type().clone();
-                                let result_statement = if let Statement::Expr(expr,line) = last_statement{
+                                let result_statement = if let Statement::Expr(expr, line) = last_statement {
                                     Statement::IfResult(
-                                        std::mem::replace(expr,Expression::None),
-                                        *line
+                                        std::mem::replace(expr, Expression::None),
+                                        *line,
                                     )
-                                }else{
+                                } else {
                                     panic!()
                                 };
                                 *last_statement = result_statement;
@@ -1359,12 +1362,12 @@ impl Analyzer {
                         }
                         // BreakType::UnInit
                         break_type => {
-                            let result_statement = if let Statement::Expr(expr,line) = last_statement{
+                            let result_statement = if let Statement::Expr(expr, line) = last_statement {
                                 Statement::IfResult(
-                                    std::mem::replace(expr,Expression::None),
-                                    *line
+                                    std::mem::replace(expr, Expression::None),
+                                    *line,
                                 )
-                            }else{
+                            } else {
                                 panic!()
                             };
                             *last_statement = result_statement;
@@ -1381,20 +1384,20 @@ impl Analyzer {
         }
     }
 
-    fn analysis_if_else(& self, if_else : &mut IfElse, context : &mut AnalyzeContext ) -> ReturnType {
+    fn analysis_if_else(&self, if_else: &mut IfElse, context: &mut AnalyzeContext) -> ReturnType {
         context.block_stack.push(BlockType::IfElse);
         context.break_stack.push(BreakType::Uninit);
-        for (branch_idx,branch) in if_else.branches.iter_mut().enumerate() {
+        for (branch_idx, branch) in if_else.branches.iter_mut().enumerate() {
             // 处理每个分支  handle every branch
             let statements = &mut branch.statements;
-            let cond_type = self.deduce_type(&mut branch.condition,context);
-            if ! cond_type.is_bool() {
+            let cond_type = self.deduce_type(&mut branch.condition, context);
+            if !cond_type.is_bool() {
                 panic!("{} the condition of {}st if-else branch have non-bool type {}", context.info(), branch_idx, cond_type);
             }
-            context.expr_stack.push((SyntaxType::IfElseBranch,branch.line));
+            context.expr_stack.push((SyntaxType::IfElseBranch, branch.line));
             context.indexer.enter_sub_block();
 
-            self.analysis_statements(context,statements);
+            self.analysis_statements(context, statements);
 
             // 处理完一个分支的全部语句 handle all the statements of one branch
             // 清理分支内声明的变量的信息 clear the info of the variables declared in branch
@@ -1407,14 +1410,14 @@ impl Analyzer {
                 if data_type.is_none() {
                     if_else.return_void = true;
                     ReturnType::Void
-                }else {
+                } else {
                     ReturnType::Have(data_type)
                 }
-            },
+            }
             BreakType::Uninit => {
                 if_else.return_void = true;
                 ReturnType::Void
-            },
+            }
             BreakType::Void => {
                 if_else.return_void = true;
                 ReturnType::Void
@@ -1422,23 +1425,23 @@ impl Analyzer {
         }
     }
 
-    fn fill_classes(&mut self){
+    fn fill_classes(&mut self) {
         let mut index = 0;
         for class in self.status.classes.iter() {
-            self.fill_class(class.clone(),index);
+            self.fill_class(class.clone(), index);
             index += 1;
         }
     }
-    fn fill_class(&self, class : RefCount<GloomClass>, index : usize){
-        let (parsed_class,file_index) = self.parsed_classes.get(index).unwrap();
+    fn fill_class(&self, class: RefCount<GloomClass>, index: usize) {
+        let (parsed_class, file_index) = self.parsed_classes.get(index).unwrap();
         let parsed_class = parsed_class.clone();
         // handle parent class
         if let Option::Some(parent_name) = &parsed_class.inner().parent {
             match self.type_map.get(parent_name.as_str()) {
-                None => { panic!("the parent class {} of {} not found",parent_name,parsed_class.inner().name) }
+                None => { panic!("the parent class {} of {} not found", parent_name, parsed_class.inner().name) }
                 Some(label) => {
                     if label.tp != MetaType::Class {
-                        panic!("declared parent class {} of {} is not a class",parent_name,class.inner().name)
+                        panic!("declared parent class {} of {} is not a class", parent_name, class.inner().name)
                     }
                     if label.is_public || label.file_index == *file_index {
                         let parent_class = self.status.classes.get(label.index as usize).unwrap().clone();
@@ -1447,18 +1450,18 @@ impl Analyzer {
                             self.fill_class(parent_class.clone(), label.index as usize);
                         }
                         class.inner_mut().set_parent(parent_class);
-                    }else {
-                        panic!("the parent class {} of {} is not public",parent_name,parsed_class.inner().name)
+                    } else {
+                        panic!("the parent class {} of {} is not public", parent_name, parsed_class.inner().name)
                     }
                 }
             }
         }
         // fill fields
-        for (is_pub,parsed_type,name) in parsed_class.inner().fields.iter() {
+        for (is_pub, parsed_type, name) in parsed_class.inner().fields.iter() {
             class.inner_mut().add_field(
                 *is_pub,
                 name.deref().clone(),
-                self.get_type(parsed_type, *file_index)
+                self.get_type(parsed_type, *file_index),
             );
         }
         // fill funcs
@@ -1467,24 +1470,24 @@ impl Analyzer {
             for (param_name, parsed_type) in func.params.iter() {
                 params.push(Param::new(
                     param_name.clone(),
-                    self.get_type(parsed_type, *file_index)
+                    self.get_type(parsed_type, *file_index),
                 ));
             }
-            let return_type : ReturnType = match &func.return_type {
+            let return_type: ReturnType = match &func.return_type {
                 None => ReturnType::Void,
                 Some(parsed_type) => ReturnType::Have(self.get_type(parsed_type, *file_index)),
             };
             // 在不需要move ParsedFunc 的情况下，仅使用ParsedFunc的可变引用将函数体的Vec<Statement> move至status中的GloomClass中
-            let body : Vec<Statement> = std::mem::replace(&mut func.body, Vec::with_capacity(0));
-            class.inner_mut().add_func(*is_pub,name.clone(),params,return_type,body);
+            let body: Vec<Statement> = std::mem::replace(&mut func.body, Vec::with_capacity(0));
+            class.inner_mut().add_func(*is_pub, name.clone(), params, return_type, body);
         }
         // handle instance funcs
         class.inner().handle_instance_func(class.clone());
         // handle implemented interface
         for interface_name in parsed_class.inner().impl_interfaces.iter() {
-            match self.type_map.get(interface_name.as_str()){
+            match self.type_map.get(interface_name.as_str()) {
                 None => panic!("interface {} that implemented by class {} is not found",
-                               interface_name,class.inner().name),
+                               interface_name, class.inner().name),
                 Some(label) => {
                     if label.tp != MetaType::Interface {
                         panic!("interface {} that implemented by class {} is in fact not an interface but a {}",
@@ -1493,87 +1496,87 @@ impl Analyzer {
                     if label.is_public || label.file_index == *file_index {
                         let interface = self.status.interfaces.get(label.index as usize).unwrap().clone();
                         class.inner_mut().add_impl(interface);
-                    }else {
+                    } else {
                         panic!("interface {} that implemented by class {} is not public",
-                               interface_name,class.inner().name)
+                               interface_name, class.inner().name)
                     }
                 }
             }
         }
     }
 
-    fn fill_enums(&mut self){
+    fn fill_enums(&mut self) {
         let mut index = 0;
         for enum_class in self.status.enums.iter() {
-            self.fill_enum(enum_class.clone(),index);
+            self.fill_enum(enum_class.clone(), index);
             index += 1;
         }
     }
-    fn fill_enum(&self, enum_class : RefCount<GloomEnumClass>, index : usize){
-        let (parsed_enum,file_index) = self.parsed_enums.get(index).unwrap();
+    fn fill_enum(&self, enum_class: RefCount<GloomEnumClass>, index: usize) {
+        let (parsed_enum, file_index) = self.parsed_enums.get(index).unwrap();
         let parsed_enum = parsed_enum.clone();
-        for (name,parsed_type) in parsed_enum.inner().values.iter() {
+        for (name, parsed_type) in parsed_enum.inner().values.iter() {
             let related_type: Option<DataType> = match parsed_type {
                 None => Option::None,
                 Some(parsed_type) => Some(self.get_type(parsed_type, *file_index))
             };
-            enum_class.inner_mut().add_enum_value(name.deref().clone(),related_type);
+            enum_class.inner_mut().add_enum_value(name.deref().clone(), related_type);
         }
-        for (func_name, is_pub , func) in parsed_enum.inner_mut().funcs.iter_mut() {
+        for (func_name, is_pub, func) in parsed_enum.inner_mut().funcs.iter_mut() {
             let mut params = Vec::with_capacity(func.params.len());
             for (name, parsed_type) in func.params.iter() {
                 params.push(Param::new(
                     name.clone(),
-                    self.get_type(parsed_type, *file_index)
+                    self.get_type(parsed_type, *file_index),
                 ));
             }
             let return_type = match func.return_type.borrow() {
                 None => ReturnType::Void,
                 Some(parsed_type) => ReturnType::Have(self.get_type(parsed_type, *file_index))
             };
-            let body = std::mem::replace(&mut func.body,Vec::with_capacity(0));
-            enum_class.inner_mut().add_func(func_name.clone(),*is_pub,params,return_type,body);
+            let body = std::mem::replace(&mut func.body, Vec::with_capacity(0));
+            enum_class.inner_mut().add_func(func_name.clone(), *is_pub, params, return_type, body);
         }
         enum_class.inner_mut().handle_instance_func(enum_class.clone())
     }
 
-    fn analysis_interfaces(&mut self){
+    fn analysis_interfaces(&mut self) {
         let mut index = 0;
         for interface in self.status.interfaces.iter() {
-            self.analysis_interface(interface.clone(),index);
+            self.analysis_interface(interface.clone(), index);
             index += 1;
         }
     }
-    fn analysis_interface(&self, interface : RefCount<Interface>, index : usize){
-        let (parsed_interface,file_index) = self.parsed_interfaces.get(index).unwrap();
+    fn analysis_interface(&self, interface: RefCount<Interface>, index: usize) {
+        let (parsed_interface, file_index) = self.parsed_interfaces.get(index).unwrap();
         for parent_name in parsed_interface.parents.iter() {
             match self.type_map.get(parent_name.as_str()) {
-                None => panic!("Parent interface {} or interface {} is not found",parent_name,interface.inner().name),
+                None => panic!("Parent interface {} or interface {} is not found", parent_name, interface.inner().name),
                 Some(label) => {
                     if label.tp != MetaType::Interface {
-                        panic!("declared parent interface {} of {} is not interface",parent_name,interface.inner().name)
+                        panic!("declared parent interface {} of {} is not interface", parent_name, interface.inner().name)
                     }
                     let parent_interface = self.status.interfaces.get(label.index as usize).unwrap();
                     if parent_interface.inner().len() == 0 {
-                        self.analysis_interface(parent_interface.clone(),label.index as usize);
+                        self.analysis_interface(parent_interface.clone(), label.index as usize);
                     }
-                    interface.inner_mut().add_parent(&interface,parent_interface);
+                    interface.inner_mut().add_parent(&interface, parent_interface);
                 }
             }
         }
         for (name, param_types, return_type) in parsed_interface.funcs.iter() {
             let mut param_data_types = Vec::with_capacity(param_types.len());
             let mut have_self = false;
-            for (idx,parsed_type) in param_types.iter().enumerate() {
+            for (idx, parsed_type) in param_types.iter().enumerate() {
                 param_data_types.push(if let ParsedType::MySelf = parsed_type {
                     if idx == 0 {
                         have_self = true;
                         DataType::Ref(RefType::Interface(interface.clone()))
-                    }else{
+                    } else {
                         panic!("wrong {}st parameter 'self' occurs in function {} of Interface {}",
-                               idx,name,interface.inner().name)
+                               idx, name, interface.inner().name)
                     }
-                }else{
+                } else {
                     self.get_type(parsed_type, *file_index)
                 });
             }
@@ -1587,9 +1590,9 @@ impl Analyzer {
                     entry.insert(index);
                 }
                 Entry::Occupied(_) => panic!("function name {} already occupied in interface {}",
-                                             name,interface.inner().name)
+                                             name, interface.inner().name)
             }
-            interface.inner_mut().add_func(AbstractFunc{
+            interface.inner_mut().add_func(AbstractFunc {
                 name: name.clone(),
                 param_types: param_data_types,
                 return_type,
@@ -1598,31 +1601,31 @@ impl Analyzer {
         }
     }
 
-    fn load_decl(&mut self, script : &mut ParsedFile){
+    fn load_decl(&mut self, script: &mut ParsedFile) {
         let file_index = self.file_count;
         script.index = file_index;
         self.file_count += 1;
         // load empty interface
-        for (parsed_inter,is_public) in script.interfaces.iter() {
+        for (parsed_inter, is_public) in script.interfaces.iter() {
             let index = self.status.interfaces.len();
             match self.type_map.entry(parsed_inter.name.deref().clone()) {
                 Entry::Vacant(entry) => {
                     entry.insert(TypeIndex::from(index as u16, *is_public, file_index, MetaType::Interface));
                 }
-                Entry::Occupied(_) => panic!("Type name {} already occupied",parsed_inter.name)
+                Entry::Occupied(_) => panic!("Type name {} already occupied", parsed_inter.name)
             };
             self.status.interfaces.push(RefCount::new(Interface::new(parsed_inter.name.clone())));
         }
         // load empty class
-        for (class,is_pub) in script.classes.iter() {
+        for (class, is_pub) in script.classes.iter() {
             let index = self.status.classes.len();
             match self.type_map.entry(class.name.deref().clone()) {
                 Entry::Vacant(entry) => {
                     entry.insert(TypeIndex::from(index as u16, *is_pub, file_index, MetaType::Class));
                 }
-                Entry::Occupied(_) => panic!("Type name {} already occupied",class.name)
+                Entry::Occupied(_) => panic!("Type name {} already occupied", class.name)
             };
-            self.status.classes.push(RefCount::new(GloomClass::new(class.name.clone(), file_index,index as u16)));
+            self.status.classes.push(RefCount::new(GloomClass::new(class.name.clone(), file_index, index as u16)));
         }
         // load empty enum
         for (enum_class, is_pub) in script.enums.iter() {
@@ -1631,7 +1634,7 @@ impl Analyzer {
                 Entry::Vacant(entry) => {
                     entry.insert(TypeIndex::from(index as u16, *is_pub, file_index, MetaType::Enum));
                 }
-                Entry::Occupied(_) => panic!("Type name {} already occupied",enum_class.name)
+                Entry::Occupied(_) => panic!("Type name {} already occupied", enum_class.name)
             };
             self.status.enums.push(RefCount::new(GloomEnumClass::new(enum_class.name.clone(), file_index)));
         }
@@ -1639,24 +1642,24 @@ impl Analyzer {
             self.load_decl(parsed_file);
         }
     }
-    fn load(&mut self, script : ParsedFile){
+    fn load(&mut self, script: ParsedFile) {
         let index = script.index;
-        for (class,_) in script.classes.into_iter() {
+        for (class, _) in script.classes.into_iter() {
             self.parsed_classes.push((RefCount::new(class), index));
         }
-        for (interface,_) in script.interfaces.into_iter() {
-            self.parsed_interfaces.push((interface,index));
+        for (interface, _) in script.interfaces.into_iter() {
+            self.parsed_interfaces.push((interface, index));
         }
         for (enum_class, _) in script.enums.into_iter() {
             self.parsed_enums.push((RefCount::new(enum_class), index));
         }
-        for (name,func,is_pub) in script.funcs.into_iter() {
+        for (name, func, is_pub) in script.funcs.into_iter() {
             let index = self.status.funcs.len() as u16;
             let mut params = Vec::with_capacity(func.params.len());
             for (name, parsed_type) in func.params.into_iter() {
                 params.push(Param::new(
                     name,
-                    self.get_type(&parsed_type, script.index)
+                    self.get_type(&parsed_type, script.index),
                 ));
             }
             let return_type = match func.return_type {
@@ -1665,9 +1668,9 @@ impl Analyzer {
             };
             match self.func_map.entry(name.deref().clone()) {
                 Entry::Vacant(entry) => {
-                    entry.insert((index,false,is_pub,script.index));
+                    entry.insert((index, false, is_pub, script.index));
                 }
-                Entry::Occupied(_) => panic!("func name {} already occupied",name)
+                Entry::Occupied(_) => panic!("func name {} already occupied", name)
             }
             self.status.funcs.push(RefCount::new(
                 GloomFunc::new(
@@ -1681,22 +1684,22 @@ impl Analyzer {
         // statements
         self.status.script_bodies.push(RefCount::new(ScriptBody::new(
             GloomFunc::new(
-            Rc::new(String::from("script body")),
-            index,
-            Vec::with_capacity(0),
-            ReturnType::Void,
-            script.statements
-        ),index)));
+                Rc::new(String::from("script body")),
+                index,
+                Vec::with_capacity(0),
+                ReturnType::Void,
+                script.statements,
+            ), index)));
         for file in script.imports.into_iter() {
             self.load(file);
         }
     }
 
     // ParsedType -> DataType
-    fn get_type(& self, origin_type : &ParsedType, file_index : u16) -> DataType{
+    fn get_type(&self, origin_type: &ParsedType, file_index: u16) -> DataType {
         match origin_type {
             ParsedType::Single(single_type) => {
-                self.analysis_single_type(single_type,file_index)
+                self.analysis_single_type(single_type, file_index)
             }
             ParsedType::Tuple(tuple) => {
                 let mut vec = Vec::with_capacity(tuple.vec.len());
@@ -1711,12 +1714,12 @@ impl Analyzer {
         }
     }
     #[inline]
-    fn analysis_single_type(& self, single_type : &SingleType, file_index : u16) -> DataType {
+    fn analysis_single_type(&self, single_type: &SingleType, file_index: u16) -> DataType {
         let generic = match &single_type.generic {
             Some(vec) => {
                 let mut types = Vec::with_capacity(vec.len());
                 for parsed_type in vec.iter() {
-                    types.push(self.get_type(parsed_type,file_index));
+                    types.push(self.get_type(parsed_type, file_index));
                 }
                 Option::Some(types)
             }
@@ -1724,7 +1727,7 @@ impl Analyzer {
         };
         match single_type.name.as_str() {
             "int" => return DataType::Int,
-            "num" => return  DataType::Num,
+            "num" => return DataType::Num,
             "char" => return DataType::Char,
             "bool" => return DataType::Bool,
             _ => {}
@@ -1746,8 +1749,8 @@ impl Analyzer {
                             .get(label.index as usize).unwrap()
                             .inner().get_ref_type(generic).unwrap())
                     }
-                }else {
-                    panic!("{} is not public",single_type.name)
+                } else {
+                    panic!("{} is not public", single_type.name)
                 }
             }
             None => {
@@ -1756,53 +1759,53 @@ impl Analyzer {
         }
     }
 
-    pub fn result(self) -> (GloomStatus,StaticTable){
+    pub fn result(self) -> (GloomStatus, StaticTable) {
         let mut indexer = self.static_indexer.inner_mut();
         let static_len = indexer.size();
         let static_drop_vec = indexer.basic_drop_vec();
-        let static_table = StaticTable::new(static_len,static_drop_vec);
-        (self.status,static_table)
+        let static_table = StaticTable::new(static_len, static_drop_vec);
+        (self.status, static_table)
     }
 
-    pub fn new() -> Analyzer{
+    pub fn new() -> Analyzer {
         Analyzer {
             file_count: 0,
             parsed_interfaces: Vec::new(),
             parsed_classes: Vec::new(),
-            parsed_enums : Vec::new(),
+            parsed_enums: Vec::new(),
             type_map: BuiltinClass::class_map(),
             func_map: BuiltInFuncs::func_map(),
-            status : GloomStatus::new(),
+            status: GloomStatus::new(),
             static_map: RefCount::new(HashMap::new()),
             builtin_map: BuiltinClass::builtin_type_map(),
             func_file_indexes: Vec::new(),
-            static_indexer: RefCount::new(SlotIndexer::new())
+            static_indexer: RefCount::new(SlotIndexer::new()),
         }
     }
 }
 
-pub struct AnalyzeContext<'a>{
-    pub func_name : Rc<String>,
-    pub symbol_table : HashMap<String,(u16,u8,IsLocal)>,
-    pub file_index : u16,
-    pub file_name : Rc<String>,
+pub struct AnalyzeContext<'a> {
+    pub func_name: Rc<String>,
+    pub symbol_table: HashMap<String, (u16, u8, IsLocal)>,
+    pub file_index: u16,
+    pub file_name: Rc<String>,
     pub out_context: Option<&'a AnalyzeContext<'a>>,
     pub captures: Vec<Capture>,
-    pub belonged_type : DeclaredType,
-    pub func_return_type : ReturnType,
-    pub expr_stack : Vec<(SyntaxType,u16)>,
-    pub break_stack : Vec<BreakType>,
-    pub indexer : SlotIndexer,
-    pub block_stack : Vec<BlockType>,
+    pub belonged_type: DeclaredType,
+    pub func_return_type: ReturnType,
+    pub expr_stack: Vec<(SyntaxType, u16)>,
+    pub break_stack: Vec<BreakType>,
+    pub indexer: SlotIndexer,
+    pub block_stack: Vec<BlockType>,
 }
 
-impl<'a> AnalyzeContext<'a>{
-    pub fn new(func_name : Rc<String>,
+impl<'a> AnalyzeContext<'a> {
+    pub fn new(func_name: Rc<String>,
                belonged_type: DeclaredType,
                func_return_type: ReturnType,
-               file_index : u16,
-               out_context: Option<&'a AnalyzeContext>) -> AnalyzeContext<'a>{
-        AnalyzeContext{
+               file_index: u16,
+               out_context: Option<&'a AnalyzeContext>) -> AnalyzeContext<'a> {
+        AnalyzeContext {
             func_name,
             file_index,
             belonged_type,
@@ -1814,13 +1817,13 @@ impl<'a> AnalyzeContext<'a>{
             break_stack: Vec::new(),
             file_name: Rc::new(String::from("")),
             indexer: SlotIndexer::new(),
-            block_stack: Vec::new()
+            block_stack: Vec::new(),
         }
     }
 
-    pub fn info(&self) -> String{
+    pub fn info(&self) -> String {
         // type => func => expr > expr > expr
-        let mut info = format!("[ {} => ",self.file_name);
+        let mut info = format!("[ {} => ", self.file_name);
         match &self.belonged_type {
             DeclaredType::Class(class) => {
                 info = info.add("class ");
@@ -1843,10 +1846,9 @@ impl<'a> AnalyzeContext<'a>{
         if self.expr_stack.len() > 0 {
             info = info.add(" > ");
         }
-        for (frame_type,line) in self.expr_stack.iter() {
-            info = info.add(format!("{:?} line {}",frame_type,line).as_str()).add(" > ");
+        for (frame_type, line) in self.expr_stack.iter() {
+            info = info.add(format!("{:?} line {}", frame_type, line).as_str()).add(" > ");
         }
         info.add("] \r\n")
     }
-
 }

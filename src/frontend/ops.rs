@@ -1,8 +1,9 @@
 use std::fmt::{Display, Formatter};
+
 use crate::frontend::ast::Expression;
 
 #[derive(Debug)]
-pub enum LeftValueOp{
+pub enum LeftValueOp {
     Assign(Expression),
     PlusEq(Expression),
     SubEq(Expression),
@@ -10,37 +11,48 @@ pub enum LeftValueOp{
     SubOne,
 }
 
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug, Copy, Clone)]
 #[repr(u8)]
 pub enum BinOp {
     // calc : num to num
-    Plus,   // +
-    Sub,    // -
-    Mul,    // *
-    Div,    // /
+    Plus,
+    // +
+    Sub,
+    // -
+    Mul,
+    // *
+    Div,
+    // /
     // compare : num to bool
-    Gt,     // >
-    Lt,     // <
-    GtEq,   // >=
-    LtEq,   // <=
+    Gt,
+    // >
+    Lt,
+    // <
+    GtEq,
+    // >=
+    LtEq,
+    // <=
     // eqs : basic/ref to bool
-    Eqs,    // ==
-    NotEq,  // !=
+    Eqs,
+    // ==
+    NotEq,
+    // !=
     // logic : bool to bool
-    And,    // && &
+    And,
+    // && &
     Or,     // || |
 }
 
-pub enum BinOpType{
+pub enum BinOpType {
     Calculate,
     Compare,
     Equal,
-    Logic
+    Logic,
 }
 
 impl BinOp {
     #[inline]
-    pub fn to_type(&self) -> BinOpType{
+    pub fn to_type(&self) -> BinOpType {
         match self {
             BinOp::Plus => BinOpType::Calculate,
             BinOp::Sub => BinOpType::Calculate,
@@ -60,7 +72,7 @@ impl BinOp {
 
 impl Display for BinOp {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",match self {
+        write!(f, "{}", match self {
             BinOp::Plus => "'+'",
             BinOp::Sub => "'-'",
             BinOp::Mul => "'*'",

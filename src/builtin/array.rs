@@ -2,14 +2,14 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+
 use crate::builtin::iter::GloomListIter;
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::GloomFunc;
-use crate::vm::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::vm::machine::GloomVM;
-
+use crate::vm::value::Value;
 
 pub struct GloomArray(pub RefCell<RawArray>);
 
@@ -18,18 +18,18 @@ pub enum RawArray {
     NumVec(Vec<f64>),
     CharVec(Vec<char>),
     BoolVec(Vec<bool>),
-    RefVec(Vec<GloomObjRef>)
+    RefVec(Vec<GloomObjRef>),
 }
 
 impl GloomArray {
-    pub fn new(array : RawArray) -> GloomObjRef{
+    pub fn new(array: RawArray) -> GloomObjRef {
         GloomObjRef::new(Rc::new(
             GloomArray(RefCell::new(array))
         ))
     }
-    
+
     #[inline]
-    pub fn get(&self, index : usize) -> Option<Value>{
+    pub fn get(&self, index: usize) -> Option<Value> {
         match &*self.0.borrow() {
             RawArray::IntVec(vec) => vec.get(index).map(|i| { Value::Int(*i) }),
             RawArray::NumVec(vec) => vec.get(index).map(|f| { Value::Num(*f) }),
@@ -42,7 +42,7 @@ impl GloomArray {
 
 impl Debug for GloomArray {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{:?}",self.0.borrow())
+        write!(f, "{:?}", self.0.borrow())
     }
 }
 
@@ -55,20 +55,20 @@ impl Object for GloomArray {
         self
     }
 
-    fn drop_by_vm(&self, vm: &GloomVM, _ : &GloomObjRef) {
-        if let RawArray::RefVec(vec) = &*self.0.borrow(){
+    fn drop_by_vm(&self, vm: &GloomVM, _: &GloomObjRef) {
+        if let RawArray::RefVec(vec) = &*self.0.borrow() {
             for rf in vec.iter() {
                 vm.drop_object(rf);
             }
         }
     }
 
-    fn iter(&self, rf : &GloomObjRef) -> GloomObjRef {
+    fn iter(&self, rf: &GloomObjRef) -> GloomObjRef {
         GloomListIter::new(rf.clone())
     }
 
     #[inline]
-    fn at(&self , index : &mut usize) -> Option<Value> {
+    fn at(&self, index: &mut usize) -> Option<Value> {
         let option = self.get(*index);
         *index += 1;
         option
@@ -78,11 +78,11 @@ impl Object for GloomArray {
         todo!()
     }
 
-    fn method(&self, _ : u16, _ : &GloomStatus) -> RefCount<GloomFunc> {
+    fn method(&self, _: u16, _: &GloomStatus) -> RefCount<GloomFunc> {
         todo!()
     }
 
-    fn field(&self, _ : u16, _ : u8) -> Value {
+    fn field(&self, _: u16, _: u8) -> Value {
         panic!()
     }
 }
@@ -90,10 +90,10 @@ impl Object for GloomArray {
 impl Debug for RawArray {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RawArray::IntVec(vec) => write!(f,"{:?}",vec),
-            RawArray::NumVec(vec) => write!(f,"{:?}",vec),
-            RawArray::CharVec(vec) => write!(f,"{:?}",vec),
-            RawArray::BoolVec(vec) => write!(f,"{:?}",vec),
+            RawArray::IntVec(vec) => write!(f, "{:?}", vec),
+            RawArray::NumVec(vec) => write!(f, "{:?}", vec),
+            RawArray::CharVec(vec) => write!(f, "{:?}", vec),
+            RawArray::BoolVec(vec) => write!(f, "{:?}", vec),
             RawArray::RefVec(vec) => write!(f, "{:?}", vec)
         }
     }

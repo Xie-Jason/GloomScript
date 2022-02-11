@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Formatter};
+
 use crate::obj::types::DataType;
 
 #[derive(Clone)]
@@ -12,8 +13,8 @@ pub struct SlotIndexer {
     char_curr_sub_idx: i16,
     bool_curr_slot_idx: i16,
     bool_curr_sub_idx: i16,
-    types : Vec<DataType>,
-    drop_vec_stack : Vec<Vec<u16>>
+    types: Vec<DataType>,
+    drop_vec_stack: Vec<Vec<u16>>,
 }
 
 impl SlotIndexer {
@@ -77,7 +78,7 @@ impl SlotIndexer {
     }
 
     #[inline]
-    pub fn put(&mut self, data_type : DataType) -> (u16, u8){
+    pub fn put(&mut self, data_type: DataType) -> (u16, u8) {
         match data_type {
             DataType::Int => self.put_int(),
             DataType::Num => self.put_num(),
@@ -87,12 +88,12 @@ impl SlotIndexer {
                 self.max_idx += 1;
                 self.types.push(ref_type);
                 self.drop_vec_stack.last_mut().unwrap().push(self.max_idx as u16);
-                (self.max_idx as u16,0)
+                (self.max_idx as u16, 0)
             }
         }
     }
 
-    pub fn enter_sub_block(&mut self){
+    pub fn enter_sub_block(&mut self) {
         self.drop_vec_stack.push(Vec::new());
     }
     pub fn level_sub_block(&mut self) -> Vec<u16> {
@@ -100,21 +101,21 @@ impl SlotIndexer {
     }
 
     #[inline]
-    pub fn get_type(&self,index : u16) -> &DataType{
+    pub fn get_type(&self, index: u16) -> &DataType {
         self.types.get(index as usize).unwrap()
     }
 
     #[inline]
-    pub fn size(&self) -> u16{
+    pub fn size(&self) -> u16 {
         (self.max_idx + 1) as u16
     }
 
     #[inline]
-    pub fn curr_drop_vec(&self) -> &Vec<u16>{
+    pub fn curr_drop_vec(&self) -> &Vec<u16> {
         self.drop_vec_stack.last().unwrap()
     }
 
-    pub fn basic_drop_vec(&mut self) -> Vec<u16>{
+    pub fn basic_drop_vec(&mut self) -> Vec<u16> {
         let vec = self.drop_vec_stack.pop().unwrap();
         if self.drop_vec_stack.len() != 0 {
             panic!()
@@ -134,13 +135,13 @@ impl SlotIndexer {
             bool_curr_slot_idx: -1,
             bool_curr_sub_idx: -1,
             types: Vec::new(),
-            drop_vec_stack: vec![Vec::new()]
+            drop_vec_stack: vec![Vec::new()],
         }
     }
 }
 
 impl Debug for SlotIndexer {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f,"{:?}",self.types)
+        writeln!(f, "{:?}", self.types)
     }
 }

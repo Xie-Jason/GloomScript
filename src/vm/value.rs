@@ -4,37 +4,37 @@ use crate::builtin::boxed::{GloomBool, GloomChar, GloomInt, GloomNum};
 use crate::obj::object::{GloomObjRef, ObjectType};
 
 #[derive(Clone)]
-pub enum Value{
+pub enum Value {
     Int(i64),
     Num(f64),
     Char(char),
     Bool(bool),
     Ref(GloomObjRef),
-    None
+    None,
 }
 
-impl Debug for Value{
+impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Int(i) => write!(f,"{}",i),
-            Value::Num(i) => write!(f,"{}",i),
-            Value::Char(i) => write!(f,"'{}'",i),
-            Value::Bool(i) => write!(f,"{}",i),
-            Value::Ref(rf) => write!(f,"{:?}",rf),
-            Value::None => write!(f,"none")
+            Value::Int(i) => write!(f, "{}", i),
+            Value::Num(i) => write!(f, "{}", i),
+            Value::Char(i) => write!(f, "'{}'", i),
+            Value::Bool(i) => write!(f, "{}", i),
+            Value::Ref(rf) => write!(f, "{:?}", rf),
+            Value::None => write!(f, "none")
         }
     }
 }
 
 impl Value {
     #[inline(always)]
-    pub fn as_int(&self) -> Option<i64>{
+    pub fn as_int(&self) -> Option<i64> {
         match self {
             Value::Int(i) => Option::Some(*i),
             Value::Ref(obj) => {
                 if let ObjectType::Int = obj.obj_type() {
                     Option::Some(obj.downcast::<GloomInt>().0.get())
-                }else{
+                } else {
                     Option::None
                 }
             }
@@ -43,12 +43,12 @@ impl Value {
     }
 
     #[inline(always)]
-    pub fn assert_int(&self) -> i64{
+    pub fn assert_int(&self) -> i64 {
         self.as_int().unwrap()
     }
 
     #[inline(always)]
-    pub fn assert_int_include_num(&self) -> i64{
+    pub fn assert_int_include_num(&self) -> i64 {
         match self.as_int() {
             None => match self.as_num() {
                 None => panic!(),
@@ -59,7 +59,7 @@ impl Value {
     }
 
     #[inline(always)]
-    pub fn assert_int_form_num_liked(&self) -> i64{
+    pub fn assert_int_form_num_liked(&self) -> i64 {
         match self {
             Value::Int(int) => *int,
             Value::Num(num) => *num as i64,
@@ -69,21 +69,21 @@ impl Value {
                     ObjectType::Int => obj_ref.downcast::<GloomInt>().0.get(),
                     ObjectType::Num => obj_ref.downcast::<GloomNum>().0.get() as i64,
                     ObjectType::Char => obj_ref.downcast::<GloomChar>().0.get() as i64,
-                    _ => panic!("{:?} as i64 ?",self)
+                    _ => panic!("{:?} as i64 ?", self)
                 }
             }
-            _ => panic!("{:?} as i64 ?",self)
+            _ => panic!("{:?} as i64 ?", self)
         }
     }
 
     #[inline(always)]
-    pub fn as_num(&self) -> Option<f64>{
+    pub fn as_num(&self) -> Option<f64> {
         match self {
             Value::Num(i) => Option::Some(*i),
             Value::Ref(obj) => {
                 if let ObjectType::Num = obj.obj_type() {
                     Option::Some(obj.downcast::<GloomNum>().0.get())
-                }else{
+                } else {
                     Option::None
                 }
             }
@@ -91,12 +91,12 @@ impl Value {
         }
     }
     #[inline(always)]
-    pub fn assert_num(&self) -> f64{
+    pub fn assert_num(&self) -> f64 {
         self.as_num().unwrap()
     }
 
     #[inline(always)]
-    pub fn assert_num_include_int(&self) -> f64{
+    pub fn assert_num_include_int(&self) -> f64 {
         match self.as_num() {
             None => match self.as_int() {
                 None => panic!(),
@@ -107,13 +107,13 @@ impl Value {
     }
 
     #[inline(always)]
-    pub fn as_char(&self) -> Option<char>{
+    pub fn as_char(&self) -> Option<char> {
         match self {
             Value::Char(i) => Option::Some(*i),
             Value::Ref(obj) => {
                 if let ObjectType::Char = obj.obj_type() {
                     Option::Some(obj.downcast::<GloomChar>().0.get())
-                }else{
+                } else {
                     Option::None
                 }
             }
@@ -121,12 +121,12 @@ impl Value {
         }
     }
     #[inline(always)]
-    pub fn assert_char(&self) -> char{
+    pub fn assert_char(&self) -> char {
         self.as_char().unwrap()
     }
 
     #[inline(always)]
-    pub fn assert_char_include_int(&self) -> char{
+    pub fn assert_char_include_int(&self) -> char {
         match self {
             Value::Char(i) => *i,
             Value::Int(i) => *i as u8 as char,
@@ -134,21 +134,21 @@ impl Value {
                 match obj.obj_type() {
                     ObjectType::Int => obj.downcast::<GloomInt>().0.get() as u8 as char,
                     ObjectType::Char => obj.downcast::<GloomChar>().0.get(),
-                    _ => panic!("{:?} as char ?",self)
+                    _ => panic!("{:?} as char ?", self)
                 }
             }
-            _ => panic!("{:?} as char ?",self)
+            _ => panic!("{:?} as char ?", self)
         }
     }
 
     #[inline(always)]
-    pub fn as_bool(&self) -> Option<bool>{
+    pub fn as_bool(&self) -> Option<bool> {
         match self {
             Value::Bool(i) => Option::Some(*i),
             Value::Ref(obj) => {
                 if let ObjectType::Bool = obj.obj_type() {
                     Option::Some(obj.downcast::<GloomBool>().0.get())
-                }else{
+                } else {
                     Option::None
                 }
             }
@@ -157,21 +157,21 @@ impl Value {
     }
 
     #[inline(always)]
-    pub fn assert_bool(&self) -> bool{
+    pub fn assert_bool(&self) -> bool {
         self.as_bool().unwrap()
     }
 
     #[inline]
-    pub fn as_ref(&self) -> &GloomObjRef{
+    pub fn as_ref(&self) -> &GloomObjRef {
         if let Value::Ref(rf) = self {
             rf
-        }else{
+        } else {
             panic!()
         }
     }
 
     #[inline(always)]
-    pub fn into_ref(self) -> Option<GloomObjRef>{
+    pub fn into_ref(self) -> Option<GloomObjRef> {
         match self {
             Value::Int(i) => Option::Some(GloomInt::new(i)),
             Value::Num(i) => Option::Some(GloomNum::new(i)),
@@ -182,7 +182,7 @@ impl Value {
         }
     }
     #[inline(always)]
-    pub fn assert_into_ref(self) -> GloomObjRef{
+    pub fn assert_into_ref(self) -> GloomObjRef {
         self.into_ref().unwrap()
     }
 
@@ -195,15 +195,15 @@ impl Value {
     }
 
     #[inline]
-    pub fn not(&mut self){
+    pub fn not(&mut self) {
         match self {
             Value::Bool(bl) => {
-                *bl = ! *bl;
+                *bl = !*bl;
             }
             Value::Ref(rf) => {
                 if let ObjectType::Bool = rf.obj_type() {
                     let bl = rf.downcast::<GloomBool>();
-                    bl.0.set(! bl.0.get());
+                    bl.0.set(!bl.0.get());
                 }
             }
             _ => panic!()
@@ -211,13 +211,13 @@ impl Value {
     }
 
     #[inline]
-    pub fn neg(&mut self){
+    pub fn neg(&mut self) {
         match self {
             Value::Int(i) => {
-                *i = - *i;
+                *i = -*i;
             }
             Value::Num(n) => {
-                *n = - *n;
+                *n = -*n;
             }
             Value::Ref(rf) => {
                 match rf.obj_type() {
@@ -237,7 +237,7 @@ impl Value {
     }
 
     #[inline]
-    pub fn plus(&mut self,val : Value){
+    pub fn plus(&mut self, val: Value) {
         match self {
             Value::Int(int) => {
                 *int += val.assert_int_include_num();
@@ -264,7 +264,7 @@ impl Value {
         }
     }
     #[inline]
-    pub fn sub(&mut self,val : Value){
+    pub fn sub(&mut self, val: Value) {
         match self {
             Value::Int(int) => {
                 *int -= val.assert_int_include_num();
@@ -291,7 +291,7 @@ impl Value {
         }
     }
     #[inline]
-    pub fn plus_one(&mut self){
+    pub fn plus_one(&mut self) {
         match self {
             Value::Int(int) => {
                 *int += 1;
@@ -318,7 +318,7 @@ impl Value {
         }
     }
     #[inline]
-    pub fn sub_one(&mut self){
+    pub fn sub_one(&mut self) {
         match self {
             Value::Int(int) => {
                 *int -= 1;
@@ -346,7 +346,7 @@ impl Value {
     }
 
     #[inline]
-    pub fn equals(&self, other : Value) -> bool{
+    pub fn equals(&self, other: Value) -> bool {
         match self {
             Value::Int(int) => *int == other.assert_int_include_num(),
             Value::Num(num) => *num == other.assert_num_include_int(),
@@ -366,7 +366,7 @@ impl Value {
     }
 
     #[inline]
-    pub fn greater_than(&self, other : Value) -> bool{
+    pub fn greater_than(&self, other: Value) -> bool {
         match self {
             Value::Int(int) => *int > other.assert_int_include_num(),
             Value::Num(num) => *num > other.assert_num_include_int(),
@@ -374,15 +374,15 @@ impl Value {
                 match rf.obj_type() {
                     ObjectType::Int => rf.downcast::<GloomInt>().0.get() > other.assert_int_include_num(),
                     ObjectType::Num => rf.downcast::<GloomNum>().0.get() > other.assert_num_include_int(),
-                    _ => panic!("{:?} > {:?} ?",self,other)
+                    _ => panic!("{:?} > {:?} ?", self, other)
                 }
             }
-            _ => panic!("{:?} > {:?} ?",self,other)
+            _ => panic!("{:?} > {:?} ?", self, other)
         }
     }
 
     #[inline]
-    pub fn less_than(&self, other : Value) -> bool{
+    pub fn less_than(&self, other: Value) -> bool {
         match self {
             Value::Int(int) => *int < other.assert_int_include_num(),
             Value::Num(num) => *num < other.assert_num_include_int(),
@@ -390,15 +390,15 @@ impl Value {
                 match rf.obj_type() {
                     ObjectType::Int => rf.downcast::<GloomInt>().0.get() < other.assert_int_include_num(),
                     ObjectType::Num => rf.downcast::<GloomNum>().0.get() < other.assert_num_include_int(),
-                    _ => panic!("{:?} < {:?} ?",self,other)
+                    _ => panic!("{:?} < {:?} ?", self, other)
                 }
             }
-            _ => panic!("{:?} < {:?} ?",self,other)
+            _ => panic!("{:?} < {:?} ?", self, other)
         }
     }
 
     #[inline]
-    pub fn greater_equal(&self, other : Value) -> bool{
+    pub fn greater_equal(&self, other: Value) -> bool {
         match self {
             Value::Int(int) => *int >= other.assert_int_include_num(),
             Value::Num(num) => *num >= other.assert_num_include_int(),
@@ -406,15 +406,15 @@ impl Value {
                 match rf.obj_type() {
                     ObjectType::Int => rf.downcast::<GloomInt>().0.get() >= other.assert_int_include_num(),
                     ObjectType::Num => rf.downcast::<GloomNum>().0.get() >= other.assert_num_include_int(),
-                    _ => panic!("{:?} >= {:?} ?",self,other)
+                    _ => panic!("{:?} >= {:?} ?", self, other)
                 }
             }
-            _ => panic!("{:?} >= {:?} ?",self,other)
+            _ => panic!("{:?} >= {:?} ?", self, other)
         }
     }
 
     #[inline]
-    pub fn less_equal(&self, other : Value) -> bool{
+    pub fn less_equal(&self, other: Value) -> bool {
         match self {
             Value::Int(int) => *int <= other.assert_int_include_num(),
             Value::Num(num) => *num <= other.assert_num_include_int(),
@@ -422,15 +422,15 @@ impl Value {
                 match rf.obj_type() {
                     ObjectType::Int => rf.downcast::<GloomInt>().0.get() <= other.assert_int_include_num(),
                     ObjectType::Num => rf.downcast::<GloomNum>().0.get() <= other.assert_num_include_int(),
-                    _ => panic!("{:?} <= {:?} ?",self,other)
+                    _ => panic!("{:?} <= {:?} ?", self, other)
                 }
             }
-            _ => panic!("{:?} <= {:?} ?",self,other)
+            _ => panic!("{:?} <= {:?} ?", self, other)
         }
     }
 
     #[inline]
-    pub fn multiply(&mut self, other : Value){
+    pub fn multiply(&mut self, other: Value) {
         match self {
             Value::Int(int) => *int = *int * other.assert_int_include_num(),
             Value::Num(num) => *num = *num * other.assert_num_include_int(),
@@ -444,15 +444,15 @@ impl Value {
                         let num = rf.downcast::<GloomNum>();
                         num.0.set(num.0.get() * other.assert_num_include_int());
                     }
-                    _ => panic!("{:?} * {:?} ?",self,other)
+                    _ => panic!("{:?} * {:?} ?", self, other)
                 }
             }
-            _ => panic!("{:?} * {:?} ?",self,other)
+            _ => panic!("{:?} * {:?} ?", self, other)
         }
     }
 
     #[inline]
-    pub fn divide(&mut self, other : Value){
+    pub fn divide(&mut self, other: Value) {
         match self {
             Value::Int(int) => *int = *int / other.assert_int_include_num(),
             Value::Num(num) => *num = *num / other.assert_num_include_int(),
@@ -466,30 +466,30 @@ impl Value {
                         let num = rf.downcast::<GloomNum>();
                         num.0.set(num.0.get() / other.assert_num_include_int());
                     }
-                    _ => panic!("{:?} / {:?} ?",self,other)
+                    _ => panic!("{:?} / {:?} ?", self, other)
                 }
             }
-            _ => panic!("{:?} / {:?} ?",self,other)
+            _ => panic!("{:?} / {:?} ?", self, other)
         }
     }
 }
 
 #[derive(Debug)]
-pub struct GloomArgs{
-    pub vec : Vec<Value>
+pub struct GloomArgs {
+    pub vec: Vec<Value>,
 }
 
 impl GloomArgs {
     #[inline(always)]
-    pub fn new(vec : Vec<Value>) -> GloomArgs {
-        GloomArgs{
+    pub fn new(vec: Vec<Value>) -> GloomArgs {
+        GloomArgs {
             vec
         }
     }
     #[inline(always)]
     pub fn empty() -> GloomArgs {
-        GloomArgs{
-            vec : Vec::with_capacity(0)
+        GloomArgs {
+            vec: Vec::with_capacity(0)
         }
     }
 }

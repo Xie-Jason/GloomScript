@@ -1,13 +1,14 @@
 use std::mem::ManuallyDrop;
+
 use crate::obj::object::GloomObjRef;
-use crate::vm::slot::Slot;
 use crate::obj::table::Table;
+use crate::vm::slot::Slot;
 use crate::vm::value::Value;
 
-pub struct StaticTable{
-    pub len : u16,
-    pub table : Table,
-    pub drop_vec : Vec<u16>
+pub struct StaticTable {
+    pub len: u16,
+    pub table: Table,
+    pub drop_vec: Vec<u16>,
 }
 
 impl Drop for StaticTable {
@@ -17,15 +18,15 @@ impl Drop for StaticTable {
 }
 
 impl StaticTable {
-    pub fn new(len : u16, drop_vec : Vec<u16>) -> StaticTable{
-        StaticTable{
+    pub fn new(len: u16, drop_vec: Vec<u16>) -> StaticTable {
+        StaticTable {
             len,
             table: Table::new(len),
-            drop_vec
+            drop_vec,
         }
     }
     #[inline(always)]
-    pub fn read(&self, slot_idx : u16, sub_idx : u8) -> Value{
+    pub fn read(&self, slot_idx: u16, sub_idx: u8) -> Value {
         let sub_idx = sub_idx as usize;
         match self.table.slot(slot_idx) {
             Slot::Null => Value::None,
@@ -58,28 +59,28 @@ impl StaticTable {
     }
    */
     #[inline(always)]
-    pub fn write_int(&self, slot_idx : u16, sub_idx : u8, int : i64){
-        self.table.slot_mut(slot_idx).set_int(sub_idx,int)
+    pub fn write_int(&self, slot_idx: u16, sub_idx: u8, int: i64) {
+        self.table.slot_mut(slot_idx).set_int(sub_idx, int)
     }
     #[inline(always)]
-    pub fn write_num(&self, slot_idx : u16, sub_idx : u8, num : f64){
-        self.table.slot_mut(slot_idx).set_num(sub_idx,num);
+    pub fn write_num(&self, slot_idx: u16, sub_idx: u8, num: f64) {
+        self.table.slot_mut(slot_idx).set_num(sub_idx, num);
     }
     #[inline(always)]
-    pub fn write_char(&self, slot_idx : u16, sub_idx : u8, ch : char){
-        self.table.slot_mut(slot_idx).set_char(sub_idx,ch);
+    pub fn write_char(&self, slot_idx: u16, sub_idx: u8, ch: char) {
+        self.table.slot_mut(slot_idx).set_char(sub_idx, ch);
     }
     #[inline(always)]
-    pub fn write_bool(&self, slot_idx : u16, sub_idx : u8, bl : bool){
-        self.table.slot_mut(slot_idx).set_bool(sub_idx,bl);
+    pub fn write_bool(&self, slot_idx: u16, sub_idx: u8, bl: bool) {
+        self.table.slot_mut(slot_idx).set_bool(sub_idx, bl);
     }
     #[inline(always)]
-    pub fn write_ref_firstly(&self, slot_idx : u16, rf : GloomObjRef){
+    pub fn write_ref_firstly(&self, slot_idx: u16, rf: GloomObjRef) {
         let slot = self.table.slot_mut(slot_idx).replace(Slot::Ref(ManuallyDrop::new(rf)));
-        if let Slot::Null = slot { } else { panic!("{:?}",slot) }
+        if let Slot::Null = slot {} else { panic!("{:?}", slot) }
     }
     #[inline(always)]
-    pub fn replace_ref(&self, slot_idx : u16, rf : GloomObjRef) -> ManuallyDrop<GloomObjRef> {
+    pub fn replace_ref(&self, slot_idx: u16, rf: GloomObjRef) -> ManuallyDrop<GloomObjRef> {
         self.table.slot_mut(slot_idx).replace(Slot::Ref(ManuallyDrop::new(rf))).into_ref()
     }
 }

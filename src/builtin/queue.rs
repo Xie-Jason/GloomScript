@@ -3,13 +3,14 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+
 use crate::builtin::iter::GloomListIter;
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::GloomFunc;
-use crate::vm::value::Value;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::vm::machine::GloomVM;
+use crate::vm::value::Value;
 
 pub struct GloomQueue(RefCell<RawQueue>);
 
@@ -18,18 +19,18 @@ pub enum RawQueue {
     NumQue(VecDeque<f64>),
     CharQue(VecDeque<char>),
     BoolQue(VecDeque<bool>),
-    RefQue(VecDeque<GloomObjRef>)
+    RefQue(VecDeque<GloomObjRef>),
 }
 
 impl GloomQueue {
     #[inline]
-    pub fn new(queue : RawQueue) -> GloomObjRef {
+    pub fn new(queue: RawQueue) -> GloomObjRef {
         GloomObjRef::new(Rc::new(
             GloomQueue(RefCell::new(queue))
         ))
     }
     #[inline]
-    pub fn get(&self, index : usize) -> Option<Value>{
+    pub fn get(&self, index: usize) -> Option<Value> {
         match &*self.0.borrow() {
             RawQueue::IntQue(vec) => vec.get(index).map(|val| { Value::Int(*val) }),
             RawQueue::NumQue(vec) => vec.get(index).map(|val| { Value::Num(*val) }),
@@ -42,7 +43,7 @@ impl GloomQueue {
 
 impl Debug for GloomQueue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{:?}",self.0)
+        write!(f, "{:?}", self.0)
     }
 }
 
@@ -54,8 +55,8 @@ impl Object for GloomQueue {
         self
     }
 
-    fn drop_by_vm(&self, vm: &GloomVM, _ : &GloomObjRef) {
-        if let RawQueue::RefQue(vec) = &*self.0.borrow(){
+    fn drop_by_vm(&self, vm: &GloomVM, _: &GloomObjRef) {
+        if let RawQueue::RefQue(vec) = &*self.0.borrow() {
             for rf in vec.iter() {
                 vm.drop_object(rf);
             }
@@ -80,7 +81,7 @@ impl Object for GloomQueue {
         todo!()
     }
 
-    fn field(&self, _ : u16, _ : u8) -> Value {
+    fn field(&self, _: u16, _: u8) -> Value {
         panic!()
     }
 }
@@ -88,11 +89,11 @@ impl Object for GloomQueue {
 impl Debug for RawQueue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RawQueue::IntQue(que) => write!(f,"{:?}",que),
-            RawQueue::NumQue(que) => write!(f,"{:?}",que),
-            RawQueue::CharQue(que) => write!(f,"{:?}",que),
-            RawQueue::BoolQue(que) => write!(f,"{:?}",que),
-            RawQueue::RefQue(que) => write!(f,"{:?}",que)
+            RawQueue::IntQue(que) => write!(f, "{:?}", que),
+            RawQueue::NumQue(que) => write!(f, "{:?}", que),
+            RawQueue::CharQue(que) => write!(f, "{:?}", que),
+            RawQueue::BoolQue(que) => write!(f, "{:?}", que),
+            RawQueue::RefQue(que) => write!(f, "{:?}", que)
         }
     }
 }
