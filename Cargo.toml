@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-hashbrown = "0.12.0"
+hashbrown = "0.11"
 clap = "3.0.13"
 cranelift = "0.80.0"
 cranelift-module = "0.80.0"
