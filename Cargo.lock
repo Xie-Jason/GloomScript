@@ -189,7 +189,11 @@ dependencies = [
  "cranelift",
  "cranelift-jit",
  "cranelift-module",
+<<<<<<< HEAD
  "hashbrown 0.12.0",
+=======
+ "hashbrown",
+>>>>>>> d0deb00200d59e7b641f8e994afdf212c0112be1
 ]
 
 [[package]]
@@ -223,7 +227,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282a6247722caba404c065016bbfa522806e51714c34f5dfc3e4a3a46fcb4223"
 dependencies = [
  "autocfg",
+<<<<<<< HEAD
  "hashbrown 0.11.2",
+=======
+ "hashbrown",
+>>>>>>> d0deb00200d59e7b641f8e994afdf212c0112be1
 ]
 
 [[package]]
