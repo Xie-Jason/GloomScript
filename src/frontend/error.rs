@@ -3,7 +3,7 @@ use crate::frontend::token::Token;
 use crate::obj::func::ReturnType;
 use crate::obj::types::{DataType};
 
-#[derive(Debug,Error)]
+#[derive(Error, Debug)]
 pub enum AnalysisError{
     #[error("{info} variable name {symbol} already exist")]
     SymbolAlreadyOccupied{
