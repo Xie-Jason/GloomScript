@@ -470,11 +470,11 @@ impl Parser {
             Token::If => {
                 let mut branches = Vec::new();
                 while self.has_next() {
+                    let line = self.line();
                     let condition = self.expr()?;
                     self.assert_next(Token::LBrace);
                     let branch = self.statements();
                     self.assert_next(Token::RBrace);
-                    let line = self.line();
                     branches.push(IfBranch {
                         condition,
                         statements: branch,

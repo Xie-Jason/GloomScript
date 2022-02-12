@@ -8,3 +8,4 @@ pub mod status;
 pub mod analysis;
 pub mod import;
 pub mod index;
+pub mod error;

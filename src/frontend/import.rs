@@ -17,7 +17,6 @@ pub struct Importer {
 
 impl Importer {
     pub fn import_file(name: String, importer: RefCount<Importer>) -> Result<Option<ParsedFile>, Error> {
-        println!("import {}",name);
         {
             let mut importer_mut = importer.inner_mut();
             let contains = importer_mut.file_set.contains(name.as_str());

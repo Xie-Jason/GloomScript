@@ -177,6 +177,12 @@ pub enum RefType {
     String,
 }
 
+pub struct FuncType{
+    params : Vec<DataType>,
+    return_type : ReturnType,
+    any_ok : bool,
+}
+
 impl RefType {
     pub fn belong_to(&self, other: &RefType) -> bool {
         if let RefType::Any = other {
@@ -241,7 +247,7 @@ impl Display for RefType {
             RefType::Enum(cls) => format!("{}", cls.inner()),
             RefType::Interface(inter) => format!("{}", inter.inner()),
             RefType::Tuple(vec) => format!("{:?}", vec),
-            RefType::Func(func) => format!("Func<{:?}>", func),
+            RefType::Func(func) => format!("Func<{:?},{:?}>", func.deref().0,func.deref().1),
             RefType::Weak(generic) => format!("Weak<{:?}>", generic),
             RefType::Array(generic) => format!("Array<{:?}>", generic),
             RefType::Queue(generic) => format!("Queue<{:?}>", generic),
