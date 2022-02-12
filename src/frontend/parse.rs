@@ -34,6 +34,7 @@ impl Parser {
             funcs: self.funcs,
             enums: self.enums,
             statements: vec,
+            path: self.path,
             index: 0,
         }
     }

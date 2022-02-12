@@ -38,12 +38,11 @@ pub struct Analyzer {
     parsed_classes: Vec<(RefCount<ParsedClass>, u16)>,
     parsed_enums: Vec<(RefCount<ParsedEnum>, u16)>,
     pub func_map: HashMap<String, (u16, IsBuiltIn, IsPub, u16)>,
-    // index is_builtin is_pub file_index
-    pub func_file_indexes: Vec<u16>,
     pub type_map: HashMap<String, TypeIndex>,
     pub static_map: RefCount<HashMap<String, (u16, u8)>>,
     builtin_map: HashMap<BuiltinType, u16>,
     static_indexer: RefCount<SlotIndexer>,
+    paths: Vec<String>,
 }
 
 // 这些字段被存储到Analyzer而非GloomStatus中，这意味着我想要它们在运行前被丢弃。
@@ -110,7 +109,13 @@ impl Analyzer {
     fn analysis_func(&self, func: &mut GloomFunc, file_index: u16, out_env: Option<&AnalyzeContext>, belonged_type: DeclaredType) {
         let params = &mut func.info.params;
         let func_return_type = &func.info.return_type;
-        let mut context = AnalyzeContext::new(func.info.name.clone(), belonged_type, func_return_type.clone(), file_index, out_env);
+        let mut context = AnalyzeContext::new(
+            func.info.name.clone(),
+            belonged_type,
+            func_return_type.clone(),
+            file_index,
+            self.paths.get(file_index as usize).unwrap().as_str(),
+            out_env);
         // load param into symbol table and allocate local slot for parameters
         for param in params.iter_mut() {
             let param_name = &param.name;
@@ -1703,8 +1708,8 @@ impl Analyzer {
             status: GloomStatus::new(),
             static_map: RefCount::new(HashMap::new()),
             builtin_map: BuiltinClass::builtin_type_map(),
-            func_file_indexes: Vec::new(),
             static_indexer: RefCount::new(SlotIndexer::new()),
+            paths: Vec::new()
         }
     }
 }
@@ -1713,7 +1718,7 @@ pub struct AnalyzeContext<'a> {
     pub func_name: Rc<String>,
     pub symbol_table: HashMap<String, (u16, u8, IsLocal)>,
     pub file_index: u16,
-    pub file_name: Rc<String>,
+    pub file_name: &'a str,
     pub out_context: Option<&'a AnalyzeContext<'a>>,
     pub captures: Vec<Capture>,
     pub belonged_type: DeclaredType,
@@ -1729,6 +1734,7 @@ impl<'a> AnalyzeContext<'a> {
                belonged_type: DeclaredType,
                func_return_type: ReturnType,
                file_index: u16,
+               file_path : &'a str,
                out_context: Option<&'a AnalyzeContext>) -> AnalyzeContext<'a> {
         AnalyzeContext {
             func_name,
@@ -1740,7 +1746,7 @@ impl<'a> AnalyzeContext<'a> {
             captures: Vec::new(),
             expr_stack: Vec::new(),
             break_stack: Vec::new(),
-            file_name: Rc::new(String::from("")),
+            file_name: file_path,
             indexer: SlotIndexer::new(),
             block_stack: Vec::new(),
         }

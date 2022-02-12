@@ -10,6 +10,7 @@ pub struct ParsedFile {
     pub enums: Vec<(ParsedEnum, bool)>,
     pub funcs: Vec<(Rc<String>, ParsedFunc, bool)>,
     pub statements: Vec<Statement>,
+    pub path : String,
     pub index: u16,
 }
 
