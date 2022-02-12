@@ -940,29 +940,17 @@ impl Analyzer {
                 }
                 left_type
             }
-            Expression::While(while_loop) => {
-                match self.analysis_while(while_loop.deref_mut(), context) {
-                    ReturnType::Void => DataType::Ref(RefType::None),
-                    ReturnType::Have(data_type) => data_type
-                }
-            }
             Expression::IfElse(if_else) => {
                 match self.analysis_if_else(if_else.deref_mut(), context) {
                     ReturnType::Have(data_type) => data_type,
                     ReturnType::Void => DataType::Ref(RefType::None)
                 }
             }
-            Expression::For(for_loop) => {
-                match self.analysis_for(for_loop.deref_mut(), context) {
-                    ReturnType::Void => DataType::Ref(RefType::None),
-                    ReturnType::Have(data_type) => data_type
-                }
-            }
             expr => panic!("unsupported expression {:?} now", expr)
         }
     }
 
-    fn analysis_while(&self, while_loop: &mut WhileLoop, context: &mut AnalyzeContext) -> ReturnType {
+    fn analysis_while(&self, while_loop: &mut WhileLoop, context: &mut AnalyzeContext){
         let line = while_loop.line;
         // check condition expression type
         let cond_expr = &mut while_loop.condition;
@@ -974,7 +962,6 @@ impl Analyzer {
 
         context.expr_stack.push((SyntaxType::While, line));
         context.block_stack.push(BlockType::Loop);
-        context.break_stack.push(BreakType::Uninit);
         context.indexer.enter_sub_block();
 
         self.analysis_statements(context, statements);
@@ -982,27 +969,9 @@ impl Analyzer {
         context.expr_stack.pop();
         context.block_stack.pop();
         while_loop.drop_slots = context.indexer.level_sub_block();
-        match context.break_stack.pop().unwrap() {
-            BreakType::Type(data_type) => {
-                if data_type.is_none() {
-                    while_loop.return_void = true;
-                    ReturnType::Void
-                } else {
-                    ReturnType::Have(data_type)
-                }
-            }
-            BreakType::Uninit => {
-                while_loop.return_void = true;
-                ReturnType::Void
-            }
-            BreakType::Void => {
-                while_loop.return_void = true;
-                ReturnType::Void
-            }
-        }
     }
 
-    fn analysis_for(&self, for_loop: &mut ForLoop, context: &mut AnalyzeContext) -> ReturnType {
+    fn analysis_for(&self, for_loop: &mut ForLoop, context: &mut AnalyzeContext) {
         let var_name;
         match &mut for_loop.for_iter {
             ForIter::Range(start, end, step) => {
@@ -1052,7 +1021,6 @@ impl Analyzer {
 
         context.expr_stack.push((SyntaxType::ForIn, for_loop.line));
         context.block_stack.push(BlockType::Loop);
-        context.break_stack.push(BreakType::Uninit);
         context.indexer.enter_sub_block();
 
         self.analysis_statements(context, &mut for_loop.statements);
@@ -1061,24 +1029,6 @@ impl Analyzer {
         context.block_stack.pop();
         for_loop.drop_slots = context.indexer.level_sub_block();
         context.expr_stack.pop();
-        match context.break_stack.pop().unwrap() {
-            BreakType::Type(data_type) => {
-                if data_type.is_none() {
-                    for_loop.return_void = true;
-                    ReturnType::Void
-                } else {
-                    ReturnType::Have(data_type)
-                }
-            }
-            BreakType::Uninit => {
-                for_loop.return_void = true;
-                ReturnType::Void
-            }
-            BreakType::Void => {
-                for_loop.return_void = true;
-                ReturnType::Void
-            }
-        }
     }
 
     #[inline]
@@ -1173,43 +1123,12 @@ impl Analyzer {
                         }
                     }
                 }
-                Statement::Break(expr, line) => {
+                Statement::Break(line) => {
                     if context.block_stack.iter().rfind(|block| {
                         if let BlockType::Loop = block { true } else { false }
                     }).is_none() {
                         panic!("{} unexpected 'break' in non-loop block line {}", context.info(), line)
                     }
-                    context.expr_stack.push((SyntaxType::Break, *line));
-                    let expr_type = self.deduce_type(expr, context);
-                    let mut alert = Option::None;
-                    let break_type = context.break_stack.last_mut().unwrap();
-                    match break_type {
-                        BreakType::Type(break_data_type) => {
-                            if expr_type.belong_to(break_data_type) {
-                                // best situation, do nothing
-                            } else if break_data_type.belong_to(&expr_type) {
-                                *break_data_type = expr_type;
-                            } else {
-                                alert = Option::Some(format!("line {}, mismatched break type of loop, expect {} found {}", line, break_data_type, expr_type));
-                            }
-                        }
-                        BreakType::Uninit => {
-                            *break_type = if expr_type.is_none() {
-                                BreakType::Void
-                            } else {
-                                BreakType::Type(expr_type)
-                            }
-                        }
-                        BreakType::Void => {
-                            if !expr_type.is_none() {
-                                alert = Option::Some(format!("{} mismatch break type of while loop, expect void found {}", context.info(), expr_type));
-                            }
-                        }
-                    };
-                    if let Some(alert) = alert {
-                        panic!("{}{}", context.info(), alert)
-                    }
-                    context.expr_stack.pop();
                 }
                 Statement::Return(expr, line) => {
                     context.expr_stack.push((SyntaxType::Return, *line));
@@ -1301,6 +1220,12 @@ impl Analyzer {
                             *var = Var::new_static(slot_idx, sub_idx, basic_type);
                         }
                     };
+                }
+                Statement::While(while_loop) => {
+                    self.analysis_while(while_loop.deref_mut(), context);
+                }
+                Statement::For(for_loop) => {
+                    self.analysis_for(for_loop.deref_mut(), context);
                 }
                 _ => panic!()
             }

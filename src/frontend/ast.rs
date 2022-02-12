@@ -59,8 +59,12 @@ pub enum Statement {
     Expr(Expression, u16),
     Discard(Expression, u16),
 
+    // 循环控制 loop control
+    While(Box<WhileLoop>),
+    For(Box<ForLoop>),
+
     Continue(u16),
-    Break(Expression, u16),
+    Break(u16),
     Return(Expression, u16),
     IfResult(Expression, u16),
 }
@@ -92,10 +96,6 @@ pub enum Expression {
 
     // 条件控制 condition control
     IfElse(Box<IfElse>),
-
-    // 循环控制 loop control
-    While(Box<WhileLoop>),
-    For(Box<ForLoop>),
 
     // 模式匹配 pattern match
     Match(RefCount<(Expression, Vec<(Expression, Vec<Statement>)>)>),
