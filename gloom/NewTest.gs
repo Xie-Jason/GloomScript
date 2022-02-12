@@ -1,3 +1,5 @@
+import "./AfterTest.gs"
+
 let forCount = 0;
 for i in (0,100,1){
     forCount ++

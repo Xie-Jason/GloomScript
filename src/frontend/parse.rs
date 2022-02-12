@@ -20,6 +20,7 @@ pub struct Parser {
     funcs: Vec<(Rc<String>, ParsedFunc, bool)>,
     imports: Vec<ParsedFile>,
     importer: RefCount<Importer>,
+    path : String,
     pub lines: Vec<u16>,
 }
 
@@ -115,9 +116,31 @@ impl Parser {
                     continue;
                 }
                 Token::Import => {
-                    let import_path = self.identifier();
-                    let file = self.importer.inner_mut().import_file(import_path.as_str(), self.importer.clone());
-                    self.imports.push(file);
+                    let importer = self.importer.clone();
+                    match self.next() {
+                        Token::Id(lib) => {
+                            Importer::import_std_lib(lib.as_str(),importer).unwrap();
+                        }
+                        Token::Str(path) => {
+                            let mut path = path.to_string();
+                            let start_with_point = path.starts_with('.');
+                            if start_with_point {
+                                path.remove(0);
+                                let mut new_path = self.path.clone();
+                                let deli_location = new_path.rfind('\\').unwrap();
+                                let len = new_path.len();
+                                for _ in deli_location..len {
+                                    new_path.remove(new_path.len()-1);
+                                }
+                                new_path.push_str(path.as_str());
+                                path = new_path;
+                            }
+                            if let Some(parsed_file) = Importer::import_file(path,importer).unwrap() {
+                                self.imports.push(parsed_file);
+                            }
+                        }
+                        token => panic!("expect a string literal or a identifier after 'import', found {}",token)
+                    }
                     continue;
                 }
                 // public declaration
@@ -938,7 +961,7 @@ impl Parser {
         })
     }
 
-    pub fn new(tokens: Vec<Token>, lines: Vec<u16>, importer: RefCount<Importer>) -> Parser {
+    pub fn new(tokens: Vec<Token>, lines: Vec<u16>, importer: RefCount<Importer>, path : String) -> Parser {
         return Parser {
             tokens,
             lines,
@@ -949,6 +972,7 @@ impl Parser {
             funcs: Vec::new(),
             imports: Vec::new(),
             importer,
+            path
         };
     }
 }
