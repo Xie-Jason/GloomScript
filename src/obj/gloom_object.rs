@@ -10,7 +10,6 @@ use crate::obj::gloom_class::GloomClass;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::table::Table;
-use crate::obj::types::BasicType;
 use crate::vm::machine::GloomVM;
 use crate::vm::slot::Slot;
 use crate::vm::value::{GloomArgs, Value};

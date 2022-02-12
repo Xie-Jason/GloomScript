@@ -20,6 +20,7 @@ pub struct Parser {
     funcs: Vec<(Rc<String>, ParsedFunc, bool)>,
     imports: Vec<ParsedFile>,
     importer: RefCount<Importer>,
+    path : String,
     pub lines: Vec<u16>,
 }
 
@@ -33,6 +34,7 @@ impl Parser {
             funcs: self.funcs,
             enums: self.enums,
             statements: vec,
+            path: self.path,
             index: 0,
         }
     }
@@ -65,21 +67,11 @@ impl Parser {
                     result_statement
                 }
                 Token::Break => {
-                    let index = self.curr;
                     let line = self.line();
-                    let result_statement = match self.expr() {
-                        Err(_) => {
-                            self.rollback(index);
-                            Statement::Break(Expression::None, line)
-                        }
-                        Ok(expr) => {
-                            Statement::Break(expr, line)
-                        }
-                    };
                     if self.has_next() && self.test_next(Token::Semi) {
                         self.forward();
                     }
-                    result_statement
+                    Statement::Break(line)
                 }
                 // 局部变量声明 Let
                 Token::Let => {
@@ -125,9 +117,31 @@ impl Parser {
                     continue;
                 }
                 Token::Import => {
-                    let import_path = self.identifier();
-                    let file = self.importer.inner_mut().import_file(import_path.as_str(), self.importer.clone());
-                    self.imports.push(file);
+                    let importer = self.importer.clone();
+                    match self.next() {
+                        Token::Id(lib) => {
+                            Importer::import_std_lib(lib.as_str(),importer).unwrap();
+                        }
+                        Token::Str(path) => {
+                            let mut path = path.to_string();
+                            let start_with_point = path.starts_with('.');
+                            if start_with_point {
+                                path.remove(0);
+                                let mut new_path = self.path.clone();
+                                let deli_location = new_path.rfind('\\').unwrap();
+                                let len = new_path.len();
+                                for _ in deli_location..len {
+                                    new_path.remove(new_path.len()-1);
+                                }
+                                new_path.push_str(path.as_str());
+                                path = new_path;
+                            }
+                            if let Some(parsed_file) = Importer::import_file(path,importer).unwrap() {
+                                self.imports.push(parsed_file);
+                            }
+                        }
+                        token => panic!("expect a string literal or a identifier after 'import', found {}",token)
+                    }
                     continue;
                 }
                 // public declaration
@@ -217,6 +231,56 @@ impl Parser {
                         self.funcs.push((func_name, func, false));
                         continue;
                     }
+                }
+                // while循环 while-loop
+                Token::While => {
+                    let line = self.line();
+                    let condition = self.expr().unwrap();
+                    self.assert_next(Token::LBrace);
+                    let statements = self.statements();
+                    self.assert_next(Token::RBrace);
+                    Statement::While(Box::new(WhileLoop {
+                        condition,
+                        statements,
+                        drop_slots: Vec::with_capacity(0),
+                        line,
+                        return_void: false,
+                    }))
+                }
+                // for-循环 for-loop
+                Token::For => {
+                    let var_name = self.identifier();
+                    let line = self.line();
+                    self.assert_next(Token::In);
+                    let expr = self.expr().unwrap();
+                    let for_iter: ForIter = if let Expression::Tuple(mut tuple) = expr {
+                        let vec = tuple.deref_mut();
+                        if vec.len() == 2 {
+                            let end = vec.pop().unwrap();
+                            let start = vec.pop().unwrap();
+                            ForIter::Range(start, end, Expression::Int(1))
+                        } else if vec.len() == 3 {
+                            let step = vec.pop().unwrap();
+                            let end = vec.pop().unwrap();
+                            let start = vec.pop().unwrap();
+                            ForIter::Range(start, end, step)
+                        } else {
+                            panic!("'for <Var> in <Tuple>' is wrong syntax")
+                        }
+                    } else {
+                        ForIter::Iter(expr)
+                    };
+                    self.assert_next(Token::LBrace);
+                    let statements = self.statements();
+                    self.assert_next(Token::RBrace);
+                    Statement::For(Box::new(ForLoop {
+                        var: Var::Name(var_name),
+                        for_iter,
+                        statements,
+                        drop_slots: Vec::new(),
+                        line,
+                        return_void: false,
+                    }))
                 }
                 _ => {
                     self.backward();
@@ -406,11 +470,11 @@ impl Parser {
             Token::If => {
                 let mut branches = Vec::new();
                 while self.has_next() {
+                    let line = self.line();
                     let condition = self.expr()?;
                     self.assert_next(Token::LBrace);
                     let branch = self.statements();
                     self.assert_next(Token::RBrace);
-                    let line = self.line();
                     branches.push(IfBranch {
                         condition,
                         statements: branch,
@@ -493,56 +557,6 @@ impl Parser {
             Token::Func => {
                 let func = self.parse_func(false);
                 Expression::Func(Box::new(FuncExpr::Parsed(func)))
-            }
-            // while循环 while-loop
-            Token::While => {
-                let line = self.line();
-                let condition = self.expr()?;
-                self.assert_next(Token::LBrace);
-                let statements = self.statements();
-                self.assert_next(Token::RBrace);
-                Expression::While(Box::new(WhileLoop {
-                    condition,
-                    statements,
-                    drop_slots: Vec::with_capacity(0),
-                    line,
-                    return_void: false,
-                }))
-            }
-            // for-循环 for-loop
-            Token::For => {
-                let var_name = self.identifier();
-                let line = self.line();
-                self.assert_next(Token::In);
-                let expr = self.expr()?;
-                let for_iter: ForIter = if let Expression::Tuple(mut tuple) = expr {
-                    let vec = tuple.deref_mut();
-                    if vec.len() == 2 {
-                        let end = vec.pop().unwrap();
-                        let start = vec.pop().unwrap();
-                        ForIter::Range(start, end, Expression::Int(1))
-                    } else if vec.len() == 3 {
-                        let step = vec.pop().unwrap();
-                        let end = vec.pop().unwrap();
-                        let start = vec.pop().unwrap();
-                        ForIter::Range(start, end, step)
-                    } else {
-                        panic!("'for <Var> in <Tuple>' is wrong syntax")
-                    }
-                } else {
-                    ForIter::Iter(expr)
-                };
-                self.assert_next(Token::LBrace);
-                let statements = self.statements();
-                self.assert_next(Token::RBrace);
-                Expression::For(Box::new(ForLoop {
-                    var: Var::Name(var_name),
-                    for_iter,
-                    statements,
-                    drop_slots: Vec::new(),
-                    line,
-                    return_void: false,
-                }))
             }
             // 匹配 match
             Token::Match => {
@@ -948,7 +962,7 @@ impl Parser {
         })
     }
 
-    pub fn new(tokens: Vec<Token>, lines: Vec<u16>, importer: RefCount<Importer>) -> Parser {
+    pub fn new(tokens: Vec<Token>, lines: Vec<u16>, importer: RefCount<Importer>, path : String) -> Parser {
         return Parser {
             tokens,
             lines,
@@ -959,6 +973,7 @@ impl Parser {
             funcs: Vec::new(),
             imports: Vec::new(),
             importer,
+            path
         };
     }
 }

@@ -196,20 +196,13 @@ impl CodeGenerator {
                         Expression::IfElse(if_else) => if !if_else.return_void {
                             context.push(ByteCode::Pop);
                         }
-                        Expression::While(while_loop) => if !while_loop.return_void {
-                            context.push(ByteCode::Pop);
-                        }
-                        Expression::For(for_loop) => if !for_loop.return_void {
-                            context.push(ByteCode::Pop);
-                        }
                         _ => context.push(ByteCode::Pop)
                     }
                 }
                 Statement::Continue(_) => {
                     context.push(ByteCode::Jump(Self::INVALID_LABEL));
                 }
-                Statement::Break(expr, _) => {
-                    self.generate_expression(expr, context);
+                Statement::Break(_) => {
                     context.push(ByteCode::Jump(Self::INVALID_LABEL));
                 }
                 Statement::Return(expr, _) => {
@@ -218,6 +211,96 @@ impl CodeGenerator {
                 }
                 Statement::IfResult(expr, _) => {
                     self.generate_expression(expr, context);
+                }
+                Statement::While(while_loop) => {
+                    let start_idx = context.bytecodes.len();
+                    self.generate_expression(&while_loop.condition, context);
+                    let jump_end_idx = context.bytecodes.len();
+                    // if condition is true, just execute, if false, jump to the end of while-loop
+                    context.push(ByteCode::JumpIfNot(Self::INVALID_LABEL));
+
+                    let body_start_idx = context.bytecodes.len();
+                    self.generate_statements(&while_loop.statements, context);
+                    for idx in while_loop.drop_slots.iter() {
+                        context.push(ByteCode::DropLocal(*idx));
+                    }
+                    let body_end_limit = context.bytecodes.len();
+
+                    context.push(ByteCode::Jump(start_idx as u32));
+
+
+                    let end_idx = context.bytecodes.len() as u32;
+                    if let ByteCode::JumpIfNot(label) = context.bytecodes.get_mut(jump_end_idx).unwrap() {
+                        *label = end_idx;
+                    } else {
+                        panic!()
+                    }
+
+                    for code in context.bytecodes.as_mut_slice()[body_start_idx..body_end_limit].iter_mut() {
+                        if let ByteCode::Jump(label) = code {
+                            if *label == Self::INVALID_LABEL {
+                                *label = end_idx;
+                            }
+                        }
+                    }
+                }
+                Statement::For(for_loop) => {
+                    match &for_loop.for_iter {
+                        ForIter::Range(start_expr, end_expr, step_expr) => {
+                            self.generate_expression(step_expr, context);
+                            self.generate_expression(end_expr, context);
+                            self.generate_expression(start_expr, context);
+                            context.push(ByteCode::RangeIter);
+                        }
+                        ForIter::Iter(expr) => {
+                            self.generate_expression(expr, context);
+                            context.push(ByteCode::InvokeIter);
+                        }
+                    };
+                    // now stack top have a iter obj
+
+                    let start_judge_idx = context.bytecodes.len() as u32;
+                    context.push(ByteCode::InvokeNext);
+
+                    // if result of next() is none, pop and jump to end, else, just execute
+                    let jump_if_none_idx = context.bytecodes.len();
+                    context.push(ByteCode::JumpIfNone(Self::INVALID_LABEL));
+
+                    // write the result of next() into local
+                    context.push(match for_loop.var {
+                        Var::LocalInt(slot_idx, sub_idx) => ByteCode::WriteLocalInt(slot_idx, sub_idx),
+                        Var::LocalNum(slot_idx, sub_idx) => ByteCode::WriteLocalNum(slot_idx, sub_idx),
+                        Var::LocalChar(slot_idx, sub_idx) => ByteCode::WriteLocalChar(slot_idx, sub_idx),
+                        Var::LocalBool(slot_idx, sub_idx) => ByteCode::WriteLocalBool(slot_idx, sub_idx),
+                        Var::LocalRef(slot_idx) => ByteCode::WriteLocalRef(slot_idx),
+                        _ => panic!()
+                    });
+
+                    // loop body
+                    let body_start_idx = context.bytecodes.len();
+                    self.generate_statements(&for_loop.statements, context);
+                    for idx in for_loop.drop_slots.iter() {
+                        context.push(ByteCode::DropLocal(*idx));
+                    }
+                    let body_end_limit = context.bytecodes.len();
+
+                    // jump to start of loop
+                    context.push(ByteCode::Jump(start_judge_idx));
+
+                    let end_idx = context.bytecodes.len();
+                    if let ByteCode::JumpIfNone(label) = context.bytecodes.get_mut(jump_if_none_idx).unwrap() {
+                        *label = end_idx as u32;
+                    } else {
+                        panic!()
+                    }
+
+                    for code in context.bytecodes.as_mut_slice()[body_start_idx..body_end_limit].iter_mut() {
+                        if let ByteCode::Jump(label) = code {
+                            if *label == Self::INVALID_LABEL {
+                                *label = end_idx as u32;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -389,96 +472,6 @@ impl CodeGenerator {
                 let end_idx = context.bytecodes.len();
                 for byte_code in context.bytecodes.as_mut_slice()[start_idx..end_idx].iter_mut() {
                     if let ByteCode::Jump(label) = byte_code {
-                        if *label == Self::INVALID_LABEL {
-                            *label = end_idx as u32;
-                        }
-                    }
-                }
-            }
-            Expression::While(while_loop) => {
-                let start_idx = context.bytecodes.len();
-                self.generate_expression(&while_loop.condition, context);
-                let jump_end_idx = context.bytecodes.len();
-                // if condition is true, just execute, if false, jump to the end of while-loop
-                context.push(ByteCode::JumpIfNot(Self::INVALID_LABEL));
-
-                let body_start_idx = context.bytecodes.len();
-                self.generate_statements(&while_loop.statements, context);
-                for idx in while_loop.drop_slots.iter() {
-                    context.push(ByteCode::DropLocal(*idx));
-                }
-                let body_end_limit = context.bytecodes.len();
-
-                context.push(ByteCode::Jump(start_idx as u32));
-
-
-                let end_idx = context.bytecodes.len() as u32;
-                if let ByteCode::JumpIfNot(label) = context.bytecodes.get_mut(jump_end_idx).unwrap() {
-                    *label = end_idx;
-                } else {
-                    panic!()
-                }
-
-                for code in context.bytecodes.as_mut_slice()[body_start_idx..body_end_limit].iter_mut() {
-                    if let ByteCode::Jump(label) = code {
-                        if *label == Self::INVALID_LABEL {
-                            *label = end_idx;
-                        }
-                    }
-                }
-            }
-            Expression::For(for_loop) => {
-                match &for_loop.for_iter {
-                    ForIter::Range(start_expr, end_expr, step_expr) => {
-                        self.generate_expression(step_expr, context);
-                        self.generate_expression(end_expr, context);
-                        self.generate_expression(start_expr, context);
-                        context.push(ByteCode::RangeIter);
-                    }
-                    ForIter::Iter(expr) => {
-                        self.generate_expression(expr, context);
-                        context.push(ByteCode::InvokeIter);
-                    }
-                };
-                // now stack top have a iter obj
-
-                let start_judge_idx = context.bytecodes.len() as u32;
-                context.push(ByteCode::InvokeNext);
-
-                // if result of next() is none, pop and jump to end, else, just execute
-                let jump_if_none_idx = context.bytecodes.len();
-                context.push(ByteCode::JumpIfNone(Self::INVALID_LABEL));
-
-                // write the result of next() into local
-                context.push(match for_loop.var {
-                    Var::LocalInt(slot_idx, sub_idx) => ByteCode::WriteLocalInt(slot_idx, sub_idx),
-                    Var::LocalNum(slot_idx, sub_idx) => ByteCode::WriteLocalNum(slot_idx, sub_idx),
-                    Var::LocalChar(slot_idx, sub_idx) => ByteCode::WriteLocalChar(slot_idx, sub_idx),
-                    Var::LocalBool(slot_idx, sub_idx) => ByteCode::WriteLocalBool(slot_idx, sub_idx),
-                    Var::LocalRef(slot_idx) => ByteCode::WriteLocalRef(slot_idx),
-                    _ => panic!()
-                });
-
-                // loop body
-                let body_start_idx = context.bytecodes.len();
-                self.generate_statements(&for_loop.statements, context);
-                for idx in for_loop.drop_slots.iter() {
-                    context.push(ByteCode::DropLocal(*idx));
-                }
-                let body_end_limit = context.bytecodes.len();
-
-                // jump to start of loop
-                context.push(ByteCode::Jump(start_judge_idx));
-
-                let end_idx = context.bytecodes.len();
-                if let ByteCode::JumpIfNone(label) = context.bytecodes.get_mut(jump_if_none_idx).unwrap() {
-                    *label = end_idx as u32;
-                } else {
-                    panic!()
-                }
-
-                for code in context.bytecodes.as_mut_slice()[body_start_idx..body_end_limit].iter_mut() {
-                    if let ByteCode::Jump(label) = code {
                         if *label == Self::INVALID_LABEL {
                             *label = end_idx as u32;
                         }
