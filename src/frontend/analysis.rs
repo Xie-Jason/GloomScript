@@ -1574,6 +1574,7 @@ impl Analyzer {
     }
     fn load(&mut self, script: ParsedFile) {
         let index = script.index;
+        self.paths.push(script.path);
         for (class, _) in script.classes.into_iter() {
             self.parsed_classes.push((RefCount::new(class), index));
         }
