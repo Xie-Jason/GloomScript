@@ -17,12 +17,12 @@ pub enum DataType {
     Ref(RefType),
 }
 
-
 impl DataType {
     pub fn belong_to(&self, other: &DataType) -> bool {
         if self.eq(other)
-            || other.as_ref_type().eq(&RefType::Any) ||
-            (self.is_int_or_num() && other.is_int_or_num()) {
+            || other.as_ref_type().eq(&RefType::Any)
+            || (self.is_int_or_num() && other.is_int_or_num())
+        {
             true
         } else {
             if let DataType::Ref(self_type) = self {
@@ -73,7 +73,7 @@ impl DataType {
         match self {
             DataType::Num => true,
             DataType::Ref(RefType::Num) => true,
-            _ => false
+            _ => false,
         }
     }
     #[inline]
@@ -81,7 +81,7 @@ impl DataType {
         match self {
             DataType::Int => true,
             DataType::Ref(RefType::Int) => true,
-            _ => false
+            _ => false,
         }
     }
     #[inline]
@@ -89,7 +89,7 @@ impl DataType {
         match self {
             DataType::Bool => true,
             DataType::Ref(RefType::Bool) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -100,7 +100,7 @@ impl DataType {
             DataType::Num => RefType::Num,
             DataType::Char => RefType::Char,
             DataType::Bool => RefType::Bool,
-            DataType::Ref(ref_type) => ref_type.clone()
+            DataType::Ref(ref_type) => ref_type.clone(),
         }
     }
     #[inline]
@@ -117,7 +117,7 @@ impl DataType {
             DataType::Num => BasicType::Num,
             DataType::Char => BasicType::Char,
             DataType::Bool => BasicType::Bool,
-            DataType::Ref(_) => BasicType::Ref
+            DataType::Ref(_) => BasicType::Ref,
         }
     }
 }
@@ -127,16 +127,20 @@ impl Display for DataType {
         let s: String;
         // 用于保证format!返回的String对象不会被立即释放
         // to sure that the returned String obj won't be drop immediately
-        write!(f, "{}", match self {
-            DataType::Int => "int",
-            DataType::Num => "num",
-            DataType::Char => "char",
-            DataType::Bool => "bool",
-            DataType::Ref(ref_type) => {
-                s = format!("{}", ref_type);
-                s.as_str()
+        write!(
+            f,
+            "{}",
+            match self {
+                DataType::Int => "int",
+                DataType::Num => "num",
+                DataType::Char => "char",
+                DataType::Bool => "bool",
+                DataType::Ref(ref_type) => {
+                    s = format!("{}", ref_type);
+                    s.as_str()
+                }
             }
-        })
+        )
     }
 }
 
@@ -177,10 +181,10 @@ pub enum RefType {
     String,
 }
 
-pub struct FuncType{
-    params : Vec<DataType>,
-    return_type : ReturnType,
-    any_ok : bool,
+pub struct FuncType {
+    params: Vec<DataType>,
+    return_type: ReturnType,
+    any_ok: bool,
 }
 
 impl RefType {
@@ -189,21 +193,18 @@ impl RefType {
             return true;
         }
         match self {
-            RefType::Class(cls) => {
-                match other {
-                    RefType::Class(class) => cls.eq(class) || cls.inner().is_derived_from(class),
-                    RefType::Interface(interface) => cls.inner().is_impl_from(interface),
-                    _ => false
+            RefType::Class(cls) => match other {
+                RefType::Class(class) => cls.eq(class) || cls.inner().is_derived_from(class),
+                RefType::Interface(interface) => cls.inner().is_impl_from(interface),
+                _ => false,
+            },
+            RefType::Interface(inter) => match other {
+                RefType::Class(class) => class.inner().is_impl_from(inter),
+                RefType::Interface(interface) => {
+                    inter.eq(interface) || inter.inner().derived_from(interface)
                 }
-            }
-            RefType::Interface(inter) => {
-                match other {
-                    RefType::Class(class) => class.inner().is_impl_from(inter),
-                    RefType::Interface(interface) => inter.eq(interface)
-                        || inter.inner().derived_from(interface),
-                    _ => false
-                }
-            }
+                _ => false,
+            },
             RefType::Func(func_type) => {
                 if let RefType::Func(other_func_type) = other {
                     let func_type_borrow = func_type.deref();
@@ -218,9 +219,7 @@ impl RefType {
                     false
                 }
             }
-            ref_type => {
-                ref_type.eq(other)
-            }
+            ref_type => ref_type.eq(other),
         }
     }
     #[inline]
@@ -235,24 +234,28 @@ impl RefType {
             RefType::Char => BuiltinType::Char,
             RefType::Bool => BuiltinType::Bool,
             RefType::String => BuiltinType::String,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 }
 
 impl Display for RefType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            RefType::Class(cls) => format!("{}", cls.inner()),
-            RefType::Enum(cls) => format!("{}", cls.inner()),
-            RefType::Interface(inter) => format!("{}", inter.inner()),
-            RefType::Tuple(vec) => format!("{:?}", vec),
-            RefType::Func(func) => format!("Func<{:?},{:?}>", func.deref().0,func.deref().1),
-            RefType::Weak(generic) => format!("Weak<{:?}>", generic),
-            RefType::Array(generic) => format!("Array<{:?}>", generic),
-            RefType::Queue(generic) => format!("Queue<{:?}>", generic),
-            ref_type => format!("{:?}", ref_type),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                RefType::Class(cls) => format!("{}", cls.inner()),
+                RefType::Enum(cls) => format!("{}", cls.inner()),
+                RefType::Interface(inter) => format!("{}", inter.inner()),
+                RefType::Tuple(vec) => format!("{:?}", vec),
+                RefType::Func(func) => format!("Func<{:?},{:?}>", func.deref().0, func.deref().1),
+                RefType::Weak(generic) => format!("Weak<{:?}>", generic),
+                RefType::Array(generic) => format!("Array<{:?}>", generic),
+                RefType::Queue(generic) => format!("Queue<{:?}>", generic),
+                ref_type => format!("{:?}", ref_type),
+            }
+        )
     }
 }
 
@@ -285,7 +288,7 @@ impl BuiltinType {
             "Queue" => BuiltinType::Queue,
             "Func" => BuiltinType::Func,
             "Weak" => BuiltinType::Weak,
-            _ => return Option::None
+            _ => return Option::None,
         };
         Option::Some(builtin_type)
     }
@@ -316,19 +319,19 @@ impl DeclaredType {
     pub fn equal_class(&self, class: &RefCount<GloomClass>) -> bool {
         match self {
             DeclaredType::Class(myself) => myself.eq(class),
-            _ => false
+            _ => false,
         }
     }
     pub fn equal_enum(&self, class: &RefCount<GloomEnumClass>) -> bool {
         match self {
             DeclaredType::Enum(myself) => myself.eq(class),
-            _ => false
+            _ => false,
         }
     }
     pub fn equal_interface(&self, inter: &RefCount<Interface>) -> bool {
         match self {
             DeclaredType::Interface(myself) => myself.eq(inter),
-            _ => false
+            _ => false,
         }
     }
 }
@@ -344,7 +347,7 @@ impl BreakType {
     pub fn is_void(&self) -> bool {
         match self {
             BreakType::Void => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -371,13 +374,17 @@ pub enum BasicType {
 
 impl Debug for BasicType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            BasicType::Int => "int",
-            BasicType::Num => "num",
-            BasicType::Char => "char",
-            BasicType::Bool => "bool",
-            BasicType::Ref => "Ref"
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                BasicType::Int => "int",
+                BasicType::Num => "num",
+                BasicType::Char => "char",
+                BasicType::Bool => "bool",
+                BasicType::Ref => "Ref",
+            }
+        )
     }
 }
 

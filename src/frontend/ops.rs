@@ -40,7 +40,7 @@ pub enum BinOp {
     // logic : bool to bool
     And,
     // && &
-    Or,     // || |
+    Or, // || |
 }
 
 pub enum BinOpType {
@@ -65,26 +65,30 @@ impl BinOp {
             BinOp::Eqs => BinOpType::Equal,
             BinOp::NotEq => BinOpType::Equal,
             BinOp::And => BinOpType::Logic,
-            BinOp::Or => BinOpType::Logic
+            BinOp::Or => BinOpType::Logic,
         }
     }
 }
 
 impl Display for BinOp {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            BinOp::Plus => "'+'",
-            BinOp::Sub => "'-'",
-            BinOp::Mul => "'*'",
-            BinOp::Div => "'/'",
-            BinOp::Gt => "'>'",
-            BinOp::Lt => "'<'",
-            BinOp::GtEq => "'>='",
-            BinOp::LtEq => "'<='",
-            BinOp::Eqs => "'=='",
-            BinOp::NotEq => "'!='",
-            BinOp::And => "'&&'",
-            BinOp::Or => "'||'",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                BinOp::Plus => "'+'",
+                BinOp::Sub => "'-'",
+                BinOp::Mul => "'*'",
+                BinOp::Div => "'/'",
+                BinOp::Gt => "'>'",
+                BinOp::Lt => "'<'",
+                BinOp::GtEq => "'>='",
+                BinOp::LtEq => "'<='",
+                BinOp::Eqs => "'=='",
+                BinOp::NotEq => "'!='",
+                BinOp::And => "'&&'",
+                BinOp::Or => "'||'",
+            }
+        )
     }
 }

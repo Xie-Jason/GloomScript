@@ -10,7 +10,7 @@ pub struct ParsedFile {
     pub enums: Vec<(ParsedEnum, bool)>,
     pub funcs: Vec<(Rc<String>, ParsedFunc, bool)>,
     pub statements: Vec<Statement>,
-    pub path : String,
+    pub path: String,
     pub index: u16,
 }
 
@@ -22,9 +22,6 @@ pub struct ScriptBody {
 
 impl ScriptBody {
     pub fn new(func: GloomFunc, file_index: u16) -> ScriptBody {
-        ScriptBody {
-            file_index,
-            func,
-        }
+        ScriptBody { file_index, func }
     }
 }

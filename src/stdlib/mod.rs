@@ -7,7 +7,7 @@ pub enum StdLibKind {
     WebSocket,
     File,
     Timer,
-    Channel
+    Channel,
 }
 
 impl TryFrom<&str> for StdLibKind {
@@ -21,7 +21,7 @@ impl TryFrom<&str> for StdLibKind {
             "file" => Result::Ok(StdLibKind::File),
             "timer" => Result::Ok(StdLibKind::Timer),
             "channel" => Result::Ok(StdLibKind::Channel),
-            unknown => Result::Err(format!("unknown std lib name {:?}",unknown)),
+            unknown => Result::Err(format!("unknown std lib name {:?}", unknown)),
         }
     }
 }

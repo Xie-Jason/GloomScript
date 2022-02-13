@@ -3,7 +3,11 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
-use crate::frontend::ast::{BinOpVec, Chain, Construction, Expression, ExprType, ForIter, ForLoop, FuncExpr, IfBranch, IfElse, LeftValue, ParsedClass, ParsedEnum, ParsedFunc, ParsedInterface, ParsedType, SingleType, Statement, TypeTuple, Var, VarId, WhileLoop};
+use crate::frontend::ast::{
+    BinOpVec, Chain, Construction, ExprType, Expression, ForIter, ForLoop, FuncExpr, IfBranch,
+    IfElse, LeftValue, ParsedClass, ParsedEnum, ParsedFunc, ParsedInterface, ParsedType,
+    SingleType, Statement, TypeTuple, Var, VarId, WhileLoop,
+};
 use crate::frontend::import::Importer;
 use crate::frontend::ops::{BinOp, LeftValueOp};
 use crate::frontend::script::ParsedFile;
@@ -20,7 +24,7 @@ pub struct Parser {
     funcs: Vec<(Rc<String>, ParsedFunc, bool)>,
     imports: Vec<ParsedFile>,
     importer: RefCount<Importer>,
-    path : String,
+    path: String,
     pub lines: Vec<u16>,
 }
 
@@ -57,9 +61,7 @@ impl Parser {
                             self.rollback(index);
                             Statement::Return(Expression::None, line)
                         }
-                        Ok(expr) => {
-                            Statement::Return(expr, line)
-                        }
+                        Ok(expr) => Statement::Return(expr, line),
                     };
                     if self.has_next() && self.test_next(Token::Semi) {
                         self.forward();
@@ -120,7 +122,7 @@ impl Parser {
                     let importer = self.importer.clone();
                     match self.next() {
                         Token::Id(lib) => {
-                            Importer::import_std_lib(lib.as_str(),importer).unwrap();
+                            Importer::import_std_lib(lib.as_str(), importer).unwrap();
                         }
                         Token::Str(path) => {
                             let mut path = path.to_string();
@@ -131,61 +133,64 @@ impl Parser {
                                 let deli_location = new_path.rfind('\\').unwrap();
                                 let len = new_path.len();
                                 for _ in deli_location..len {
-                                    new_path.remove(new_path.len()-1);
+                                    new_path.remove(new_path.len() - 1);
                                 }
                                 new_path.push_str(path.as_str());
                                 path = new_path;
                             }
-                            if let Some(parsed_file) = Importer::import_file(path,importer).unwrap() {
+                            if let Some(parsed_file) =
+                                Importer::import_file(path, importer).unwrap()
+                            {
                                 self.imports.push(parsed_file);
                             }
                         }
-                        token => panic!("expect a string literal or a identifier after 'import', found {}",token)
+                        token => panic!(
+                            "expect a string literal or a identifier after 'import', found {}",
+                            token
+                        ),
                     }
                     continue;
                 }
                 // public declaration
-                Token::Pub => {
-                    match self.next() {
-                        Token::Class => {
-                            let class = self.parse_class();
-                            self.classes.push((class, true));
-                            continue;
-                        }
-                        Token::Interface => {
-                            let interface = self.parse_interface();
-                            self.interfaces.push((interface, true));
-                            continue;
-                        }
-                        Token::Enum => {
-                            let parsed_enum = self.parse_enum();
-                            self.enums.push((parsed_enum, true));
-                            continue;
-                        }
-                        Token::Func => {
-                            let func_name = self.identifier();
-                            let func = self.parse_func(false);
-                            self.funcs.push((func_name, func, true));
-                            continue;
-                        }
-                        Token::Static => {
-                            let var_name = self.identifier();
-                            let mut parsed_type: Option<ParsedType> = None;
-                            if self.test_next(Token::Eq) {
-                                self.forward();
-                            } else {
-                                parsed_type = Some(self.parse_type());
-                                self.assert_next(Token::Eq);
-                            }
-                            let expr = self.expr().unwrap();
-                            if self.has_next() && self.test_next(Token::Semi) {
-                                self.forward();
-                            }
-                            Statement::PubStatic(Box::new((Var::Name(var_name), parsed_type, expr)))
-                        }
-                        token => panic!("expect class interface enum or func, found {:?}", token),
+                Token::Pub => match self.next() {
+                    Token::Class => {
+                        let class = self.parse_class();
+                        self.classes.push((class, true));
+                        continue;
                     }
-                }
+                    Token::Interface => {
+                        let interface = self.parse_interface();
+                        self.interfaces.push((interface, true));
+                        continue;
+                    }
+                    Token::Enum => {
+                        let parsed_enum = self.parse_enum();
+                        self.enums.push((parsed_enum, true));
+                        continue;
+                    }
+                    Token::Func => {
+                        let func_name = self.identifier();
+                        let func = self.parse_func(false);
+                        self.funcs.push((func_name, func, true));
+                        continue;
+                    }
+                    Token::Static => {
+                        let var_name = self.identifier();
+                        let mut parsed_type: Option<ParsedType> = None;
+                        if self.test_next(Token::Eq) {
+                            self.forward();
+                        } else {
+                            parsed_type = Some(self.parse_type());
+                            self.assert_next(Token::Eq);
+                        }
+                        let expr = self.expr().unwrap();
+                        if self.has_next() && self.test_next(Token::Semi) {
+                            self.forward();
+                        }
+                        Statement::PubStatic(Box::new((Var::Name(var_name), parsed_type, expr)))
+                    }
+                    token => panic!("expect class interface enum or func, found {:?}", token),
+                },
                 // private declaration
                 Token::Class => {
                     let class = self.parse_class();
@@ -290,20 +295,23 @@ impl Parser {
                         let token = self.next();
                         match token {
                             Token::Semi => Statement::Discard(expr, line),
-                            Token::Eq | Token::SubEq | Token::PlusEq | Token::SubSub | Token::PlusPlus => {
+                            Token::Eq
+                            | Token::SubEq
+                            | Token::PlusEq
+                            | Token::SubSub
+                            | Token::PlusPlus => {
                                 let left_value = match expr {
-                                    Expression::Var(var) => {
-                                        LeftValue::Var(*var)
-                                    }
+                                    Expression::Var(var) => LeftValue::Var(*var),
                                     Expression::Chain(chain_box) => {
                                         let (_, chains) = chain_box.deref();
-                                        if let Chain::Access(_, _) = chains.last().unwrap() {} else {
+                                        if let Chain::Access(_, _) = chains.last().unwrap() {
+                                        } else {
                                             panic!()
                                         }
                                         let (expr, chains) = *chain_box;
                                         LeftValue::Chain(expr, chains)
                                     }
-                                    _ => panic!()
+                                    _ => panic!(),
                                 };
                                 let left_value_op = match token {
                                     Token::Eq => LeftValueOp::Assign(self.expr().unwrap()),
@@ -311,7 +319,7 @@ impl Parser {
                                     Token::PlusEq => LeftValueOp::PlusEq(self.expr().unwrap()),
                                     Token::SubSub => LeftValueOp::SubOne,
                                     Token::PlusPlus => LeftValueOp::PlusOne,
-                                    _ => panic!()
+                                    _ => panic!(),
                                 };
                                 if self.has_next() && self.test_next(Token::Semi) {
                                     // handle ';'
@@ -350,26 +358,19 @@ impl Parser {
                 }
             }
             match bin_op_expr {
-                Some(op_tuple) => {
-                    match &mut op_vec {
-                        None => {
-                            let mut vec = Vec::new();
-                            vec.push(op_tuple);
-                            op_vec = Some(vec);
-                        }
-                        Some(vec) => vec.push(op_tuple),
+                Some(op_tuple) => match &mut op_vec {
+                    None => {
+                        let mut vec = Vec::new();
+                        vec.push(op_tuple);
+                        op_vec = Some(vec);
                     }
-                }
+                    Some(vec) => vec.push(op_tuple),
+                },
                 None => break,
             }
         }
         match op_vec {
-            Some(vec) => {
-                Result::Ok(Expression::BinaryOp(Box::new(BinOpVec {
-                    left: expr,
-                    vec,
-                })))
-            }
+            Some(vec) => Result::Ok(Expression::BinaryOp(Box::new(BinOpVec { left: expr, vec }))),
             None => Result::Ok(expr),
         }
     }
@@ -379,11 +380,7 @@ impl Parser {
         if self.has_next() && self.test_next(Token::As) {
             self.forward();
             let parsed_type = self.parse_type();
-            expr = Expression::Cast(Box::new((
-                expr,
-                parsed_type,
-                DataType::Ref(RefType::Any)
-            )));
+            expr = Expression::Cast(Box::new((expr, parsed_type, DataType::Ref(RefType::Any))));
         }
         let mut op_vec: Option<Vec<(BinOp, Expression)>> = Option::None;
         while self.has_next() {
@@ -417,12 +414,7 @@ impl Parser {
             }
         }
         match op_vec {
-            Some(vec) => {
-                Result::Ok(Expression::BinaryOp(Box::new(BinOpVec {
-                    left: expr,
-                    vec,
-                })))
-            }
+            Some(vec) => Result::Ok(Expression::BinaryOp(Box::new(BinOpVec { left: expr, vec }))),
             None => Result::Ok(expr),
         }
     }
@@ -525,7 +517,11 @@ impl Parser {
                     } else if self.test_next(Token::Comma) {
                         self.forward();
                     } else {
-                        println!("unexpected token {:?} near tuple parse, line {}", self.peek(), self.line())
+                        println!(
+                            "unexpected token {:?} near tuple parse, line {}",
+                            self.peek(),
+                            self.line()
+                        )
                     }
                 }
                 if vec.len() == 1 {
@@ -591,7 +587,10 @@ impl Parser {
             Token::Not => Expression::NotOp(Box::new(self.expr()?)),
             Token::Sub => Expression::NegOp(Box::new(self.expr()?)),
             token => {
-                return Result::Err(ParseError::new(line, format!("unexpected token {:?} when parse primary expression", token)));
+                return Result::Err(ParseError::new(
+                    line,
+                    format!("unexpected token {:?} when parse primary expression", token),
+                ));
             }
         };
         if self.has_next() && (self.test_next(Token::Dot) || self.test_next(Token::LParen)) {
@@ -621,10 +620,7 @@ impl Parser {
                                 args,
                             })
                         } else {
-                            chains.push(Chain::Access(
-                                VarId::Name(field_name),
-                                BasicType::Ref,
-                            ));
+                            chains.push(Chain::Access(VarId::Name(field_name), BasicType::Ref));
                         }
                     }
                     Token::LParen => {
@@ -648,7 +644,7 @@ impl Parser {
                         break;
                     }
                 }
-            }// while loop end
+            } // while loop end
             expr = Expression::Chain(Box::new((expr, chains)))
         }
         Result::Ok(expr)
@@ -731,12 +727,14 @@ impl Parser {
                     is_public = false;
                 }
             }
-            if self.test_next(Token::Func) { // function
+            if self.test_next(Token::Func) {
+                // function
                 self.forward();
                 let func_name = self.identifier();
                 let parsed_func = self.parse_func(true);
                 func_vec.push((is_public, func_name, parsed_func));
-            } else { // field
+            } else {
+                // field
                 let parsed_type = self.parse_type();
                 let name = self.identifier();
                 field_vec.push((is_public, parsed_type, name));
@@ -919,7 +917,7 @@ impl Parser {
             None => {
                 panic!("curr : {} lines len : {}", self.curr, self.lines.len())
             }
-            Some(line) => *line
+            Some(line) => *line,
         }
     }
 
@@ -962,7 +960,12 @@ impl Parser {
         })
     }
 
-    pub fn new(tokens: Vec<Token>, lines: Vec<u16>, importer: RefCount<Importer>, path : String) -> Parser {
+    pub fn new(
+        tokens: Vec<Token>,
+        lines: Vec<u16>,
+        importer: RefCount<Importer>,
+        path: String,
+    ) -> Parser {
         return Parser {
             tokens,
             lines,
@@ -973,7 +976,7 @@ impl Parser {
             funcs: Vec::new(),
             imports: Vec::new(),
             importer,
-            path
+            path,
         };
     }
 }
@@ -985,10 +988,7 @@ pub struct ParseError {
 
 impl ParseError {
     pub fn new(line: u16, reason: String) -> ParseError {
-        ParseError {
-            line,
-            reason,
-        }
+        ParseError { line, reason }
     }
 }
 

@@ -35,14 +35,7 @@ impl Slot {
             panic!()
         }
     }
-    #[inline(always)]
-    pub fn get_ref_mut(&mut self) -> &mut GloomObjRef {
-        if let Slot::Ref(rf) = self {
-            rf.deref_mut()
-        } else {
-            panic!()
-        }
-    }
+
     #[inline(always)]
     pub fn into_ref(self) -> ManuallyDrop<GloomObjRef> {
         if let Slot::Ref(rf) = self {
@@ -68,7 +61,7 @@ impl Slot {
                 arr[sub_idx as usize] = val;
                 *self = Slot::Int(arr)
             }
-            _ => panic!()
+            _ => panic!(),
         }
     }
     #[inline(always)]
@@ -80,7 +73,7 @@ impl Slot {
                 arr[sub_idx as usize] = val;
                 *self = Slot::Num(arr)
             }
-            _ => panic!()
+            _ => panic!(),
         }
     }
     #[inline(always)]
@@ -92,7 +85,7 @@ impl Slot {
                 arr[sub_idx as usize] = val;
                 *self = Slot::Char(arr)
             }
-            _ => panic!()
+            _ => panic!(),
         }
     }
     #[inline(always)]
@@ -104,7 +97,7 @@ impl Slot {
                 arr[sub_idx as usize] = val;
                 *self = Slot::Bool(arr)
             }
-            _ => panic!()
+            _ => panic!(),
         }
     }
 }

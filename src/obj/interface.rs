@@ -45,7 +45,8 @@ impl Interface {
         for func in parent.inner().funcs.iter() {
             let mut new_param_types = func.param_types.clone();
             if func.have_self {
-                *new_param_types.get_mut(0).unwrap() = DataType::Ref(RefType::Interface(myself.clone()));
+                *new_param_types.get_mut(0).unwrap() =
+                    DataType::Ref(RefType::Interface(myself.clone()));
             }
             self.add_func(AbstractFunc {
                 name: func.name.clone(),
@@ -70,13 +71,11 @@ impl Interface {
 
 impl AbstractFunc {
     pub fn func_type(&self) -> DataType {
-        DataType::Ref(RefType::Func(
-            Box::new((
-                self.param_types.clone(),
-                self.return_type.clone(),
-                false
-            ))
-        ))
+        DataType::Ref(RefType::Func(Box::new((
+            self.param_types.clone(),
+            self.return_type.clone(),
+            false,
+        ))))
     }
 }
 

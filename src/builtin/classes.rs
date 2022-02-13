@@ -42,7 +42,9 @@ impl BuiltinClass {
     pub const STRING_INDEX: usize = 0;
     pub const FUNC_INDEX: usize = 1;
 
-    pub fn none_generic_fn(ref_type: RefType) -> Box<dyn Fn(Option<Vec<DataType>>) -> Result<RefType, String>> {
+    pub fn none_generic_fn(
+        ref_type: RefType,
+    ) -> Box<dyn Fn(Option<Vec<DataType>>) -> Result<RefType, String>> {
         Box::new(move |option| {
             if let Some(generic) = option {
                 if generic.len() > 0 {
@@ -56,6 +58,12 @@ impl BuiltinClass {
 
 impl Debug for BuiltinClass {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "BuiltinType {} {:?} {:?}", self.name.as_str(), self.map, self.funcs)
+        write!(
+            f,
+            "BuiltinType {} {:?} {:?}",
+            self.name.as_str(),
+            self.map,
+            self.funcs
+        )
     }
 }

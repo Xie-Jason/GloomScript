@@ -12,7 +12,7 @@ pub struct RefCount<T> {
 impl<T> RefCount<T> {
     pub fn new(t: T) -> Self {
         return RefCount {
-            rf: Rc::new(RefCell::new(t))
+            rf: Rc::new(RefCell::new(t)),
         };
     }
     pub fn inner(&self) -> Ref<T> {
@@ -38,7 +38,7 @@ impl<T: Hash> Hash for RefCount<T> {
 impl<T> Clone for RefCount<T> {
     fn clone(&self) -> Self {
         RefCount {
-            rf: self.rf.clone()
+            rf: self.rf.clone(),
         }
     }
 }
@@ -48,7 +48,6 @@ impl<T> PartialEq<Self> for RefCount<T> {
         Rc::ptr_eq(&self.rf, &other.rf)
     }
 }
-
 
 // 仅在单线程环境下使用 just use in single-thread env
 unsafe impl<T> Send for RefCount<T> {}

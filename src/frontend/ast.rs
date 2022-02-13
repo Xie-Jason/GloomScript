@@ -17,7 +17,11 @@ pub struct ParsedClass {
 
 impl Debug for ParsedClass {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Class {}:{:?} impl{:?} {:?} {:?}", self.name, self.parent, self.impl_interfaces, self.fields, self.funcs)
+        write!(
+            f,
+            "Class {}:{:?} impl{:?} {:?} {:?}",
+            self.name, self.parent, self.impl_interfaces, self.fields, self.funcs
+        )
     }
 }
 
@@ -29,7 +33,11 @@ pub struct ParsedInterface {
 
 impl Debug for ParsedInterface {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Interface {}:{:?} {:?}", self.name, self.parents, self.funcs)
+        write!(
+            f,
+            "Interface {}:{:?} {:?}",
+            self.name, self.parents, self.funcs
+        )
     }
 }
 
@@ -112,7 +120,7 @@ impl Expression {
     pub fn is_none(&self) -> bool {
         match self {
             Expression::None => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -145,7 +153,7 @@ impl Var {
     pub fn name(&self) -> Rc<String> {
         match self {
             Var::Name(name) => name.clone(),
-            var => panic!("{:?}", var)
+            var => panic!("{:?}", var),
         }
     }
     #[inline]
@@ -213,14 +221,14 @@ impl VarId {
     pub fn name(&self) -> Rc<String> {
         match self {
             VarId::Index(_, _) => panic!(),
-            VarId::Name(name) => name.clone()
+            VarId::Name(name) => name.clone(),
         }
     }
     #[inline]
     pub fn index(&self) -> (u16, u8) {
         match self {
             VarId::Index(i1, i2) => (*i1, *i2),
-            VarId::Name(_) => panic!()
+            VarId::Name(_) => panic!(),
         }
     }
 }
@@ -236,7 +244,9 @@ impl Debug for ParsedType {
         match self {
             ParsedType::Single(tp) => write!(f, "{:?}", tp),
             ParsedType::Tuple(tp) => write!(f, "{:?}", tp),
-            ParsedType::MySelf => { write!(f, "Self") }
+            ParsedType::MySelf => {
+                write!(f, "Self")
+            }
         }
     }
 }
@@ -295,7 +305,11 @@ pub enum ForIter {
 
 impl Debug for ForLoop {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "for {:?} in {:?} {:?}", self.var, self.for_iter, self.statements)
+        write!(
+            f,
+            "for {:?} in {:?} {:?}",
+            self.var, self.for_iter, self.statements
+        )
     }
 }
 
@@ -322,7 +336,11 @@ pub struct ParsedFunc {
 
 impl Debug for ParsedFunc {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "func{:?}->{:?} {:?}", self.params, self.return_type, self.body)
+        write!(
+            f,
+            "func{:?}->{:?} {:?}",
+            self.params, self.return_type, self.body
+        )
     }
 }
 
@@ -337,7 +355,6 @@ pub enum ExprType {
     Parsed(ParsedType),
     Analyzed(DataType),
 }
-
 
 #[derive(Debug)]
 pub struct Construction {
@@ -367,7 +384,11 @@ impl Debug for Chain {
             Chain::Access(i, t) => {
                 write!(f, "->{:?}<{:?}>", i.index(), t)
             }
-            Chain::FnCall { func, need_self: _need_self, args } => {
+            Chain::FnCall {
+                func,
+                need_self: _need_self,
+                args,
+            } => {
                 write!(f, "func[{:?}] {:?}", func, args)
             }
             Chain::Call(call) => {
@@ -395,14 +416,18 @@ pub enum SyntaxType {
 
 impl Debug for SyntaxType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            SyntaxType::While => "while",
-            SyntaxType::IfElseBranch => "if-else branch",
-            SyntaxType::Break => "break",
-            SyntaxType::Return => "return",
-            SyntaxType::Match => "match",
-            SyntaxType::ForIn => "for-in",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                SyntaxType::While => "while",
+                SyntaxType::IfElseBranch => "if-else branch",
+                SyntaxType::Break => "break",
+                SyntaxType::Return => "return",
+                SyntaxType::Match => "match",
+                SyntaxType::ForIn => "for-in",
+            }
+        )
     }
 }
 

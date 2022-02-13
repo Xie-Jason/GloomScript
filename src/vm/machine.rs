@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use std::mem::{ManuallyDrop, transmute};
+use std::mem::{transmute, ManuallyDrop};
 
 use crate::builtin::array::{GloomArray, RawArray};
 use crate::builtin::obj::BuiltinClassObj;
@@ -27,23 +27,27 @@ pub struct GloomVM {
 }
 
 impl GloomVM {
-    pub fn new(static_table: StaticTable, constant_pool: ConstantPool, status: GloomStatus) -> Self {
-        GloomVM { static_table, constant_pool, status }
+    pub fn new(
+        static_table: StaticTable,
+        constant_pool: ConstantPool,
+        status: GloomStatus,
+    ) -> Self {
+        GloomVM {
+            static_table,
+            constant_pool,
+            status,
+        }
     }
     pub fn run(mut self) {
-        let mut script_bodies = std::mem::replace(
-            &mut self.status.script_bodies,
-            Vec::with_capacity(0),
-        );
+        let mut script_bodies =
+            std::mem::replace(&mut self.status.script_bodies, Vec::with_capacity(0));
         for script in script_bodies.iter_mut() {
             self.call_fn(&script.inner().func, GloomArgs::new(Vec::with_capacity(0)));
         }
     }
     pub fn call_fn(&self, func: &GloomFunc, args: GloomArgs) -> Value {
         match &func.body {
-            FuncBody::Builtin(func) => {
-                func(self, args)
-            }
+            FuncBody::Builtin(func) => func(self, args),
             FuncBody::ByteCodes(bytecodes) => {
                 let mut frame = Frame::new(func.info.stack_size, func.info.local_size);
                 frame.fill_args(&func.info.params, args);
@@ -60,15 +64,13 @@ impl GloomVM {
                 let func = unsafe { transmute::<_, extern "C" fn(GloomArgs) -> Value>(ptr) };
                 func(args)
             }
-            unknown => panic!("unknown func body {:?} of {:?}", unknown, func)
+            unknown => panic!("unknown func body {:?} of {:?}", unknown, func),
         }
     }
     pub fn call(&self, func_obj: &GloomFuncObj, args: GloomArgs) -> Value {
         let func = func_obj.func.inner();
         match &func.body {
-            FuncBody::Builtin(func) => {
-                func(self, args)
-            }
+            FuncBody::Builtin(func) => func(self, args),
             FuncBody::ByteCodes(bytecodes) => {
                 let mut frame = Frame::new(func.info.stack_size, func.info.local_size);
                 frame.fill_args(&func.info.params, args);
@@ -83,7 +85,7 @@ impl GloomVM {
                 let func = unsafe { transmute::<_, extern "C" fn(GloomArgs) -> Value>(ptr) };
                 func(args)
             }
-            unknown => panic!("unknown func body {:?} of {:?}", unknown, func)
+            unknown => panic!("unknown func body {:?} of {:?}", unknown, func),
         }
     }
 
@@ -103,7 +105,7 @@ impl GloomVM {
                 },
                 ByteCode::LoadConstString(idx) => {
                     frame.push(Value::Ref(
-                        self.constant_pool.str.get(idx as usize).unwrap().clone()
+                        self.constant_pool.str.get(idx as usize).unwrap().clone(),
                     ));
                 }
                 ByteCode::LoadDirectInt(i) => {
@@ -114,12 +116,12 @@ impl GloomVM {
                 }
                 ByteCode::LoadConstInt(idx) => {
                     frame.push(Value::Int(
-                        *self.constant_pool.int.get(idx as usize).unwrap()
+                        *self.constant_pool.int.get(idx as usize).unwrap(),
                     ));
                 }
                 ByteCode::LoadConstNum(idx) => {
                     frame.push(Value::Num(
-                        *self.constant_pool.num.get(idx as usize).unwrap()
+                        *self.constant_pool.num.get(idx as usize).unwrap(),
                     ));
                 }
                 ByteCode::LoadDirectChar(ch) => {
@@ -132,22 +134,20 @@ impl GloomVM {
                     frame.push(frame.top().clone());
                 }
                 ByteCode::LoadClass(idx) => {
-                    frame.push(Value::Ref(
-                        GloomClassObj::new(
-                            self.status.classes.get(idx as usize).unwrap().clone()
-                        )
-                    ));
+                    frame.push(Value::Ref(GloomClassObj::new(
+                        self.status.classes.get(idx as usize).unwrap().clone(),
+                    )));
                 }
                 ByteCode::LoadEnum(_) => {
                     panic!()
                 }
-                ByteCode::LoadBuiltinType(idx) => {
-                    frame.push(Value::Ref(
-                        BuiltinClassObj::new(
-                            self.status.builtin_classes.get(idx as usize).unwrap().clone()
-                        )
-                    ))
-                }
+                ByteCode::LoadBuiltinType(idx) => frame.push(Value::Ref(BuiltinClassObj::new(
+                    self.status
+                        .builtin_classes
+                        .get(idx as usize)
+                        .unwrap()
+                        .clone(),
+                ))),
                 ByteCode::ReadLocal(slot_idx, sub_idx) => {
                     frame.push(frame.read(slot_idx, sub_idx));
                 }
@@ -169,34 +169,36 @@ impl GloomVM {
                 }
                 ByteCode::WriteLocalRef(slot_idx) => {
                     let rf = frame.pop().assert_into_ref();
-                    let option
-                        = frame.write_ref(rf, slot_idx);
+                    let option = frame.write_ref(rf, slot_idx);
                     self.drop_option_manually(option);
                 }
                 ByteCode::ReadStatic(slot_idx, sub_idx) => {
                     frame.push(self.static_table.read(slot_idx, sub_idx));
                 }
                 ByteCode::WriteStaticInt(slot_idx, sub_idx) => {
-                    self.static_table.write_int(slot_idx, sub_idx, frame.pop().assert_int());
+                    self.static_table
+                        .write_int(slot_idx, sub_idx, frame.pop().assert_int());
                 }
                 ByteCode::WriteStaticNum(slot_idx, sub_idx) => {
-                    self.static_table.write_num(slot_idx, sub_idx, frame.pop().assert_num());
+                    self.static_table
+                        .write_num(slot_idx, sub_idx, frame.pop().assert_num());
                 }
                 ByteCode::WriteStaticChar(slot_idx, sub_idx) => {
-                    self.static_table.write_char(slot_idx, sub_idx, frame.pop().assert_char());
+                    self.static_table
+                        .write_char(slot_idx, sub_idx, frame.pop().assert_char());
                 }
                 ByteCode::WriteStaticBool(slot_idx, sub_idx) => {
-                    self.static_table.write_bool(slot_idx, sub_idx, frame.pop().assert_bool());
+                    self.static_table
+                        .write_bool(slot_idx, sub_idx, frame.pop().assert_bool());
                 }
                 ByteCode::WriteStaticRef(slot_idx) => {
-                    let rf
-                        = self.static_table.replace_ref(slot_idx, frame.pop().assert_into_ref());
-                    self.drop_object_manually(rf);
+                    let rf = self
+                        .static_table
+                        .write_ref(slot_idx, frame.pop().assert_into_ref());
+                    self.drop_option_manually(rf);
                 }
                 ByteCode::ReadField(slot_idx, sub_idx) => {
-                    frame.push(
-                        frame.top().as_ref().read_field(slot_idx, sub_idx)
-                    );
+                    frame.push(frame.top().as_ref().read_field(slot_idx, sub_idx));
                 }
                 ByteCode::ReadFieldAndPop(slot_idx, sub_idx) => {
                     let field = frame.pop().assert_into_ref().read_field(slot_idx, sub_idx);
@@ -204,32 +206,41 @@ impl GloomVM {
                 }
                 ByteCode::WriteFieldInt(slot_idx, sub_idx) => {
                     let i = frame.pop().assert_int();
-                    frame.top().as_ref()
+                    frame
+                        .top()
+                        .as_ref()
                         .downcast::<GloomObject>()
                         .write_field_int(slot_idx, sub_idx, i);
                 }
                 ByteCode::WriteFieldNum(slot_idx, sub_idx) => {
                     let n = frame.pop().assert_num();
-                    frame.top().as_ref()
+                    frame
+                        .top()
+                        .as_ref()
                         .downcast::<GloomObject>()
                         .write_field_num(slot_idx, sub_idx, n);
                 }
                 ByteCode::WriteFieldChar(slot_idx, sub_idx) => {
                     let c = frame.pop().assert_char();
-                    frame.top().as_ref()
+                    frame
+                        .top()
+                        .as_ref()
                         .downcast::<GloomObject>()
                         .write_field_char(slot_idx, sub_idx, c);
                 }
                 ByteCode::WriteFieldBool(slot_idx, sub_idx) => {
                     let b = frame.pop().assert_bool();
-                    frame.top().as_ref()
+                    frame
+                        .top()
+                        .as_ref()
                         .downcast::<GloomObject>()
                         .write_field_bool(slot_idx, sub_idx, b);
                 }
                 ByteCode::WriteFieldRef(slot_idx) => {
                     let rf = frame.pop().assert_into_ref();
-                    let option
-                        = frame.top().as_ref()
+                    let option = frame
+                        .top()
+                        .as_ref()
                         .downcast::<GloomObject>()
                         .write_field_ref(slot_idx, rf);
                     self.drop_option_manually(option);
@@ -306,14 +317,17 @@ impl GloomVM {
                     frame.push(Value::Bool(right.assert_bool() || left.assert_bool()));
                 }
                 ByteCode::LoadDirectDefFn(idx) => {
-                    frame.push(Value::Ref(
-                        GloomFuncObj::new_func(
-                            self.status.funcs.get(idx as usize).unwrap().clone()
-                        )
-                    ));
+                    frame.push(Value::Ref(GloomFuncObj::new_func(
+                        self.status.funcs.get(idx as usize).unwrap().clone(),
+                    )));
                 }
                 ByteCode::LoadNamelessFn(idx) => {
-                    let func_ref = self.constant_pool.nameless_fn.get(idx as usize).unwrap().clone();
+                    let func_ref = self
+                        .constant_pool
+                        .nameless_fn
+                        .get(idx as usize)
+                        .unwrap()
+                        .clone();
                     let mut captured;
                     {
                         let func = func_ref.inner_mut();
@@ -322,12 +336,7 @@ impl GloomVM {
                             captured.push(frame.read(capture.from_slot_idx, capture.from_sub_idx));
                         }
                     }
-                    frame.push(Value::Ref(
-                        GloomFuncObj::new_closure(
-                            func_ref,
-                            captured,
-                        )
-                    ));
+                    frame.push(Value::Ref(GloomFuncObj::new_closure(func_ref, captured)));
                 }
                 ByteCode::CallTopFn { nargs } => {
                     let mut args = Vec::with_capacity(nargs as usize);
@@ -340,10 +349,7 @@ impl GloomVM {
                     let result = self.call(func, GloomArgs::new(args));
                     frame.push(result);
                 }
-                ByteCode::CallStaticFn {
-                    index,
-                    nargs
-                } => {
+                ByteCode::CallStaticFn { index, nargs } => {
                     let mut args = Vec::with_capacity(nargs as usize);
                     for _ in 0..nargs {
                         args.push(frame.pop());
@@ -354,29 +360,50 @@ impl GloomVM {
                     match rf.obj_type() {
                         ObjectType::Class => {
                             let gloom_obj = rf.downcast::<GloomObject>();
-                            func = gloom_obj.class.inner().funcs.get(index as usize).unwrap().clone();
+                            func = gloom_obj
+                                .class
+                                .inner()
+                                .funcs
+                                .get(index as usize)
+                                .unwrap()
+                                .clone();
                         }
                         ObjectType::Enum => {
                             let enum_obj = rf.downcast::<GloomEnum>();
-                            func = enum_obj.class.inner().funcs.get(index as usize).unwrap().clone();
+                            func = enum_obj
+                                .class
+                                .inner()
+                                .funcs
+                                .get(index as usize)
+                                .unwrap()
+                                .clone();
                         }
                         ObjectType::MetaClass => {
                             let class_obj = rf.downcast::<GloomClassObj>();
-                            func = class_obj.class.inner().funcs.get(index as usize).unwrap().clone();
+                            func = class_obj
+                                .class
+                                .inner()
+                                .funcs
+                                .get(index as usize)
+                                .unwrap()
+                                .clone();
                         }
                         ObjectType::MetaBuiltinType => {
                             let class = rf.downcast::<BuiltinClassObj>();
-                            func = class.class.inner().funcs.get(index as usize).unwrap().clone();
+                            func = class
+                                .class
+                                .inner()
+                                .funcs
+                                .get(index as usize)
+                                .unwrap()
+                                .clone();
                         }
-                        _ => panic!()
+                        _ => panic!(),
                     };
                     let result = self.call_fn(&*func.inner(), GloomArgs::new(args));
                     frame.push(result);
                 }
-                ByteCode::CallMethod {
-                    index,
-                    nargs
-                } => {
+                ByteCode::CallMethod { index, nargs } => {
                     let mut args = Vec::with_capacity((nargs + 1) as usize);
                     for _ in 0..nargs {
                         args.push(frame.pop());
@@ -419,114 +446,86 @@ impl GloomVM {
                     for _ in 0..len {
                         tuple.push(frame.pop());
                     }
-                    frame.push(Value::Ref(
-                        GloomTuple::new(tuple)
-                    ));
+                    frame.push(Value::Ref(GloomTuple::new(tuple)));
                 }
-                ByteCode::CollectArray(basic_type, len) => {
-                    match basic_type {
-                        BasicType::Int => {
-                            let mut array = Vec::with_capacity(len as usize);
-                            for _ in 0..len {
-                                array.push(frame.pop().assert_int());
-                            }
-                            frame.push(Value::Ref(
-                                GloomArray::new(RawArray::IntVec(array))
-                            ));
+                ByteCode::CollectArray(basic_type, len) => match basic_type {
+                    BasicType::Int => {
+                        let mut array = Vec::with_capacity(len as usize);
+                        for _ in 0..len {
+                            array.push(frame.pop().assert_int());
                         }
-                        BasicType::Num => {
-                            let mut array = Vec::with_capacity(len as usize);
-                            for _ in 0..len {
-                                array.push(frame.pop().assert_num());
-                            }
-                            frame.push(Value::Ref(
-                                GloomArray::new(RawArray::NumVec(array))
-                            ));
-                        }
-                        BasicType::Char => {
-                            let mut array = Vec::with_capacity(len as usize);
-                            for _ in 0..len {
-                                array.push(frame.pop().assert_char());
-                            }
-                            frame.push(Value::Ref(
-                                GloomArray::new(RawArray::CharVec(array))
-                            ));
-                        }
-                        BasicType::Bool => {
-                            let mut array = Vec::with_capacity(len as usize);
-                            for _ in 0..len {
-                                array.push(frame.pop().assert_bool());
-                            }
-                            frame.push(Value::Ref(
-                                GloomArray::new(RawArray::BoolVec(array))
-                            ));
-                        }
-                        BasicType::Ref => {
-                            let mut array = Vec::with_capacity(len as usize);
-                            for _ in 0..len {
-                                array.push(frame.pop().assert_into_ref());
-                            }
-                            frame.push(Value::Ref(
-                                GloomArray::new(RawArray::RefVec(array))
-                            ));
-                        }
+                        frame.push(Value::Ref(GloomArray::new(RawArray::IntVec(array))));
                     }
-                }
-                ByteCode::CollectQueue(basic_type, len) => {
-                    match basic_type {
-                        BasicType::Int => {
-                            let mut queue = VecDeque::with_capacity(len as usize);
-                            for _ in 0..len {
-                                queue.push_back(frame.pop().assert_int());
-                            }
-                            frame.push(Value::Ref(
-                                GloomQueue::new(RawQueue::IntQue(queue))
-                            ));
+                    BasicType::Num => {
+                        let mut array = Vec::with_capacity(len as usize);
+                        for _ in 0..len {
+                            array.push(frame.pop().assert_num());
                         }
-                        BasicType::Num => {
-                            let mut queue = VecDeque::with_capacity(len as usize);
-                            for _ in 0..len {
-                                queue.push_back(frame.pop().assert_num());
-                            }
-                            frame.push(Value::Ref(
-                                GloomQueue::new(RawQueue::NumQue(queue))
-                            ));
-                        }
-                        BasicType::Char => {
-                            let mut queue = VecDeque::with_capacity(len as usize);
-                            for _ in 0..len {
-                                queue.push_back(frame.pop().assert_char());
-                            }
-                            frame.push(Value::Ref(
-                                GloomQueue::new(RawQueue::CharQue(queue))
-                            ));
-                        }
-                        BasicType::Bool => {
-                            let mut queue = VecDeque::with_capacity(len as usize);
-                            for _ in 0..len {
-                                queue.push_back(frame.pop().assert_bool());
-                            }
-                            frame.push(Value::Ref(
-                                GloomQueue::new(RawQueue::BoolQue(queue))
-                            ));
-                        }
-                        BasicType::Ref => {
-                            let mut queue = VecDeque::with_capacity(len as usize);
-                            for _ in 0..len {
-                                queue.push_back(frame.pop().assert_into_ref());
-                            }
-                            frame.push(Value::Ref(
-                                GloomQueue::new(RawQueue::RefQue(queue))
-                            ));
-                        }
+                        frame.push(Value::Ref(GloomArray::new(RawArray::NumVec(array))));
                     }
-                }
+                    BasicType::Char => {
+                        let mut array = Vec::with_capacity(len as usize);
+                        for _ in 0..len {
+                            array.push(frame.pop().assert_char());
+                        }
+                        frame.push(Value::Ref(GloomArray::new(RawArray::CharVec(array))));
+                    }
+                    BasicType::Bool => {
+                        let mut array = Vec::with_capacity(len as usize);
+                        for _ in 0..len {
+                            array.push(frame.pop().assert_bool());
+                        }
+                        frame.push(Value::Ref(GloomArray::new(RawArray::BoolVec(array))));
+                    }
+                    BasicType::Ref => {
+                        let mut array = Vec::with_capacity(len as usize);
+                        for _ in 0..len {
+                            array.push(frame.pop().assert_into_ref());
+                        }
+                        frame.push(Value::Ref(GloomArray::new(RawArray::RefVec(array))));
+                    }
+                },
+                ByteCode::CollectQueue(basic_type, len) => match basic_type {
+                    BasicType::Int => {
+                        let mut queue = VecDeque::with_capacity(len as usize);
+                        for _ in 0..len {
+                            queue.push_back(frame.pop().assert_int());
+                        }
+                        frame.push(Value::Ref(GloomQueue::new(RawQueue::IntQue(queue))));
+                    }
+                    BasicType::Num => {
+                        let mut queue = VecDeque::with_capacity(len as usize);
+                        for _ in 0..len {
+                            queue.push_back(frame.pop().assert_num());
+                        }
+                        frame.push(Value::Ref(GloomQueue::new(RawQueue::NumQue(queue))));
+                    }
+                    BasicType::Char => {
+                        let mut queue = VecDeque::with_capacity(len as usize);
+                        for _ in 0..len {
+                            queue.push_back(frame.pop().assert_char());
+                        }
+                        frame.push(Value::Ref(GloomQueue::new(RawQueue::CharQue(queue))));
+                    }
+                    BasicType::Bool => {
+                        let mut queue = VecDeque::with_capacity(len as usize);
+                        for _ in 0..len {
+                            queue.push_back(frame.pop().assert_bool());
+                        }
+                        frame.push(Value::Ref(GloomQueue::new(RawQueue::BoolQue(queue))));
+                    }
+                    BasicType::Ref => {
+                        let mut queue = VecDeque::with_capacity(len as usize);
+                        for _ in 0..len {
+                            queue.push_back(frame.pop().assert_into_ref());
+                        }
+                        frame.push(Value::Ref(GloomQueue::new(RawQueue::RefQue(queue))));
+                    }
+                },
                 ByteCode::Construct(class_idx) => {
-                    frame.push(Value::Ref(
-                        GloomObject::new(
-                            self.status.classes.get(class_idx as usize).unwrap().clone()
-                        )
-                    ));
+                    frame.push(Value::Ref(GloomObject::new(
+                        self.status.classes.get(class_idx as usize).unwrap().clone(),
+                    )));
                 }
                 ByteCode::RangeIter => {
                     let start = frame.pop().assert_int();
@@ -560,7 +559,9 @@ impl GloomVM {
         if rf.count() == 1 {
             rf.drop_by_vm(self);
         }
-        unsafe { ManuallyDrop::drop(&mut rf); }
+        unsafe {
+            ManuallyDrop::drop(&mut rf);
+        }
     }
     #[inline]
     pub fn drop_option_manually(&self, option: Option<ManuallyDrop<GloomObjRef>>) {
@@ -568,7 +569,9 @@ impl GloomVM {
             if rf.count() == 1 {
                 rf.drop_by_vm(self);
             }
-            unsafe { ManuallyDrop::drop(&mut rf); }
+            unsafe {
+                ManuallyDrop::drop(&mut rf);
+            }
         }
     }
 }

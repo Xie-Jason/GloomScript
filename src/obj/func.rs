@@ -47,8 +47,15 @@ impl Object for GloomFuncObj {
     }
 
     fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
-        status.builtin_classes.get(BuiltinClass::FUNC_INDEX).unwrap().inner()
-            .funcs.get(index as usize).unwrap().clone()
+        status
+            .builtin_classes
+            .get(BuiltinClass::FUNC_INDEX)
+            .unwrap()
+            .inner()
+            .funcs
+            .get(index as usize)
+            .unwrap()
+            .clone()
     }
 
     fn field(&self, _: u16, _: u8) -> Value {
@@ -59,19 +66,17 @@ impl Object for GloomFuncObj {
 impl GloomFuncObj {
     #[inline]
     pub fn new_closure(func: RefCount<GloomFunc>, captures: Vec<Value>) -> GloomObjRef {
-        GloomObjRef::new(
-            Rc::new(GloomFuncObj {
-                func,
-                captures: RefCell::new(captures),
-            }))
+        GloomObjRef::new(Rc::new(GloomFuncObj {
+            func,
+            captures: RefCell::new(captures),
+        }))
     }
     #[inline]
     pub fn new_func(func: RefCount<GloomFunc>) -> GloomObjRef {
-        GloomObjRef::new(
-            Rc::new(GloomFuncObj {
-                func,
-                captures: RefCell::new(Vec::with_capacity(0)),
-            }))
+        GloomObjRef::new(Rc::new(GloomFuncObj {
+            func,
+            captures: RefCell::new(Vec::with_capacity(0)),
+        }))
     }
 }
 
@@ -94,7 +99,13 @@ pub struct GloomFunc {
 pub type BuiltinFn = Rc<dyn Fn(&GloomVM, GloomArgs) -> Value>;
 
 impl GloomFunc {
-    pub fn new(name: Rc<String>, file_index: u16, params: Vec<Param>, return_type: ReturnType, statements: Vec<Statement>) -> GloomFunc {
+    pub fn new(
+        name: Rc<String>,
+        file_index: u16,
+        params: Vec<Param>,
+        return_type: ReturnType,
+        statements: Vec<Statement>,
+    ) -> GloomFunc {
         GloomFunc {
             info: FuncInfo {
                 name,
@@ -110,7 +121,13 @@ impl GloomFunc {
             body: FuncBody::AST(statements),
         }
     }
-    pub fn new_builtin_fn(name: Rc<String>, params: Vec<Param>, return_type: ReturnType, need_self: bool, func: BuiltinFn) -> GloomFunc {
+    pub fn new_builtin_fn(
+        name: Rc<String>,
+        params: Vec<Param>,
+        return_type: ReturnType,
+        need_self: bool,
+        func: BuiltinFn,
+    ) -> GloomFunc {
         GloomFunc {
             info: FuncInfo {
                 name,
@@ -126,7 +143,13 @@ impl GloomFunc {
             body: FuncBody::Builtin(func),
         }
     }
-    pub fn new_jit_fn(name: Rc<String>, params: Vec<Param>, return_type: ReturnType, need_self: bool, func: *const u8) -> GloomFunc {
+    pub fn new_jit_fn(
+        name: Rc<String>,
+        params: Vec<Param>,
+        return_type: ReturnType,
+        need_self: bool,
+        func: *const u8,
+    ) -> GloomFunc {
         GloomFunc {
             info: FuncInfo {
                 name,
@@ -160,7 +183,11 @@ impl GloomFunc {
         for param in self.info.params.iter() {
             param_types.push(param.data_type.clone());
         }
-        DataType::Ref(RefType::Func(Box::new((param_types, self.info.return_type.clone(), false))))
+        DataType::Ref(RefType::Func(Box::new((
+            param_types,
+            self.info.return_type.clone(),
+            false,
+        ))))
     }
     #[inline]
     pub fn get_ref_type(&self) -> RefType {
@@ -168,7 +195,11 @@ impl GloomFunc {
         for param in self.info.params.iter() {
             param_types.push(param.data_type.clone());
         }
-        RefType::Func(Box::new((param_types, self.info.return_type.clone(), false)))
+        RefType::Func(Box::new((
+            param_types,
+            self.info.return_type.clone(),
+            false,
+        )))
     }
     #[inline]
     pub fn have_capture(&self) -> bool {
@@ -186,7 +217,6 @@ impl Debug for GloomFunc {
         write!(f, "{})->{}", string, self.info.return_type)
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct FuncInfo {
@@ -235,14 +265,14 @@ impl ReturnType {
     pub fn is_void(&self) -> bool {
         match self {
             ReturnType::Void => true,
-            ReturnType::Have(_) => false
+            ReturnType::Have(_) => false,
         }
     }
     #[inline]
     pub fn data_type(&self) -> &DataType {
         match self {
             ReturnType::Void => &DataType::Ref(RefType::None),
-            ReturnType::Have(tp) => tp
+            ReturnType::Have(tp) => tp,
         }
     }
 }
@@ -260,16 +290,17 @@ impl Debug for ReturnType {
 
 impl Display for ReturnType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        match self {
+            ReturnType::Void => write!(f, "void"),
+            ReturnType::Have(typ) => write!(f, "{:?}", typ),
+        }
     }
 }
 
 impl PartialEq<Option<DataType>> for ReturnType {
     fn eq(&self, other: &Option<DataType>) -> bool {
         match self {
-            ReturnType::Void => {
-                other.is_none()
-            }
+            ReturnType::Void => other.is_none(),
             ReturnType::Have(data_type) => {
                 if other.is_none() {
                     false
@@ -294,7 +325,7 @@ impl FuncBody {
     pub fn bytecodes(&self) -> &Vec<ByteCode> {
         match self {
             FuncBody::ByteCodes(vec) => vec,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 }
@@ -331,7 +362,13 @@ pub struct Capture {
 }
 
 impl Capture {
-    pub fn new(from_slot_idx: u16, from_sub_idx: u8, to_slot_idx: u16, to_sub_idx: u8, basic_type: BasicType) -> Self {
+    pub fn new(
+        from_slot_idx: u16,
+        from_sub_idx: u8,
+        to_slot_idx: u16,
+        to_sub_idx: u8,
+        basic_type: BasicType,
+    ) -> Self {
         Capture {
             from_slot_idx,
             from_sub_idx,
@@ -344,6 +381,14 @@ impl Capture {
 
 impl Debug for Capture {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({},{})->({},{})<{:?}>", self.from_slot_idx, self.from_sub_idx, self.to_slot_idx, self.to_sub_idx, self.basic_type)
+        write!(
+            f,
+            "({},{})->({},{})<{:?}>",
+            self.from_slot_idx,
+            self.from_sub_idx,
+            self.to_slot_idx,
+            self.to_sub_idx,
+            self.basic_type
+        )
     }
 }

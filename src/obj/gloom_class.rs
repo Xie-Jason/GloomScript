@@ -69,13 +69,20 @@ impl GloomClass {
             let param_types = &abstract_func.param_types;
             let return_type = &abstract_func.return_type;
             match self.map.get(name.as_str()) {
-                None => panic!("function {} that declared at interface {} need be implemented by class {}",
-                               name,
-                               interface.inner().name,
-                               self.name),
+                None => panic!(
+                    "function {} that declared at interface {} need be implemented by class {}",
+                    name,
+                    interface.inner().name,
+                    self.name
+                ),
                 Some((index, _, _, is_func)) => {
                     if !is_func {
-                        panic!("{} in class {} is not a function but a field with type {:?}", name, self.name, self.field_indexer.get_type(*index))
+                        panic!(
+                            "{} in class {} is not a function but a field with type {:?}",
+                            name,
+                            self.name,
+                            self.field_indexer.get_type(*index)
+                        )
                     }
                     // check param type and return type
                     let func = self.funcs.get(*index as usize).unwrap();
@@ -123,34 +130,45 @@ impl GloomClass {
     pub fn add_field(&mut self, is_pub: bool, field_name: String, data_type: DataType) {
         self.field_count += 1;
         let (slot_idx, sub_idx) = self.field_indexer.put(data_type);
-        self.map.insert(field_name, (slot_idx, sub_idx, is_pub, false));
+        self.map
+            .insert(field_name, (slot_idx, sub_idx, is_pub, false));
     }
 
-    pub fn add_func(&mut self, is_pub: bool,
-                    func_name: Rc<String>,
-                    params: Vec<Param>,
-                    return_type: ReturnType,
-                    body: Vec<Statement>) {
+    pub fn add_func(
+        &mut self,
+        is_pub: bool,
+        func_name: Rc<String>,
+        params: Vec<Param>,
+        return_type: ReturnType,
+        body: Vec<Statement>,
+    ) {
         let index = self.funcs.len() as u16;
         match self.map.entry(func_name.deref().clone()) {
             Entry::Vacant(entry) => {
                 entry.insert((index, 0, is_pub, true));
             }
             Entry::Occupied(entry) => {
-                panic!("the function name {} of class {} is already occupied : {:?}",
-                       func_name, self.name, entry)
+                panic!(
+                    "the function name {} of class {} is already occupied : {:?}",
+                    func_name, self.name, entry
+                )
             }
         }
         // found drop fn
         if func_name.deref().eq("drop")
             && return_type.is_void()
             && params.len() == 1
-            && params.get(0).unwrap().name.deref().eq("self") {
+            && params.get(0).unwrap().name.deref().eq("self")
+        {
             self.fn_drop_idx = index;
         }
-        self.funcs.push(RefCount::new(
-            GloomFunc::new(func_name, self.file_index, params, return_type, body)
-        ));
+        self.funcs.push(RefCount::new(GloomFunc::new(
+            func_name,
+            self.file_index,
+            params,
+            return_type,
+            body,
+        )));
     }
 
     #[inline]
@@ -201,18 +219,21 @@ impl Display for GloomClass {
 impl Debug for GloomClass {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if self.parent.is_none() {
-            writeln!(f, "Class {} impl {:?} {:?} {:?}",
-                     self.name,
-                     self.impls,
-                     self.field_indexer,
-                     self.funcs)
+            writeln!(
+                f,
+                "Class {} impl {:?} {:?} {:?}",
+                self.name, self.impls, self.field_indexer, self.funcs
+            )
         } else {
-            writeln!(f, "Class {} : {} impl {:?} {:?} {:?}",
-                     self.name,
-                     self.parent.as_ref().unwrap().inner(),
-                     self.impls,
-                     self.field_indexer,
-                     self.funcs)
+            writeln!(
+                f,
+                "Class {} : {} impl {:?} {:?} {:?}",
+                self.name,
+                self.parent.as_ref().unwrap().inner(),
+                self.impls,
+                self.field_indexer,
+                self.funcs
+            )
         }
     }
 }
@@ -247,11 +268,9 @@ impl Object for GloomClassObj {
     }
 
     fn field(&self, i1: u16, _: u8) -> Value {
-        Value::Ref(
-            GloomFuncObj::new_func(
-                self.class.inner().funcs.get(i1 as usize).unwrap().clone()
-            )
-        )
+        Value::Ref(GloomFuncObj::new_func(
+            self.class.inner().funcs.get(i1 as usize).unwrap().clone(),
+        ))
     }
 }
 
@@ -264,8 +283,6 @@ impl Debug for GloomClassObj {
 impl GloomClassObj {
     #[inline]
     pub fn new(class: RefCount<GloomClass>) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(GloomClassObj {
-            class
-        }))
+        GloomObjRef::new(Rc::new(GloomClassObj { class }))
     }
 }

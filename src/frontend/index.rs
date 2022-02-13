@@ -87,7 +87,10 @@ impl SlotIndexer {
             ref_type => {
                 self.max_idx += 1;
                 self.types.push(ref_type);
-                self.drop_vec_stack.last_mut().unwrap().push(self.max_idx as u16);
+                self.drop_vec_stack
+                    .last_mut()
+                    .unwrap()
+                    .push(self.max_idx as u16);
                 (self.max_idx as u16, 0)
             }
         }

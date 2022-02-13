@@ -3,7 +3,9 @@ use std::ops::Deref;
 
 use crate::builtin::string::GloomString;
 use crate::bytecode::code::ByteCode;
-use crate::frontend::ast::{Chain, Expression, ExprType, ForIter, FuncExpr, LeftValue, Statement, Var};
+use crate::frontend::ast::{
+    Chain, ExprType, Expression, ForIter, FuncExpr, LeftValue, Statement, Var,
+};
 use crate::frontend::ops::{BinOp, LeftValueOp};
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{FuncBody, GloomFunc};
@@ -193,10 +195,12 @@ impl CodeGenerator {
                     self.generate_expression(expr, context);
                     match expr {
                         Expression::None => {} // no return value
-                        Expression::IfElse(if_else) => if !if_else.return_void {
-                            context.push(ByteCode::Pop);
+                        Expression::IfElse(if_else) => {
+                            if !if_else.return_void {
+                                context.push(ByteCode::Pop);
+                            }
                         }
-                        _ => context.push(ByteCode::Pop)
+                        _ => context.push(ByteCode::Pop),
                     }
                 }
                 Statement::Continue(_) => {
@@ -228,15 +232,18 @@ impl CodeGenerator {
 
                     context.push(ByteCode::Jump(start_idx as u32));
 
-
                     let end_idx = context.bytecodes.len() as u32;
-                    if let ByteCode::JumpIfNot(label) = context.bytecodes.get_mut(jump_end_idx).unwrap() {
+                    if let ByteCode::JumpIfNot(label) =
+                        context.bytecodes.get_mut(jump_end_idx).unwrap()
+                    {
                         *label = end_idx;
                     } else {
                         panic!()
                     }
 
-                    for code in context.bytecodes.as_mut_slice()[body_start_idx..body_end_limit].iter_mut() {
+                    for code in
+                        context.bytecodes.as_mut_slice()[body_start_idx..body_end_limit].iter_mut()
+                    {
                         if let ByteCode::Jump(label) = code {
                             if *label == Self::INVALID_LABEL {
                                 *label = end_idx;
@@ -268,12 +275,20 @@ impl CodeGenerator {
 
                     // write the result of next() into local
                     context.push(match for_loop.var {
-                        Var::LocalInt(slot_idx, sub_idx) => ByteCode::WriteLocalInt(slot_idx, sub_idx),
-                        Var::LocalNum(slot_idx, sub_idx) => ByteCode::WriteLocalNum(slot_idx, sub_idx),
-                        Var::LocalChar(slot_idx, sub_idx) => ByteCode::WriteLocalChar(slot_idx, sub_idx),
-                        Var::LocalBool(slot_idx, sub_idx) => ByteCode::WriteLocalBool(slot_idx, sub_idx),
+                        Var::LocalInt(slot_idx, sub_idx) => {
+                            ByteCode::WriteLocalInt(slot_idx, sub_idx)
+                        }
+                        Var::LocalNum(slot_idx, sub_idx) => {
+                            ByteCode::WriteLocalNum(slot_idx, sub_idx)
+                        }
+                        Var::LocalChar(slot_idx, sub_idx) => {
+                            ByteCode::WriteLocalChar(slot_idx, sub_idx)
+                        }
+                        Var::LocalBool(slot_idx, sub_idx) => {
+                            ByteCode::WriteLocalBool(slot_idx, sub_idx)
+                        }
                         Var::LocalRef(slot_idx) => ByteCode::WriteLocalRef(slot_idx),
-                        _ => panic!()
+                        _ => panic!(),
                     });
 
                     // loop body
@@ -288,13 +303,17 @@ impl CodeGenerator {
                     context.push(ByteCode::Jump(start_judge_idx));
 
                     let end_idx = context.bytecodes.len();
-                    if let ByteCode::JumpIfNone(label) = context.bytecodes.get_mut(jump_if_none_idx).unwrap() {
+                    if let ByteCode::JumpIfNone(label) =
+                        context.bytecodes.get_mut(jump_if_none_idx).unwrap()
+                    {
                         *label = end_idx as u32;
                     } else {
                         panic!()
                     }
 
-                    for code in context.bytecodes.as_mut_slice()[body_start_idx..body_end_limit].iter_mut() {
+                    for code in
+                        context.bytecodes.as_mut_slice()[body_start_idx..body_end_limit].iter_mut()
+                    {
                         if let ByteCode::Jump(label) = code {
                             if *label == Self::INVALID_LABEL {
                                 *label = end_idx as u32;
@@ -336,7 +355,9 @@ impl CodeGenerator {
             }
             Expression::Str(str) => {
                 let idx = self.constant_pool.str.len() as u16;
-                self.constant_pool.str.push(GloomString::new(String::clone(str)));
+                self.constant_pool
+                    .str
+                    .push(GloomString::new(String::clone(str)));
                 context.push(ByteCode::LoadConstString(idx));
             }
             Expression::Var(var) => {
@@ -410,7 +431,7 @@ impl CodeGenerator {
                     ExprType::Analyzed(DataType::Ref(RefType::Class(class))) => {
                         class.inner().class_index
                     }
-                    _ => panic!()
+                    _ => panic!(),
                 };
                 context.push(ByteCode::Construct(class_index));
                 for (var_idx, field_type, expr) in construction.fields.iter() {

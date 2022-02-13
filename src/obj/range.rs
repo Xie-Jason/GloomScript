@@ -18,13 +18,11 @@ pub struct RangeIter {
 
 impl RangeIter {
     pub fn new(start: i64, end: i64, step: i64) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            RangeIter {
-                end,
-                step,
-                curr: Cell::new(start),
-            }
-        ))
+        GloomObjRef::new(Rc::new(RangeIter {
+            end,
+            step,
+            curr: Cell::new(start),
+        }))
     }
 }
 

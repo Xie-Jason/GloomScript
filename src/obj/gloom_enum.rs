@@ -42,7 +42,7 @@ impl Debug for RelatedType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             RelatedType::None => write!(f, "none"),
-            RelatedType::Have(data_type) => write!(f, "{}", data_type)
+            RelatedType::Have(data_type) => write!(f, "{}", data_type),
         }
     }
 }
@@ -74,7 +74,12 @@ impl Object for GloomEnum {
     }
 
     fn method(&self, index: u16, _: &GloomStatus) -> RefCount<GloomFunc> {
-        self.class.inner().funcs.get(index as usize).unwrap().clone()
+        self.class
+            .inner()
+            .funcs
+            .get(index as usize)
+            .unwrap()
+            .clone()
     }
 
     fn field(&self, _: u16, _: u8) -> Value {
@@ -98,17 +103,20 @@ impl GloomEnumClass {
         self.enum_map.insert(name, index as u16);
         self.types.push(match related_type {
             None => RelatedType::None,
-            Some(data_type) => RelatedType::Have(data_type)
+            Some(data_type) => RelatedType::Have(data_type),
         });
     }
-    pub fn add_func(&mut self,
-                    func_name: Rc<String>,
-                    is_pub: IsPub,
-                    params: Vec<Param>,
-                    return_type: ReturnType,
-                    body: Vec<Statement>) {
+    pub fn add_func(
+        &mut self,
+        func_name: Rc<String>,
+        is_pub: IsPub,
+        params: Vec<Param>,
+        return_type: ReturnType,
+        body: Vec<Statement>,
+    ) {
         let index = self.funcs.len();
-        self.func_map.insert(func_name.deref().clone(), (index as u16, is_pub));
+        self.func_map
+            .insert(func_name.deref().clone(), (index as u16, is_pub));
         self.funcs.push(RefCount::new(GloomFunc {
             info: FuncInfo {
                 name: func_name,

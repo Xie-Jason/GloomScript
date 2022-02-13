@@ -25,18 +25,16 @@ pub enum RawQueue {
 impl GloomQueue {
     #[inline]
     pub fn new(queue: RawQueue) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            GloomQueue(RefCell::new(queue))
-        ))
+        GloomObjRef::new(Rc::new(GloomQueue(RefCell::new(queue))))
     }
     #[inline]
     pub fn get(&self, index: usize) -> Option<Value> {
         match &*self.0.borrow() {
-            RawQueue::IntQue(vec) => vec.get(index).map(|val| { Value::Int(*val) }),
-            RawQueue::NumQue(vec) => vec.get(index).map(|val| { Value::Num(*val) }),
-            RawQueue::CharQue(vec) => vec.get(index).map(|val| { Value::Char(*val) }),
-            RawQueue::BoolQue(vec) => vec.get(index).map(|val| { Value::Bool(*val) }),
-            RawQueue::RefQue(vec) => vec.get(index).map(|val| { Value::Ref(val.clone()) }),
+            RawQueue::IntQue(vec) => vec.get(index).map(|val| Value::Int(*val)),
+            RawQueue::NumQue(vec) => vec.get(index).map(|val| Value::Num(*val)),
+            RawQueue::CharQue(vec) => vec.get(index).map(|val| Value::Char(*val)),
+            RawQueue::BoolQue(vec) => vec.get(index).map(|val| Value::Bool(*val)),
+            RawQueue::RefQue(vec) => vec.get(index).map(|val| Value::Ref(val.clone())),
         }
     }
 }
@@ -93,7 +91,7 @@ impl Debug for RawQueue {
             RawQueue::NumQue(que) => write!(f, "{:?}", que),
             RawQueue::CharQue(que) => write!(f, "{:?}", que),
             RawQueue::BoolQue(que) => write!(f, "{:?}", que),
-            RawQueue::RefQue(que) => write!(f, "{:?}", que)
+            RawQueue::RefQue(que) => write!(f, "{:?}", que),
         }
     }
 }

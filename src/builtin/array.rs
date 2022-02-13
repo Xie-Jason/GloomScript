@@ -23,19 +23,17 @@ pub enum RawArray {
 
 impl GloomArray {
     pub fn new(array: RawArray) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            GloomArray(RefCell::new(array))
-        ))
+        GloomObjRef::new(Rc::new(GloomArray(RefCell::new(array))))
     }
 
     #[inline]
     pub fn get(&self, index: usize) -> Option<Value> {
         match &*self.0.borrow() {
-            RawArray::IntVec(vec) => vec.get(index).map(|i| { Value::Int(*i) }),
-            RawArray::NumVec(vec) => vec.get(index).map(|f| { Value::Num(*f) }),
-            RawArray::CharVec(vec) => vec.get(index).map(|c| { Value::Char(*c) }),
-            RawArray::BoolVec(vec) => vec.get(index).map(|b| { Value::Bool(*b) }),
-            RawArray::RefVec(vec) => vec.get(index).map(|rf| { Value::Ref(rf.clone()) }),
+            RawArray::IntVec(vec) => vec.get(index).map(|i| Value::Int(*i)),
+            RawArray::NumVec(vec) => vec.get(index).map(|f| Value::Num(*f)),
+            RawArray::CharVec(vec) => vec.get(index).map(|c| Value::Char(*c)),
+            RawArray::BoolVec(vec) => vec.get(index).map(|b| Value::Bool(*b)),
+            RawArray::RefVec(vec) => vec.get(index).map(|rf| Value::Ref(rf.clone())),
         }
     }
 }
@@ -94,7 +92,7 @@ impl Debug for RawArray {
             RawArray::NumVec(vec) => write!(f, "{:?}", vec),
             RawArray::CharVec(vec) => write!(f, "{:?}", vec),
             RawArray::BoolVec(vec) => write!(f, "{:?}", vec),
-            RawArray::RefVec(vec) => write!(f, "{:?}", vec)
+            RawArray::RefVec(vec) => write!(f, "{:?}", vec),
         }
     }
 }

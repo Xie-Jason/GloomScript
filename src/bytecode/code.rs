@@ -138,9 +138,7 @@ impl ByteCode {
             | ByteCode::WriteFieldBool(_, _)
             | ByteCode::WriteFieldRef(_) => -1,
 
-            ByteCode::JumpIf(_)
-            | ByteCode::JumpIfNot(_)
-            | ByteCode::JumpIfNone(_) => -1,
+            ByteCode::JumpIf(_) | ByteCode::JumpIfNot(_) | ByteCode::JumpIfNone(_) => -1,
 
             ByteCode::Jump(_) | ByteCode::DropLocal(_) | ByteCode::NotOp | ByteCode::NegOp => 0,
 
@@ -163,8 +161,7 @@ impl ByteCode {
             | ByteCode::LogicAnd
             | ByteCode::LogicOr => -1,
 
-            ByteCode::PlusOne
-            | ByteCode::SubOne => 0,
+            ByteCode::PlusOne | ByteCode::SubOne => 0,
 
             ByteCode::CollectTuple(i)
             | ByteCode::CollectArray(_, i)

@@ -60,9 +60,7 @@ impl Debug for GloomInt {
 impl GloomInt {
     #[inline(always)]
     pub fn new(i: i64) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            GloomInt(Cell::new(i))
-        ))
+        GloomObjRef::new(Rc::new(GloomInt(Cell::new(i))))
     }
 }
 
@@ -107,9 +105,7 @@ impl Debug for GloomNum {
 impl GloomNum {
     #[inline(always)]
     pub fn new(i: f64) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            GloomNum(Cell::new(i))
-        ))
+        GloomObjRef::new(Rc::new(GloomNum(Cell::new(i))))
     }
 }
 
@@ -153,9 +149,7 @@ impl Debug for GloomChar {
 impl GloomChar {
     #[inline(always)]
     pub fn new(i: char) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            GloomChar(Cell::new(i))
-        ))
+        GloomObjRef::new(Rc::new(GloomChar(Cell::new(i))))
     }
 }
 
@@ -194,9 +188,7 @@ impl Object for GloomBool {
 impl GloomBool {
     #[inline(always)]
     pub fn new(i: bool) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            GloomBool(Cell::new(i))
-        ))
+        GloomObjRef::new(Rc::new(GloomBool(Cell::new(i))))
     }
 }
 

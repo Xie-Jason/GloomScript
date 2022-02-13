@@ -14,9 +14,7 @@ pub type IsBuiltIn = bool;
 
 impl BuiltInFuncs {
     fn func_println(empty: Rc<String>) -> RefCount<GloomFunc> {
-        let params = vec![
-            Param::new(empty, DataType::Ref(RefType::Any))
-        ];
+        let params = vec![Param::new(empty, DataType::Ref(RefType::Any))];
         RefCount::new(GloomFunc::new_builtin_fn(
             Rc::new(String::from("println")),
             params,
@@ -31,9 +29,7 @@ impl BuiltInFuncs {
     }
     pub fn func_list() -> Vec<RefCount<GloomFunc>> {
         let empty_name = Rc::new(String::from(""));
-        vec![
-            Self::func_println(empty_name)
-        ]
+        vec![Self::func_println(empty_name)]
     }
     pub fn func_map() -> HashMap<String, (u16, IsBuiltIn, IsPub, u16)> {
         let mut map = HashMap::new();

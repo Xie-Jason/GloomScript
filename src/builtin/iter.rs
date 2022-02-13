@@ -18,12 +18,10 @@ pub struct GloomListIter {
 impl GloomListIter {
     #[inline]
     pub fn new(rf: GloomObjRef) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            GloomListIter {
-                rf,
-                curr: Cell::new(0),
-            }
-        ))
+        GloomObjRef::new(Rc::new(GloomListIter {
+            rf,
+            curr: Cell::new(0),
+        }))
     }
 }
 
@@ -58,7 +56,7 @@ impl Object for GloomListIter {
         self.curr.set(index);
         match option {
             None => Value::None,
-            Some(val) => val
+            Some(val) => val,
         }
     }
 

@@ -17,18 +17,14 @@ pub struct GloomObjRef {
 impl GloomObjRef {
     #[inline(always)]
     pub fn downcast<T: Object + 'static>(&self) -> &T {
-        self.obj.deref()
-            .as_any()
-            .downcast_ref::<T>().unwrap()
+        self.obj.deref().as_any().downcast_ref::<T>().unwrap()
     }
     pub fn weak(&self) -> Weak<dyn Object> {
         Rc::downgrade(&self.obj)
     }
     #[inline(always)]
     pub fn new(obj: Rc<dyn Object>) -> GloomObjRef {
-        GloomObjRef {
-            obj
-        }
+        GloomObjRef { obj }
     }
     #[inline(always)]
     pub fn count(&self) -> usize {
@@ -81,7 +77,6 @@ impl Debug for GloomObjRef {
         write!(f, "{:?}", self.obj.deref())
     }
 }
-
 
 pub trait Object: Debug {
     // any type should impl this two fn

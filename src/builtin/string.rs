@@ -40,7 +40,6 @@ impl Object for GloomString {
     fn at(&self, index: &mut usize) -> Option<Value> {
         let string = self.0.borrow();
         if *index < string.len() {
-
             // find bytes read limit
             let remain = string.len() - *index;
             // replace the if
@@ -66,8 +65,15 @@ impl Object for GloomString {
     }
 
     fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
-        status.builtin_classes.get(BuiltinClass::STRING_INDEX).unwrap().inner()
-            .funcs.get(index as usize).unwrap().clone()
+        status
+            .builtin_classes
+            .get(BuiltinClass::STRING_INDEX)
+            .unwrap()
+            .inner()
+            .funcs
+            .get(index as usize)
+            .unwrap()
+            .clone()
     }
 
     fn field(&self, _: u16, _: u8) -> Value {
@@ -78,9 +84,7 @@ impl Object for GloomString {
 impl GloomString {
     #[inline]
     pub fn new(str: String) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            GloomString(RefCell::new(str))
-        ))
+        GloomObjRef::new(Rc::new(GloomString(RefCell::new(str))))
     }
 
     // IMPORTANT
@@ -106,8 +110,8 @@ impl GloomString {
             // [[x y z] w] case
             // 5th bit in 0xE0 .. 0xEF is always clear, so `init` is still valid
             let z = bytes[2];
-            let y_z = (((y & GloomString::CONT_MASK) as u32) << 6)
-                | (z & GloomString::CONT_MASK) as u32;
+            let y_z =
+                (((y & GloomString::CONT_MASK) as u32) << 6) | (z & GloomString::CONT_MASK) as u32;
             ch = init << 12 | y_z;
             step = 3;
             if x >= 0xF0 {
@@ -141,9 +145,7 @@ pub fn gloom_string_class() -> BuiltinClass {
             let other_ref = iter.next().unwrap().assert_into_ref();
             let other = other_ref.downcast::<GloomString>();
             string.push_str(other.0.borrow().as_str());
-            Value::Ref(
-                GloomString::new(string)
-            )
+            Value::Ref(GloomString::new(string))
         }),
     )));
     map.insert(String::from("append"), 0);

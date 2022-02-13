@@ -58,12 +58,16 @@ pub enum MetaType {
 
 impl Display for MetaType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            MetaType::Interface => "Interface",
-            MetaType::Class => "Class",
-            MetaType::Enum => "Enum",
-            MetaType::Builtin => "BuiltinType"
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                MetaType::Interface => "Interface",
+                MetaType::Class => "Class",
+                MetaType::Enum => "Enum",
+                MetaType::Builtin => "BuiltinType",
+            }
+        )
     }
 }
 

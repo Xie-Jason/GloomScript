@@ -21,7 +21,7 @@ impl Debug for Value {
             Value::Char(i) => write!(f, "'{}'", i),
             Value::Bool(i) => write!(f, "{}", i),
             Value::Ref(rf) => write!(f, "{:?}", rf),
-            Value::None => write!(f, "none")
+            Value::None => write!(f, "none"),
         }
     }
 }
@@ -38,7 +38,7 @@ impl Value {
                     Option::None
                 }
             }
-            _ => Option::None
+            _ => Option::None,
         }
     }
 
@@ -52,9 +52,9 @@ impl Value {
         match self.as_int() {
             None => match self.as_num() {
                 None => panic!(),
-                Some(i) => i as i64
-            }
-            Some(i) => i
+                Some(i) => i as i64,
+            },
+            Some(i) => i,
         }
     }
 
@@ -64,15 +64,13 @@ impl Value {
             Value::Int(int) => *int,
             Value::Num(num) => *num as i64,
             Value::Char(ch) => *ch as i64,
-            Value::Ref(obj_ref) => {
-                match obj_ref.obj_type() {
-                    ObjectType::Int => obj_ref.downcast::<GloomInt>().0.get(),
-                    ObjectType::Num => obj_ref.downcast::<GloomNum>().0.get() as i64,
-                    ObjectType::Char => obj_ref.downcast::<GloomChar>().0.get() as i64,
-                    _ => panic!("{:?} as i64 ?", self)
-                }
-            }
-            _ => panic!("{:?} as i64 ?", self)
+            Value::Ref(obj_ref) => match obj_ref.obj_type() {
+                ObjectType::Int => obj_ref.downcast::<GloomInt>().0.get(),
+                ObjectType::Num => obj_ref.downcast::<GloomNum>().0.get() as i64,
+                ObjectType::Char => obj_ref.downcast::<GloomChar>().0.get() as i64,
+                _ => panic!("{:?} as i64 ?", self),
+            },
+            _ => panic!("{:?} as i64 ?", self),
         }
     }
 
@@ -87,7 +85,7 @@ impl Value {
                     Option::None
                 }
             }
-            _ => Option::None
+            _ => Option::None,
         }
     }
     #[inline(always)]
@@ -100,9 +98,9 @@ impl Value {
         match self.as_num() {
             None => match self.as_int() {
                 None => panic!(),
-                Some(i) => i as f64
-            }
-            Some(i) => i
+                Some(i) => i as f64,
+            },
+            Some(i) => i,
         }
     }
 
@@ -117,7 +115,7 @@ impl Value {
                     Option::None
                 }
             }
-            _ => Option::None
+            _ => Option::None,
         }
     }
     #[inline(always)]
@@ -130,14 +128,12 @@ impl Value {
         match self {
             Value::Char(i) => *i,
             Value::Int(i) => *i as u8 as char,
-            Value::Ref(obj) => {
-                match obj.obj_type() {
-                    ObjectType::Int => obj.downcast::<GloomInt>().0.get() as u8 as char,
-                    ObjectType::Char => obj.downcast::<GloomChar>().0.get(),
-                    _ => panic!("{:?} as char ?", self)
-                }
-            }
-            _ => panic!("{:?} as char ?", self)
+            Value::Ref(obj) => match obj.obj_type() {
+                ObjectType::Int => obj.downcast::<GloomInt>().0.get() as u8 as char,
+                ObjectType::Char => obj.downcast::<GloomChar>().0.get(),
+                _ => panic!("{:?} as char ?", self),
+            },
+            _ => panic!("{:?} as char ?", self),
         }
     }
 
@@ -152,7 +148,7 @@ impl Value {
                     Option::None
                 }
             }
-            _ => Option::None
+            _ => Option::None,
         }
     }
 
@@ -178,7 +174,7 @@ impl Value {
             Value::Char(i) => Option::Some(GloomChar::new(i)),
             Value::Bool(i) => Option::Some(GloomBool::new(i)),
             Value::Ref(obj) => Option::Some(obj),
-            Value::None => Option::None
+            Value::None => Option::None,
         }
     }
     #[inline(always)]
@@ -190,7 +186,7 @@ impl Value {
     pub fn is_none(&self) -> bool {
         match self {
             Value::None => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -206,7 +202,7 @@ impl Value {
                     bl.0.set(!bl.0.get());
                 }
             }
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
@@ -219,20 +215,18 @@ impl Value {
             Value::Num(n) => {
                 *n = -*n;
             }
-            Value::Ref(rf) => {
-                match rf.obj_type() {
-                    ObjectType::Int => {
-                        let i = rf.downcast::<GloomInt>();
-                        i.0.set(i.0.get());
-                    }
-                    ObjectType::Num => {
-                        let n = rf.downcast::<GloomNum>();
-                        n.0.set(n.0.get());
-                    }
-                    _ => panic!()
+            Value::Ref(rf) => match rf.obj_type() {
+                ObjectType::Int => {
+                    let i = rf.downcast::<GloomInt>();
+                    i.0.set(i.0.get());
                 }
-            }
-            _ => panic!()
+                ObjectType::Num => {
+                    let n = rf.downcast::<GloomNum>();
+                    n.0.set(n.0.get());
+                }
+                _ => panic!(),
+            },
+            _ => panic!(),
         }
     }
 
@@ -245,22 +239,20 @@ impl Value {
             Value::Num(num) => {
                 *num += val.assert_num_include_int();
             }
-            Value::Ref(obj_ref) => {
-                match obj_ref.obj_type() {
-                    ObjectType::Int => {
-                        let int_obj = obj_ref.downcast::<GloomInt>();
-                        let int_val = int_obj.0.get() + val.assert_int();
-                        int_obj.0.set(int_val);
-                    }
-                    ObjectType::Num => {
-                        let obj = obj_ref.downcast::<GloomNum>();
-                        let num_val = obj.0.get() + val.assert_num();
-                        obj.0.set(num_val);
-                    }
-                    _ => panic!()
+            Value::Ref(obj_ref) => match obj_ref.obj_type() {
+                ObjectType::Int => {
+                    let int_obj = obj_ref.downcast::<GloomInt>();
+                    let int_val = int_obj.0.get() + val.assert_int();
+                    int_obj.0.set(int_val);
                 }
-            }
-            _ => panic!()
+                ObjectType::Num => {
+                    let obj = obj_ref.downcast::<GloomNum>();
+                    let num_val = obj.0.get() + val.assert_num();
+                    obj.0.set(num_val);
+                }
+                _ => panic!(),
+            },
+            _ => panic!(),
         }
     }
     #[inline]
@@ -272,22 +264,20 @@ impl Value {
             Value::Num(num) => {
                 *num -= val.assert_num_include_int();
             }
-            Value::Ref(obj_ref) => {
-                match obj_ref.obj_type() {
-                    ObjectType::Int => {
-                        let int_obj = obj_ref.downcast::<GloomInt>();
-                        let int_val = int_obj.0.get() - val.assert_int();
-                        int_obj.0.set(int_val);
-                    }
-                    ObjectType::Num => {
-                        let obj = obj_ref.downcast::<GloomNum>();
-                        let num_val = obj.0.get() - val.assert_num();
-                        obj.0.set(num_val);
-                    }
-                    _ => panic!()
+            Value::Ref(obj_ref) => match obj_ref.obj_type() {
+                ObjectType::Int => {
+                    let int_obj = obj_ref.downcast::<GloomInt>();
+                    let int_val = int_obj.0.get() - val.assert_int();
+                    int_obj.0.set(int_val);
                 }
-            }
-            _ => panic!()
+                ObjectType::Num => {
+                    let obj = obj_ref.downcast::<GloomNum>();
+                    let num_val = obj.0.get() - val.assert_num();
+                    obj.0.set(num_val);
+                }
+                _ => panic!(),
+            },
+            _ => panic!(),
         }
     }
     #[inline]
@@ -299,22 +289,20 @@ impl Value {
             Value::Num(num) => {
                 *num += 1.0;
             }
-            Value::Ref(obj_ref) => {
-                match obj_ref.obj_type() {
-                    ObjectType::Int => {
-                        let int_obj = obj_ref.downcast::<GloomInt>();
-                        let int_val = int_obj.0.get() + 1;
-                        int_obj.0.set(int_val);
-                    }
-                    ObjectType::Num => {
-                        let obj = obj_ref.downcast::<GloomNum>();
-                        let num_val = obj.0.get() + 1.0;
-                        obj.0.set(num_val);
-                    }
-                    _ => panic!()
+            Value::Ref(obj_ref) => match obj_ref.obj_type() {
+                ObjectType::Int => {
+                    let int_obj = obj_ref.downcast::<GloomInt>();
+                    let int_val = int_obj.0.get() + 1;
+                    int_obj.0.set(int_val);
                 }
-            }
-            _ => panic!()
+                ObjectType::Num => {
+                    let obj = obj_ref.downcast::<GloomNum>();
+                    let num_val = obj.0.get() + 1.0;
+                    obj.0.set(num_val);
+                }
+                _ => panic!(),
+            },
+            _ => panic!(),
         }
     }
     #[inline]
@@ -326,22 +314,20 @@ impl Value {
             Value::Num(num) => {
                 *num -= 1.0;
             }
-            Value::Ref(obj_ref) => {
-                match obj_ref.obj_type() {
-                    ObjectType::Int => {
-                        let int_obj = obj_ref.downcast::<GloomInt>();
-                        let int_val = int_obj.0.get() - 1;
-                        int_obj.0.set(int_val);
-                    }
-                    ObjectType::Num => {
-                        let obj = obj_ref.downcast::<GloomNum>();
-                        let num_val = obj.0.get() - 1.0;
-                        obj.0.set(num_val);
-                    }
-                    _ => panic!()
+            Value::Ref(obj_ref) => match obj_ref.obj_type() {
+                ObjectType::Int => {
+                    let int_obj = obj_ref.downcast::<GloomInt>();
+                    let int_val = int_obj.0.get() - 1;
+                    int_obj.0.set(int_val);
                 }
-            }
-            _ => panic!()
+                ObjectType::Num => {
+                    let obj = obj_ref.downcast::<GloomNum>();
+                    let num_val = obj.0.get() - 1.0;
+                    obj.0.set(num_val);
+                }
+                _ => panic!(),
+            },
+            _ => panic!(),
         }
     }
 
@@ -352,16 +338,18 @@ impl Value {
             Value::Num(num) => *num == other.assert_num_include_int(),
             Value::Char(ch) => *ch == other.assert_char(),
             Value::Bool(bl) => *bl == other.assert_bool(),
-            Value::Ref(rf) => {
-                match rf.obj_type() {
-                    ObjectType::Int => rf.downcast::<GloomInt>().0.get() == other.assert_int_include_num(),
-                    ObjectType::Num => rf.downcast::<GloomNum>().0.get() == other.assert_num_include_int(),
-                    ObjectType::Char => rf.downcast::<GloomChar>().0.get() == other.assert_char(),
-                    ObjectType::Bool => rf.downcast::<GloomBool>().0.get() == other.assert_bool(),
-                    _ => rf.addr_eqs(&other.assert_into_ref())
+            Value::Ref(rf) => match rf.obj_type() {
+                ObjectType::Int => {
+                    rf.downcast::<GloomInt>().0.get() == other.assert_int_include_num()
                 }
-            }
-            Value::None => false
+                ObjectType::Num => {
+                    rf.downcast::<GloomNum>().0.get() == other.assert_num_include_int()
+                }
+                ObjectType::Char => rf.downcast::<GloomChar>().0.get() == other.assert_char(),
+                ObjectType::Bool => rf.downcast::<GloomBool>().0.get() == other.assert_bool(),
+                _ => rf.addr_eqs(&other.assert_into_ref()),
+            },
+            Value::None => false,
         }
     }
 
@@ -370,14 +358,16 @@ impl Value {
         match self {
             Value::Int(int) => *int > other.assert_int_include_num(),
             Value::Num(num) => *num > other.assert_num_include_int(),
-            Value::Ref(rf) => {
-                match rf.obj_type() {
-                    ObjectType::Int => rf.downcast::<GloomInt>().0.get() > other.assert_int_include_num(),
-                    ObjectType::Num => rf.downcast::<GloomNum>().0.get() > other.assert_num_include_int(),
-                    _ => panic!("{:?} > {:?} ?", self, other)
+            Value::Ref(rf) => match rf.obj_type() {
+                ObjectType::Int => {
+                    rf.downcast::<GloomInt>().0.get() > other.assert_int_include_num()
                 }
-            }
-            _ => panic!("{:?} > {:?} ?", self, other)
+                ObjectType::Num => {
+                    rf.downcast::<GloomNum>().0.get() > other.assert_num_include_int()
+                }
+                _ => panic!("{:?} > {:?} ?", self, other),
+            },
+            _ => panic!("{:?} > {:?} ?", self, other),
         }
     }
 
@@ -386,14 +376,16 @@ impl Value {
         match self {
             Value::Int(int) => *int < other.assert_int_include_num(),
             Value::Num(num) => *num < other.assert_num_include_int(),
-            Value::Ref(rf) => {
-                match rf.obj_type() {
-                    ObjectType::Int => rf.downcast::<GloomInt>().0.get() < other.assert_int_include_num(),
-                    ObjectType::Num => rf.downcast::<GloomNum>().0.get() < other.assert_num_include_int(),
-                    _ => panic!("{:?} < {:?} ?", self, other)
+            Value::Ref(rf) => match rf.obj_type() {
+                ObjectType::Int => {
+                    rf.downcast::<GloomInt>().0.get() < other.assert_int_include_num()
                 }
-            }
-            _ => panic!("{:?} < {:?} ?", self, other)
+                ObjectType::Num => {
+                    rf.downcast::<GloomNum>().0.get() < other.assert_num_include_int()
+                }
+                _ => panic!("{:?} < {:?} ?", self, other),
+            },
+            _ => panic!("{:?} < {:?} ?", self, other),
         }
     }
 
@@ -402,14 +394,16 @@ impl Value {
         match self {
             Value::Int(int) => *int >= other.assert_int_include_num(),
             Value::Num(num) => *num >= other.assert_num_include_int(),
-            Value::Ref(rf) => {
-                match rf.obj_type() {
-                    ObjectType::Int => rf.downcast::<GloomInt>().0.get() >= other.assert_int_include_num(),
-                    ObjectType::Num => rf.downcast::<GloomNum>().0.get() >= other.assert_num_include_int(),
-                    _ => panic!("{:?} >= {:?} ?", self, other)
+            Value::Ref(rf) => match rf.obj_type() {
+                ObjectType::Int => {
+                    rf.downcast::<GloomInt>().0.get() >= other.assert_int_include_num()
                 }
-            }
-            _ => panic!("{:?} >= {:?} ?", self, other)
+                ObjectType::Num => {
+                    rf.downcast::<GloomNum>().0.get() >= other.assert_num_include_int()
+                }
+                _ => panic!("{:?} >= {:?} ?", self, other),
+            },
+            _ => panic!("{:?} >= {:?} ?", self, other),
         }
     }
 
@@ -418,14 +412,16 @@ impl Value {
         match self {
             Value::Int(int) => *int <= other.assert_int_include_num(),
             Value::Num(num) => *num <= other.assert_num_include_int(),
-            Value::Ref(rf) => {
-                match rf.obj_type() {
-                    ObjectType::Int => rf.downcast::<GloomInt>().0.get() <= other.assert_int_include_num(),
-                    ObjectType::Num => rf.downcast::<GloomNum>().0.get() <= other.assert_num_include_int(),
-                    _ => panic!("{:?} <= {:?} ?", self, other)
+            Value::Ref(rf) => match rf.obj_type() {
+                ObjectType::Int => {
+                    rf.downcast::<GloomInt>().0.get() <= other.assert_int_include_num()
                 }
-            }
-            _ => panic!("{:?} <= {:?} ?", self, other)
+                ObjectType::Num => {
+                    rf.downcast::<GloomNum>().0.get() <= other.assert_num_include_int()
+                }
+                _ => panic!("{:?} <= {:?} ?", self, other),
+            },
+            _ => panic!("{:?} <= {:?} ?", self, other),
         }
     }
 
@@ -434,20 +430,18 @@ impl Value {
         match self {
             Value::Int(int) => *int = *int * other.assert_int_include_num(),
             Value::Num(num) => *num = *num * other.assert_num_include_int(),
-            Value::Ref(rf) => {
-                match rf.obj_type() {
-                    ObjectType::Int => {
-                        let int = rf.downcast::<GloomInt>();
-                        int.0.set(int.0.get() * other.assert_int_include_num());
-                    }
-                    ObjectType::Num => {
-                        let num = rf.downcast::<GloomNum>();
-                        num.0.set(num.0.get() * other.assert_num_include_int());
-                    }
-                    _ => panic!("{:?} * {:?} ?", self, other)
+            Value::Ref(rf) => match rf.obj_type() {
+                ObjectType::Int => {
+                    let int = rf.downcast::<GloomInt>();
+                    int.0.set(int.0.get() * other.assert_int_include_num());
                 }
-            }
-            _ => panic!("{:?} * {:?} ?", self, other)
+                ObjectType::Num => {
+                    let num = rf.downcast::<GloomNum>();
+                    num.0.set(num.0.get() * other.assert_num_include_int());
+                }
+                _ => panic!("{:?} * {:?} ?", self, other),
+            },
+            _ => panic!("{:?} * {:?} ?", self, other),
         }
     }
 
@@ -456,20 +450,18 @@ impl Value {
         match self {
             Value::Int(int) => *int = *int / other.assert_int_include_num(),
             Value::Num(num) => *num = *num / other.assert_num_include_int(),
-            Value::Ref(rf) => {
-                match rf.obj_type() {
-                    ObjectType::Int => {
-                        let int = rf.downcast::<GloomInt>();
-                        int.0.set(int.0.get() / other.assert_int_include_num());
-                    }
-                    ObjectType::Num => {
-                        let num = rf.downcast::<GloomNum>();
-                        num.0.set(num.0.get() / other.assert_num_include_int());
-                    }
-                    _ => panic!("{:?} / {:?} ?", self, other)
+            Value::Ref(rf) => match rf.obj_type() {
+                ObjectType::Int => {
+                    let int = rf.downcast::<GloomInt>();
+                    int.0.set(int.0.get() / other.assert_int_include_num());
                 }
-            }
-            _ => panic!("{:?} / {:?} ?", self, other)
+                ObjectType::Num => {
+                    let num = rf.downcast::<GloomNum>();
+                    num.0.set(num.0.get() / other.assert_num_include_int());
+                }
+                _ => panic!("{:?} / {:?} ?", self, other),
+            },
+            _ => panic!("{:?} / {:?} ?", self, other),
         }
     }
 }
@@ -482,14 +474,6 @@ pub struct GloomArgs {
 impl GloomArgs {
     #[inline(always)]
     pub fn new(vec: Vec<Value>) -> GloomArgs {
-        GloomArgs {
-            vec
-        }
-    }
-    #[inline(always)]
-    pub fn empty() -> GloomArgs {
-        GloomArgs {
-            vec: Vec::with_capacity(0)
-        }
+        GloomArgs { vec }
     }
 }

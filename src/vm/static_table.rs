@@ -34,30 +34,9 @@ impl StaticTable {
             Slot::Num(num) => Value::Num(num[sub_idx]),
             Slot::Char(ch) => Value::Char(ch[sub_idx]),
             Slot::Bool(bl) => Value::Bool(bl[sub_idx]),
-            Slot::Ref(rf) => Value::Ref(GloomObjRef::clone(rf))
+            Slot::Ref(rf) => Value::Ref(GloomObjRef::clone(rf)),
         }
     }
-    /*#[inline(always)]
-    pub fn read_int(&self, slot_idx : u16, sub_idx : u8) -> i64{
-        self.table.slot(slot_idx).get_int(sub_idx)
-    }
-    #[inline(always)]
-    pub fn read_num(&self, slot_idx : u16, sub_idx : u8) -> f64{
-        self.table.slot(slot_idx).get_num(sub_idx)
-    }
-    #[inline(always)]
-    pub fn read_char(&self, slot_idx : u16, sub_idx : u8) -> char{
-        self.table.slot(slot_idx).get_char(sub_idx)
-    }
-    #[inline(always)]
-    pub fn read_bool(&self, slot_idx : u16, sub_idx : u8) -> bool{
-        self.table.slot(slot_idx).get_bool(sub_idx)
-    }
-    #[inline(always)]
-    pub fn read_ref(&self, slot_idx : u16) -> &GloomObjRef {
-        self.table.slot(slot_idx).get_ref()
-    }
-   */
     #[inline(always)]
     pub fn write_int(&self, slot_idx: u16, sub_idx: u8, int: i64) {
         self.table.slot_mut(slot_idx).set_int(sub_idx, int)
@@ -75,12 +54,36 @@ impl StaticTable {
         self.table.slot_mut(slot_idx).set_bool(sub_idx, bl);
     }
     #[inline(always)]
-    pub fn write_ref_firstly(&self, slot_idx: u16, rf: GloomObjRef) {
-        let slot = self.table.slot_mut(slot_idx).replace(Slot::Ref(ManuallyDrop::new(rf)));
-        if let Slot::Null = slot {} else { panic!("{:?}", slot) }
+    pub fn write_ref(&self, slot_idx: u16, rf: GloomObjRef) -> Option<ManuallyDrop<GloomObjRef>> {
+        match self
+            .table
+            .slot_mut(slot_idx)
+            .replace(Slot::Ref(ManuallyDrop::new(rf)))
+        {
+            Slot::Null => Option::None,
+            Slot::Ref(rf) => Option::Some(rf),
+            _ => panic!(),
+        }
     }
-    #[inline(always)]
-    pub fn replace_ref(&self, slot_idx: u16, rf: GloomObjRef) -> ManuallyDrop<GloomObjRef> {
-        self.table.slot_mut(slot_idx).replace(Slot::Ref(ManuallyDrop::new(rf))).into_ref()
-    }
+    /*#[inline(always)]
+     pub fn read_int(&self, slot_idx : u16, sub_idx : u8) -> i64{
+         self.table.slot(slot_idx).get_int(sub_idx)
+     }
+     #[inline(always)]
+     pub fn read_num(&self, slot_idx : u16, sub_idx : u8) -> f64{
+         self.table.slot(slot_idx).get_num(sub_idx)
+     }
+     #[inline(always)]
+     pub fn read_char(&self, slot_idx : u16, sub_idx : u8) -> char{
+         self.table.slot(slot_idx).get_char(sub_idx)
+     }
+     #[inline(always)]
+     pub fn read_bool(&self, slot_idx : u16, sub_idx : u8) -> bool{
+         self.table.slot(slot_idx).get_bool(sub_idx)
+     }
+     #[inline(always)]
+     pub fn read_ref(&self, slot_idx : u16) -> &GloomObjRef {
+         self.table.slot(slot_idx).get_ref()
+     }
+    */
 }

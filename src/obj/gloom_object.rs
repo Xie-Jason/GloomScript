@@ -53,7 +53,12 @@ impl Object for GloomObject {
     }
 
     fn method(&self, index: u16, status: &GloomStatus) -> RefCount<GloomFunc> {
-        self.class.inner().funcs.get(index as usize).unwrap().clone()
+        self.class
+            .inner()
+            .funcs
+            .get(index as usize)
+            .unwrap()
+            .clone()
     }
 
     fn field(&self, i1: u16, i2: u8) -> Value {
@@ -65,12 +70,10 @@ impl GloomObject {
     #[inline]
     pub fn new(class: RefCount<GloomClass>) -> GloomObjRef {
         let size = class.inner().field_indexer.size();
-        GloomObjRef::new(Rc::new(
-            GloomObject {
-                table: Table::new(size),
-                class,
-            }
-        ))
+        GloomObjRef::new(Rc::new(GloomObject {
+            table: Table::new(size),
+            class,
+        }))
     }
 
     #[inline]
@@ -82,7 +85,7 @@ impl GloomObject {
             Slot::Num(num) => Value::Num(num[sub_idx]),
             Slot::Char(ch) => Value::Char(ch[sub_idx]),
             Slot::Bool(bl) => Value::Bool(bl[sub_idx]),
-            Slot::Ref(rf) => Value::Ref(GloomObjRef::clone(rf))
+            Slot::Ref(rf) => Value::Ref(GloomObjRef::clone(rf)),
         }
     }
 
@@ -103,11 +106,19 @@ impl GloomObject {
         self.table.slot_mut(slot_idx).set_bool(sub_idx, val);
     }
     #[inline]
-    pub fn write_field_ref(&self, slot_idx: u16, val: GloomObjRef) -> Option<ManuallyDrop<GloomObjRef>> {
-        match self.table.slot_mut(slot_idx).replace(Slot::Ref(ManuallyDrop::new(val))) {
+    pub fn write_field_ref(
+        &self,
+        slot_idx: u16,
+        val: GloomObjRef,
+    ) -> Option<ManuallyDrop<GloomObjRef>> {
+        match self
+            .table
+            .slot_mut(slot_idx)
+            .replace(Slot::Ref(ManuallyDrop::new(val)))
+        {
             Slot::Ref(rf) => Option::Some(rf),
             Slot::Null => Option::None,
-            slot => panic!("{:?}", slot)
+            slot => panic!("{:?}", slot),
         }
     }
 }

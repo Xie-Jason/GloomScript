@@ -11,17 +11,20 @@ use crate::obj::refcount::RefCount;
 use crate::stdlib::StdLibKind;
 
 pub struct Importer {
-    file_set : HashSet<String>,
-    std_set : HashSet<StdLibKind>
+    file_set: HashSet<String>,
+    std_set: HashSet<StdLibKind>,
 }
 
 impl Importer {
-    pub fn import_file(name: String, importer: RefCount<Importer>) -> Result<Option<ParsedFile>, Error> {
+    pub fn import_file(
+        name: String,
+        importer: RefCount<Importer>,
+    ) -> Result<Option<ParsedFile>, Error> {
         {
             let mut importer_mut = importer.inner_mut();
             let contains = importer_mut.file_set.contains(name.as_str());
             if contains {
-                return Result::Ok(Option::None)
+                return Result::Ok(Option::None);
             }
             importer_mut.file_set.insert(name.clone());
         }
@@ -31,15 +34,15 @@ impl Importer {
         file.read_to_end(&mut src).unwrap();
         let mut tokenizer = Tokenizer::new(src);
         let (tokens, lines) = tokenizer.tokenize();
-        let parser: Parser = Parser::new(tokens, lines, importer.clone(),name);
+        let parser: Parser = Parser::new(tokens, lines, importer.clone(), name);
         Result::Ok(Option::Some(parser.parse()))
     }
-    pub fn import_std_lib(name : &str, importer : RefCount<Importer>) -> Result<(),String>{
+    pub fn import_std_lib(name: &str, importer: RefCount<Importer>) -> Result<(), String> {
         match StdLibKind::try_from(name) {
             Ok(kind) => {
                 let mut importer = importer.inner_mut();
                 let already_exists = importer.std_set.contains(&kind);
-                if ! already_exists {
+                if !already_exists {
                     importer.std_set.insert(kind);
                 }
                 Result::Ok(())

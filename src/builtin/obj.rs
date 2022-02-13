@@ -53,10 +53,6 @@ impl Object for BuiltinClassObj {
 impl BuiltinClassObj {
     #[inline]
     pub fn new(class: RefCount<BuiltinClass>) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            BuiltinClassObj {
-                class
-            }
-        ))
+        GloomObjRef::new(Rc::new(BuiltinClassObj { class }))
     }
 }

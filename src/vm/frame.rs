@@ -95,13 +95,17 @@ impl Frame {
 
     #[inline]
     pub fn drop_local(&mut self, vm: &GloomVM, slot_idx: u16) {
-        let slot = self.local.get_mut(slot_idx as usize).unwrap().replace(Slot::Null);
+        let slot = self
+            .local
+            .get_mut(slot_idx as usize)
+            .unwrap()
+            .replace(Slot::Null);
         match slot {
             Slot::Null => {}
             Slot::Ref(rf) => {
                 vm.drop_object_manually(rf);
             }
-            slot => panic!("{:?}", slot)
+            slot => panic!("{:?}", slot),
         }
     }
 
@@ -137,7 +141,7 @@ impl Frame {
             Slot::Num(val) => Value::Num(val[sub_idx as usize]),
             Slot::Char(val) => Value::Char(val[sub_idx as usize]),
             Slot::Bool(val) => Value::Bool(val[sub_idx as usize]),
-            Slot::Ref(val) => Value::Ref(GloomObjRef::clone(val))
+            Slot::Ref(val) => Value::Ref(GloomObjRef::clone(val)),
         }
     }
     #[inline]
@@ -157,11 +161,15 @@ impl Frame {
         self.local[slot_idx as usize].set_bool(sub_idx, val);
     }
     #[inline]
-    pub fn write_ref(&mut self, val: GloomObjRef, slot_idx: u16) -> Option<ManuallyDrop<GloomObjRef>> {
+    pub fn write_ref(
+        &mut self,
+        val: GloomObjRef,
+        slot_idx: u16,
+    ) -> Option<ManuallyDrop<GloomObjRef>> {
         match self.local[slot_idx as usize].replace(Slot::Ref(ManuallyDrop::new(val))) {
             Slot::Null => Option::None,
             Slot::Ref(rf) => Option::Some(rf),
-            _ => panic!()
+            _ => panic!(),
         }
     }
 }

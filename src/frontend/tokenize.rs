@@ -74,7 +74,7 @@ impl Tokenizer {
                             self.curr += 1;
                             Token::PlusEq
                         }
-                        _ => Token::Plus
+                        _ => Token::Plus,
                     });
                     lines.push(self.line);
                 }
@@ -88,7 +88,7 @@ impl Tokenizer {
                             self.curr += 1;
                             Token::SubEq
                         }
-                        _ => Token::Sub
+                        _ => Token::Sub,
                     });
                     lines.push(self.line);
                 }
@@ -146,22 +146,20 @@ impl Tokenizer {
                     lines.push(self.line);
                 }
                 // 除 或 注释
-                b'/' => {
-                    match self.peek_u8() {
-                        b'/' => {
-                            self.curr += 1;
-                            self.skip_annotation_line()
-                        }
-                        b'*' => {
-                            self.curr += 1;
-                            self.skip_annotation_block()
-                        }
-                        _ => {
-                            tokens.push(Token::Div);
-                            lines.push(self.line);
-                        }
+                b'/' => match self.peek_u8() {
+                    b'/' => {
+                        self.curr += 1;
+                        self.skip_annotation_line()
                     }
-                }
+                    b'*' => {
+                        self.curr += 1;
+                        self.skip_annotation_block()
+                    }
+                    _ => {
+                        tokens.push(Token::Div);
+                        lines.push(self.line);
+                    }
+                },
                 b'#' => {
                     self.skip_annotation_line();
                 }
@@ -254,7 +252,7 @@ impl Tokenizer {
             "enum" => Token::Enum,
             "as" => Token::As,
             "_" => Token::Underline,
-            _ => Token::Id(Rc::new(id))
+            _ => Token::Id(Rc::new(id)),
         }
     }
     fn parse_str(&mut self) -> Token {
@@ -338,9 +336,7 @@ impl Tokenizer {
             || byte == b'_'
     }
     fn is_valid_header(byte: u8) -> bool {
-        (byte >= b'a' && byte <= b'z')
-            || (byte >= b'A' && byte <= b'Z')
-            || byte == b'_'
+        (byte >= b'a' && byte <= b'z') || (byte >= b'A' && byte <= b'Z') || byte == b'_'
     }
 
     pub(crate) fn new(src: Vec<u8>) -> Tokenizer {

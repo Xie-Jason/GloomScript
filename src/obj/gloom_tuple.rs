@@ -37,7 +37,7 @@ impl Object for GloomTuple {
 
     #[inline]
     fn at(&self, index: &mut usize) -> Option<Value> {
-        let option = self.vec.borrow().get(*index).map(|val| { val.clone() });
+        let option = self.vec.borrow().get(*index).map(|val| val.clone());
         *index += 1;
         option
     }
@@ -63,8 +63,8 @@ impl Debug for GloomTuple {
 
 impl GloomTuple {
     pub fn new(vec: Vec<Value>) -> GloomObjRef {
-        GloomObjRef::new(Rc::new(
-            GloomTuple { vec: RefCell::new(vec) }
-        ))
+        GloomObjRef::new(Rc::new(GloomTuple {
+            vec: RefCell::new(vec),
+        }))
     }
 }
