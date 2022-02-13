@@ -17,4 +17,4 @@ while n > 0 {
     n --
     count ++
 }
-println(count,n)
+println([count,n])

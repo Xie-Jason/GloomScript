@@ -56,7 +56,7 @@ impl Analyzer {
     pub fn analysis(&mut self, mut script: ParsedFile, debug: bool) -> Result<(), AnalysisError> {
         // load types
         // 加载空的定义类型 load empty declared type : class interface and enum
-        self.load_decl(&mut script);
+        self.load_decl(&mut script)?;
         // 加载原类型以及直接定义的函数 load original class interface enum and directly-declared func
         self.load(script)?;
         // 最后加载的脚本文件最先执行 first run the last loaded script file
@@ -284,7 +284,6 @@ impl Analyzer {
         })
     }
 
-    #[inline]
     fn handle_chains(
         &self,
         context: &mut AnalyzeContext,
@@ -1424,7 +1423,7 @@ impl Analyzer {
         if !cond_type.is_bool() {
             return Result::Err(AnalysisError::WhileConditionNotBool {
                 info: context.info(),
-                line: branch.line,
+                line,
                 found: cond_type,
             });
         };
@@ -2320,7 +2319,7 @@ impl Analyzer {
             )));
         }
         for parsed_file in script.imports.iter_mut() {
-            self.load_decl(parsed_file);
+            self.load_decl(parsed_file)?;
         }
         Result::Ok(())
     }
@@ -2566,6 +2565,6 @@ impl<'a> AnalyzeContext<'a> {
                 .add(format!("{:?} line {}", frame_type, line).as_str())
                 .add(" > ");
         }
-        info.add("\r\n")
+        info
     }
 }
