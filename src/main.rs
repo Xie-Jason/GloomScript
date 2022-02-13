@@ -98,6 +98,6 @@ fn parse_file(path : String, debug: bool) -> (GloomStatus, StaticTable) {
     let parsed_file = Importer::import_file(path, importer).unwrap().unwrap();
     // analyse
     let mut analyzer = Analyzer::new();
-    analyzer.analysis(parsed_file, debug).unwrap();
+    analyzer.analysis(parsed_file,debug).unwrap();
     analyzer.result()
 }

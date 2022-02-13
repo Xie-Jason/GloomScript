@@ -1953,7 +1953,7 @@ impl<'a> AnalyzeContext<'a> {
 
     pub fn info(&self) -> String {
         // type => func => expr > expr > expr
-        let mut info = format!("[ {} => ", self.file_name);
+        let mut info = format!(" {} => ", self.file_name);
         match &self.belonged_type {
             DeclaredType::Class(class) => {
                 info = info.add("class ");
@@ -1980,8 +1980,6 @@ impl<'a> AnalyzeContext<'a> {
         for (frame_type, line) in self.expr_stack.iter() {
             info = info.add(format!("{:?} line {}", frame_type, line).as_str()).add(" > ");
         }
-        info.remove(info.len()-1);
-        info.remove(info.len()-1);
-        info.add("] \r\n")
+        info.add("\r\n")
     }
 }
