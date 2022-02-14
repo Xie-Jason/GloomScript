@@ -2444,7 +2444,12 @@ impl Analyzer {
                                 .unwrap()
                                 .inner()
                                 .get_ref_type(generic)
-                                .unwrap(),
+                                .map_err(|err| {
+                                    AnalysisError::GenericError{
+                                        info: "".to_string(),
+                                        error: err
+                                    }
+                                })?
                         ),
                     })
                 } else {

@@ -270,4 +270,10 @@ pub enum AnalysisError {
 
     #[error("declared parent interface {parent} of {inter} is not interface")]
     InterfaceExtendNonInterface { parent: String, inter: String },
+
+    #[error("{info} generic type error {error}")]
+    GenericError{
+        info : String,
+        error : String,
+    }
 }

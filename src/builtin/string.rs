@@ -126,33 +126,35 @@ impl GloomString {
     }
 }
 
-pub fn gloom_string_class() -> BuiltinClass {
-    let mut map = HashMap::new();
-    let mut funcs = Vec::new();
-    let empty_string = Rc::new(String::new());
-    funcs.push(RefCount::new(GloomFunc::new_builtin_fn(
-        Rc::new(String::from("append")),
-        vec![
-            Param::new(empty_string.clone(), DataType::Ref(RefType::String)),
-            Param::new(empty_string.clone(), DataType::Ref(RefType::String)),
-        ],
-        ReturnType::Have(DataType::Ref(RefType::String)),
-        true,
-        Rc::new(|_, args| {
-            let mut iter = args.vec.into_iter();
-            let myself = iter.next().unwrap().assert_into_ref();
-            let mut string = myself.downcast::<GloomString>().0.borrow().clone();
-            let other_ref = iter.next().unwrap().assert_into_ref();
-            let other = other_ref.downcast::<GloomString>();
-            string.push_str(other.0.borrow().as_str());
-            Value::Ref(GloomString::new(string))
-        }),
-    )));
-    map.insert(String::from("append"), 0);
-    BuiltinClass {
-        name: "String".to_string(),
-        map,
-        funcs,
-        get_ref_type_fn: BuiltinClass::none_generic_fn(RefType::String),
+impl BuiltinClass {
+    pub fn gloom_string_class() -> BuiltinClass {
+        let mut map = HashMap::new();
+        let mut funcs = Vec::new();
+        let empty_string = Rc::new(String::new());
+        funcs.push(RefCount::new(GloomFunc::new_builtin_fn(
+            Rc::new(String::from("append")),
+            vec![
+                Param::new(empty_string.clone(), DataType::Ref(RefType::String)),
+                Param::new(empty_string.clone(), DataType::Ref(RefType::String)),
+            ],
+            ReturnType::Have(DataType::Ref(RefType::String)),
+            true,
+            Rc::new(|_, args| {
+                let mut iter = args.vec.into_iter();
+                let myself = iter.next().unwrap().assert_into_ref();
+                let mut string = myself.downcast::<GloomString>().0.borrow().clone();
+                let other_ref = iter.next().unwrap().assert_into_ref();
+                let other = other_ref.downcast::<GloomString>();
+                string.push_str(other.0.borrow().as_str());
+                Value::Ref(GloomString::new(string))
+            }),
+        )));
+        map.insert(String::from("append"), 0);
+        BuiltinClass {
+            name: "String".to_string(),
+            map,
+            funcs,
+            get_ref_type_fn: BuiltinClass::none_generic_fn(RefType::String),
+        }
     }
 }

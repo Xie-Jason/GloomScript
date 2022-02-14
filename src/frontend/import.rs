@@ -35,7 +35,7 @@ impl Importer {
         let mut tokenizer = Tokenizer::new(src);
         let (tokens, lines) = tokenizer.tokenize();
         let parser: Parser = Parser::new(tokens, lines, importer.clone(), name);
-        Result::Ok(Option::Some(parser.parse()))
+        Result::Ok(Option::Some(parser.parse().unwrap()))
     }
     pub fn import_std_lib(name: &str, importer: RefCount<Importer>) -> Result<(), String> {
         match StdLibKind::try_from(name) {

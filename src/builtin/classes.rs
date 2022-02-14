@@ -2,8 +2,6 @@ use std::fmt::{Debug, Formatter};
 
 use hashbrown::HashMap;
 
-use crate::builtin::function::gloom_func_class;
-use crate::builtin::string::gloom_string_class;
 use crate::frontend::status::TypeIndex;
 use crate::obj::func::GloomFunc;
 use crate::obj::refcount::RefCount;
@@ -22,14 +20,16 @@ impl BuiltinClass {
     }
     pub fn classes() -> Vec<RefCount<BuiltinClass>> {
         let mut vec = Vec::new();
-        vec.push(RefCount::new(gloom_string_class()));
-        vec.push(RefCount::new(gloom_func_class()));
+        vec.push(RefCount::new(Self::gloom_string_class()));
+        vec.push(RefCount::new(Self::gloom_func_class()));
+        vec.push(RefCount::new(Self::gloom_array_class()));
         vec
     }
     pub fn class_map() -> HashMap<String, TypeIndex> {
         let mut map = HashMap::new();
         map.insert(String::from("String"), TypeIndex::builtin(0));
         map.insert(String::from("Func"), TypeIndex::builtin(1));
+        map.insert(String::from("Array"), TypeIndex::builtin(2));
         map
     }
     pub fn builtin_type_map() -> HashMap<BuiltinType, u16> {

@@ -39,3 +39,11 @@ let swapIntFn Func<(int,int),(int,int)> = func(int n1,int n2) (int,int) {
 }
 
 println(swapIntFn(7,8))
+
+
+pub func arrayForEach(Array<int> array, Func<int> fn){
+    for item in array {
+        fn(item)
+    }
+}
+arrayForEach([11,22,33,44], func(int n){ println(n) })
