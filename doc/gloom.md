@@ -1,4 +1,4 @@
-##GloomScript
+## GloomScript
 
 ### 特点 Trait
 
@@ -7,9 +7,7 @@
 - 多编程范式，支持部分`FP`风格。函数作为一等公民，支持高阶函数、匿名函数、闭包捕获、立即执行函数。*expression-based*， `if-else`是表达式*expression*而非语句*statement*。
 - 暂未确定：枚举类支持关联类型以实现`Tagged Union`。模式匹配`pattern match `。
 
-### 详细介绍 Details Introduction
-
-####Data Type
+### Data Type
 
 - 基本数据类型|Basic Data Type : `int`  `num` `bool` `char` 。`int`是64位整形；`num`是64位浮点；`char`为32位，这意味着它能容易的支持`Unicode`。
 
@@ -102,7 +100,7 @@
     // 依次打印 'G' 'l' 'o' 'o' 'm'
     ```
 
-####Function
+### Function
 
 - 函数声明与调用
 
@@ -204,7 +202,7 @@
     }
     ```
 
-####Object-Oriented Programing
+### Object-Oriented Programing
 
 - 简化OOP，仅有类和接口。
 - 单继承，多实现，内置类型不能被继承，因为它们是用Rust而非GloomScript实现的。
