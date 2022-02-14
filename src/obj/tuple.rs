@@ -57,7 +57,17 @@ impl Object for GloomTuple {
 
 impl Debug for GloomTuple {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Tuple of {:?}", self.vec.borrow())
+        let mut string = String::with_capacity(16);
+        string.push_str("(");
+        for val in self.vec.borrow().iter() {
+            string.push_str(format!("{:?}, ",val).as_str())
+        }
+        if string.len() > 1 {
+            string.remove(string.len()-1);
+            string.remove(string.len()-1);
+        }
+        string.push_str(")");
+        write!(f, "{}", string)
     }
 }
 

@@ -10,7 +10,7 @@ use crate::obj::func::{FuncBody, GloomFunc, GloomFuncObj};
 use crate::obj::gloom_class::GloomClassObj;
 use crate::obj::gloom_enum::GloomEnum;
 use crate::obj::gloom_object::GloomObject;
-use crate::obj::gloom_tuple::GloomTuple;
+use crate::obj::tuple::GloomTuple;
 use crate::obj::object::{GloomObjRef, ObjectType};
 use crate::obj::range::RangeIter;
 use crate::obj::refcount::RefCount;

@@ -8,7 +8,6 @@ use hashbrown::HashMap;
 
 use crate::frontend::ast::BlockType;
 use crate::frontend::error::AnalysisError;
-use crate::frontend::error::AnalysisError::{NoFieldType, UnknownField};
 use crate::frontend::ops::LeftValueOp;
 use crate::frontend::token::Token;
 use crate::obj::func::FuncInfo;
@@ -73,13 +72,11 @@ impl Analyzer {
         // functions in classes
         for class in self.status.classes.iter() {
             let class = class.clone();
-            let file_index = class.inner().file_index;
             for func in class.inner().funcs.iter() {
                 let func = func.clone();
                 let mut func_ref = func.inner_mut();
                 self.analysis_func(
                     &mut *func_ref,
-                    file_index,
                     Option::None,
                     DeclaredType::Class(class.clone()),
                 )?;
@@ -88,13 +85,11 @@ impl Analyzer {
         // function in enums
         for enum_class in self.status.enums.iter() {
             let enum_class = enum_class.clone();
-            let file_index = enum_class.inner().file_index;
             for func in enum_class.inner().funcs.iter() {
                 let func = func.clone();
                 let mut func_ref = func.inner_mut();
                 self.analysis_func(
                     &mut *func_ref,
-                    file_index,
                     Option::None,
                     DeclaredType::Enum(enum_class.clone()),
                 )?;
@@ -104,22 +99,18 @@ impl Analyzer {
         for func in self.status.funcs.iter() {
             let func = func.clone();
             let mut func_ref = func.inner_mut();
-            let file_index = func_ref.info.file_index;
             self.analysis_func(
                 &mut *func_ref,
-                file_index,
                 Option::None,
                 DeclaredType::IsNot,
             )?;
         }
         // script executable body
         for script_body in self.status.script_bodies.iter() {
-            let file_index = script_body.inner().file_index;
             let script_body_rc = script_body.clone();
             let mut script_body_ref = script_body_rc.inner_mut();
             self.analysis_func(
                 &mut script_body_ref.func,
-                file_index,
                 Option::None,
                 DeclaredType::IsNot,
             )?;
@@ -133,7 +124,6 @@ impl Analyzer {
     fn analysis_func(
         &self,
         func: &mut GloomFunc,
-        file_index: u16,
         out_env: Option<&AnalyzeContext>,
         belonged_type: DeclaredType,
     ) -> Result<(), AnalysisError> {
@@ -143,8 +133,8 @@ impl Analyzer {
             func.info.name.clone(),
             belonged_type,
             func_return_type.clone(),
-            file_index,
-            self.paths.get(file_index as usize).unwrap().as_str(),
+            func.info.file_index,
+            self.paths.get(func.info.file_index as usize).unwrap().as_str(),
             out_env,
         );
         // load param into symbol table and allocate local slot for parameters
@@ -1300,7 +1290,6 @@ impl Analyzer {
                 };
                 self.analysis_func(
                     &mut func,
-                    context.file_index,
                     Option::Some(context),
                     context.belonged_type.clone(),
                 )?;
@@ -2324,18 +2313,18 @@ impl Analyzer {
         Result::Ok(())
     }
     fn load(&mut self, script: ParsedFile) -> Result<(), AnalysisError> {
-        let index = script.index;
+        let file_index = script.index;
         for (class, _) in script.classes.into_iter() {
-            self.parsed_classes.push((RefCount::new(class), index));
+            self.parsed_classes.push((RefCount::new(class), file_index));
         }
         for (interface, _) in script.interfaces.into_iter() {
-            self.parsed_interfaces.push((interface, index));
+            self.parsed_interfaces.push((interface, file_index));
         }
         for (enum_class, _) in script.enums.into_iter() {
-            self.parsed_enums.push((RefCount::new(enum_class), index));
+            self.parsed_enums.push((RefCount::new(enum_class), file_index));
         }
         for (name, func, is_pub) in script.funcs.into_iter() {
-            let index = self.status.funcs.len() as u16;
+            let func_index = self.status.funcs.len() as u16;
             let mut params = Vec::with_capacity(func.params.len());
             for (name, parsed_type) in func.params.into_iter() {
                 params.push(Param::new(name, self.get_type(&parsed_type, script.index)?));
@@ -2346,7 +2335,7 @@ impl Analyzer {
             };
             match self.func_map.entry(name.deref().clone()) {
                 Entry::Vacant(entry) => {
-                    entry.insert((index, false, is_pub, script.index));
+                    entry.insert((func_index, false, is_pub, script.index));
                 }
                 Entry::Occupied(_) => {
                     return Result::Err(AnalysisError::FnAlreadyOccupied {
@@ -2357,7 +2346,7 @@ impl Analyzer {
             }
             self.status.funcs.push(RefCount::new(GloomFunc::new(
                 name.clone(),
-                index,
+                file_index,
                 params,
                 return_type,
                 func.body,
@@ -2369,12 +2358,12 @@ impl Analyzer {
             .push(RefCount::new(ScriptBody::new(
                 GloomFunc::new(
                     Rc::new(String::from("script body")),
-                    index,
+                    file_index,
                     Vec::with_capacity(0),
                     ReturnType::Void,
                     script.statements,
                 ),
-                index,
+                file_index,
             )));
         for file in script.imports.into_iter() {
             self.load(file)?;
