@@ -2421,6 +2421,10 @@ impl Analyzer {
             "num" => return Result::Ok(DataType::Num),
             "char" => return Result::Ok(DataType::Char),
             "bool" => return Result::Ok(DataType::Bool),
+            "Int" => return Result::Ok(DataType::Ref(RefType::Int)),
+            "Num" => return Result::Ok(DataType::Ref(RefType::Num)),
+            "Char" => return Result::Ok(DataType::Ref(RefType::Char)),
+            "Bool" => return Result::Ok(DataType::Ref(RefType::Bool)),
             _ => {}
         }
         match self.type_map.get(single_type.name.as_str()) {

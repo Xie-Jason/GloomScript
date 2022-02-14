@@ -12,9 +12,32 @@ This project is an interpreter implementation of GloomScript in Rust, which has 
 of lexer parser analyzer and bytecode-compiler with a bytecode interpreter in backend. recently, this project will add
 async-runtime coroutine and some standard lib
 
+### Hello World
+下载项目，编译 | download project, compile
+
+新建 `hello.gs` 文件，并写入如下代码 | Create `hello.gs`, type code:
+
+```gs
+println("hello GloomScript")
+```
+
+在控制台当前目录输入如下指令 | type command like this 
+
+```shell
+cargo run run hello.gs
+```
+
+结果应当如下 | the result :
+
+```txt
+hello GloomScript
+```
+
 ### GloomScript language
 
-GloomScript 是一个多编程范式、静态类型、基于表达式的脚本语言，同样由我设计。
+GloomScript 是一个多编程范式、强类型检查、静态类型、基于表达式的脚本语言。
+
+[GloomScript语言文档](https://github.com/Xie-Jason/GloomScript/blob/master/doc/gloom.md)
 
 这个目录有一些用于测试和示例的GloomScript代码： [/gloom](https://github.com/Xie-Jason/GloomScript/tree/master/gloom)
 如果项目处于稳定阶段，那么其中出现的代码应当是解释器可执行的。

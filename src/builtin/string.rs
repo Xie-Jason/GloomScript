@@ -19,7 +19,7 @@ pub struct GloomString(pub RefCell<String>);
 
 impl Debug for GloomString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.borrow())
+        write!(f, "\"{}\"", self.0.borrow())
     }
 }
 
