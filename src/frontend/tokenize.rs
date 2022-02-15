@@ -88,6 +88,10 @@ impl Tokenizer {
                             self.curr += 1;
                             Token::SubEq
                         }
+                        b'>' => {
+                            self.curr += 1;
+                            Token::SingleArrow
+                        }
                         _ => Token::Sub,
                     });
                     lines.push(self.line);
@@ -139,7 +143,7 @@ impl Tokenizer {
                         tokens.push(Token::Eqs);
                     } else if self.peek_u8() == b'>' {
                         self.curr += 1;
-                        tokens.push(Token::Arrow);
+                        tokens.push(Token::DoubleArrow);
                     } else {
                         tokens.push(Token::Eq);
                     }

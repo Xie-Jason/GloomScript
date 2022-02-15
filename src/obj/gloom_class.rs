@@ -34,6 +34,12 @@ pub struct GloomClass {
 pub type IsMemFunc = bool;
 pub type IsPub = bool;
 
+pub struct InterfaceImpl{
+    interface : RefCount<Interface>,
+    fn_table : Vec<u16>,
+    // index : interface_fn_index, elem : class_fn_index
+}
+
 impl GloomClass {
     pub fn new(class_name: Rc<String>, file_index: u16, class_index: u16) -> GloomClass {
         GloomClass {

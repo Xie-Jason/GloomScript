@@ -1,6 +1,9 @@
 import "./AfterTest.gs"
 
-let forCount = 0;
+let a : num = 1.1
+println(a)
+
+let forCount : int = 0;
 for i in (0,100,1){
     forCount ++
 }

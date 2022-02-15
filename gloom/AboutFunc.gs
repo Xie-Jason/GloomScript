@@ -6,6 +6,11 @@ func printInt2(int n) int {
     println(n)
     n
 }
+func printInt3(int n) -> int {
+    println(n)
+    n
+}
+
 let n = printInt1(111)
 
 // Func没有泛型时，不能有参数或返回值
@@ -34,7 +39,7 @@ let max Func<(int,int),int> = func(int n1,int n2) int {
 println(max(5,6))
 
 // 传入两个int值，返回一个含有两个int的元组
-let swapIntFn Func<(int,int),(int,int)> = func(int n1,int n2) (int,int) {
+let swapIntFn : Func<(int,int),(int,int)> = func(int n1,int n2) -> (int,int) {
     (n2,n1)
 }
 

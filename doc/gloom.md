@@ -155,7 +155,7 @@
     let fn = func(int n1,int n2) Func<(int,int)> {
         // 返回一个匿名函数
         return func(int i1,int i2){
-            // 将 i n捕获进来
+            // 将 n1 n2 捕获进来
             println([n1,n2,i1,i2]);
         }
     }(100,223)

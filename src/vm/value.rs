@@ -17,7 +17,7 @@ impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Int(i) => write!(f, "{}", i),
-            Value::Num(i) => write!(f, "{}", i),
+            Value::Num(i) => write!(f, "{:.5}", i),
             Value::Char(i) => write!(f, "'{}'", i),
             Value::Bool(i) => write!(f, "{}", i),
             Value::Ref(rf) => write!(f, "{:?}", rf),

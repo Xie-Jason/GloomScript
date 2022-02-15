@@ -60,7 +60,12 @@ pub enum Token {
     // !
     Dot,
     // .
-    Colon, // :
+    Colon,
+    // :
+    DoubleArrow,
+    // =>
+    SingleArrow,
+    // ->
 
     // key words
     Let,
@@ -78,7 +83,6 @@ pub enum Token {
     Interface,
     Import,
     Match,
-    Arrow,
     Underline,
     Impl,
     In,
@@ -127,6 +131,7 @@ impl Debug for Token {
                 Token::Not => "'!'",
                 Token::Dot => "'.'",
                 Token::Colon => "':'",
+                Token::SingleArrow => "->",
                 Token::Let => "'let'",
                 Token::Return => "'return'",
                 Token::Func => "'func'",
@@ -142,7 +147,7 @@ impl Debug for Token {
                 Token::Interface => "'interface'",
                 Token::Import => "'import'",
                 Token::Match => "'match'",
-                Token::Arrow => "'=>'",
+                Token::DoubleArrow => "'=>'",
                 Token::Underline => "'_'",
                 Token::Impl => "'impl'",
                 Token::In => "'in'",

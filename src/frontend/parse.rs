@@ -83,6 +83,10 @@ impl Parser {
                     let mut parsed_type: Option<ParsedType> = None;
                     if self.test_next(Token::Eq) {
                         self.forward();
+                    } else if self.test_next(Token::Colon) {
+                        self.forward();
+                        parsed_type = Some(self.parse_type());
+                        self.assert_next(Token::Eq)?;
                     } else {
                         parsed_type = Some(self.parse_type());
                         self.assert_next(Token::Eq)?;
@@ -98,6 +102,10 @@ impl Parser {
                     let mut parsed_type: Option<ParsedType> = None;
                     if self.test_next(Token::Eq) {
                         self.forward();
+                    } else if self.test_next(Token::Colon) {
+                        self.forward();
+                        parsed_type = Some(self.parse_type());
+                        self.assert_next(Token::Eq)?;
                     } else {
                         parsed_type = Some(self.parse_type());
                         self.assert_next(Token::Eq)?;
@@ -180,6 +188,10 @@ impl Parser {
                         let mut parsed_type: Option<ParsedType> = None;
                         if self.test_next(Token::Eq) {
                             self.forward();
+                        } else if self.test_next(Token::Colon) {
+                            self.forward();
+                            parsed_type = Some(self.parse_type());
+                            self.assert_next(Token::Eq)?;
                         } else {
                             parsed_type = Some(self.parse_type());
                             self.assert_next(Token::Eq)?;
@@ -584,7 +596,7 @@ impl Parser {
                         _ => {
                             self.backward();
                             let try_matched = self.expr()?;
-                            self.assert_next(Token::Arrow)?;
+                            self.assert_next(Token::DoubleArrow)?;
                             if self.test_next(Token::LBrace) {
                                 self.forward();
                                 let statements = self.statements()?;
@@ -688,6 +700,9 @@ impl Parser {
                     param_vec.push((param_name, param_type));
                 }
             }
+        }
+        if self.test_next(Token::SingleArrow) {
+            self.forward();
         }
         let mut return_type = Option::None;
         if !self.test_next(Token::LBrace) {
