@@ -113,13 +113,8 @@
         println(n)
         return n
     }
-    // 等价于
+    // 等价于('->'可以省略)
     func printInt(int n) -> int {
-        println(n)
-        n
-    }
-    // 其中'->'可以省略
-    func printInt(int n) int {
         println(n)
         n
     }
@@ -164,7 +159,7 @@
         // 返回一个匿名函数
         return func(int i1,int i2){
             // 将 n1 n2 捕获进来
-            println([n1,n2,i1,i2]);
+            println([n1,n2,i1,i2])
         }
     }(100,223)
     println(fn) 
@@ -176,7 +171,7 @@
     // 上面可以改写成如下
     func(int n1,int n2) -> Func<(int,int)> {
         return func(int i1,int i2){
-            println([n1,n2,i1,i2]);
+            println([n1,n2,i1,i2])
         }
     }(100,223)(11,22)
     ```
