@@ -46,6 +46,9 @@
     声明时必须初始化。
 
     ```js
+    // Rust风格的let语句
+    let variable : Type = Type.factoryFunc()
+    // ':'可以被省略
     let variable Type = Type.factoryFunc()
     // 其中Type是可选的，不写也可由类型推导出来
     let variable = Type.factoryFunc()
@@ -111,12 +114,17 @@
         return n
     }
     // 等价于
+    func printInt(int n) -> int {
+        println(n)
+        n
+    }
+    // 其中'->'可以省略
     func printInt(int n) int {
         println(n)
         n
     }
-    // 因为函数的最后一个表达式将被返回
-    
+    // 因为函数的最后一个表达式将被返回  
+  
     // 调用
     let n = printInt(111)
     ```
@@ -152,7 +160,7 @@
 - 支持高阶函数，函数可以作为参数和返回值
 
     ```go
-    let fn = func(int n1,int n2) Func<(int,int)> {
+    let fn = func(int n1,int n2) -> Func<(int,int)> {
         // 返回一个匿名函数
         return func(int i1,int i2){
             // 将 n1 n2 捕获进来
@@ -166,7 +174,7 @@
     // 打印 [100, 223, 11, 22]
     
     // 上面可以改写成如下
-    func(int n1,int n2) Func<(int,int)> {
+    func(int n1,int n2) -> Func<(int,int)> {
         return func(int i1,int i2){
             println([n1,n2,i1,i2]);
         }
