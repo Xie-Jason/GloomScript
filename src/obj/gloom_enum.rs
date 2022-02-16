@@ -9,7 +9,7 @@ use hashbrown::HashMap;
 use crate::frontend::ast::Statement;
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{FuncBody, FuncInfo, GloomFunc, Param, ReturnType};
-use crate::obj::gloom_class::IsPub;
+use crate::obj::class::IsPub;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};

@@ -43,12 +43,12 @@
 
 - 变量声明|*variable declare*
 
-    声明时必须初始化。
+    声明时必须初始化。语句结尾的';'是可写可不写的。
 
     ```js
     // Rust风格的let语句
-    let variable : Type = Type.factoryFunc()
-    // ':'可以被省略
+    let variable : Type = Type.factoryFunc();
+    // ':'和结尾的';'可以被省略
     let variable Type = Type.factoryFunc()
     // 其中Type是可选的，不写也可由类型推导出来
     let variable = Type.factoryFunc()

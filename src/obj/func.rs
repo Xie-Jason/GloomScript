@@ -165,6 +165,28 @@ impl GloomFunc {
             body: FuncBody::Jit(func),
         }
     }
+    pub fn new_abstract_fn(
+        name: Rc<String>,
+        params: Vec<Param>,
+        return_type: ReturnType,
+        need_self: bool,
+        file_index : u16
+    ) -> GloomFunc {
+        GloomFunc{
+            info: FuncInfo {
+                name,
+                params,
+                return_type,
+                captures: Vec::with_capacity(0),
+                drop_slots: Vec::with_capacity(0),
+                need_self,
+                file_index,
+                local_size: 0,
+                stack_size: 0
+            },
+            body: FuncBody::None
+        }
+    }
     #[inline]
     pub fn handle_instance_func(&mut self, class: &DataType) {
         let len = self.info.params.len();
@@ -275,6 +297,19 @@ impl ReturnType {
             ReturnType::Have(tp) => tp,
         }
     }
+
+    pub fn belongs_to(&self, other : &ReturnType) -> bool{
+        match self {
+            ReturnType::Void => match other {
+                ReturnType::Void => true,
+                ReturnType::Have(_) => false,
+            },
+            ReturnType::Have(self_type) => match other {
+                ReturnType::Void => false,
+                ReturnType::Have(other_type) => self_type.belong_to(other_type),
+            },
+        }
+    }
 }
 
 impl Debug for ReturnType {
@@ -292,7 +327,7 @@ impl Display for ReturnType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ReturnType::Void => write!(f, "void"),
-            ReturnType::Have(typ) => write!(f, "{:?}", typ),
+            ReturnType::Have(typ) => write!(f, "{}", typ),
         }
     }
 }

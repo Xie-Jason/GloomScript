@@ -23,7 +23,7 @@ use crate::{
         status::{GloomStatus, MetaType, TypeIndex},
     },
     obj::func::{Capture, FuncBody, GloomFunc, Param, ReturnType},
-    obj::gloom_class::{GloomClass, IsPub},
+    obj::class::{GloomClass, IsPub},
     obj::gloom_enum::GloomEnumClass,
     obj::interface::{AbstractFunc, Interface},
     obj::refcount::RefCount,
@@ -386,7 +386,8 @@ impl Analyzer {
                                         .funcs
                                         .get(*index as usize)
                                         .unwrap()
-                                        .func_type();
+                                        .inner()
+                                        .get_type()
                                 }
                                 None => {
                                     return Result::Err(AnalysisError::UnknownField {
@@ -606,31 +607,9 @@ impl Analyzer {
                                     match class_ref.map.get(func_name.deref()) {
                                         Some(index) => {
                                             let target_func =
-                                                class_ref.funcs.get(*index as usize).unwrap();
-                                            let mut params =
-                                                Vec::with_capacity(target_func.param_types.len());
-                                            let empty_name = Rc::new("".to_string());
-                                            for param_type in target_func.param_types.iter() {
-                                                params.push(Param::new(
-                                                    empty_name.clone(),
-                                                    param_type.clone(),
-                                                ));
-                                            }
-                                            function = RefCount::new(GloomFunc {
-                                                info: FuncInfo {
-                                                    name: empty_name,
-                                                    params,
-                                                    return_type: ReturnType::Void,
-                                                    captures: Vec::with_capacity(0),
-                                                    drop_slots: Vec::with_capacity(0),
-                                                    local_size: 0,
-                                                    need_self: false,
-                                                    file_index: 0,
-                                                    stack_size: 0,
-                                                },
-                                                body: FuncBody::None,
-                                            });
-                                            if !target_func.have_self {
+                                                class_ref.funcs.get(*index as usize).unwrap().inner();
+                                            function = class_ref.funcs.get(*index as usize).unwrap().clone();
+                                            if !target_func.info.need_self {
                                                 return Result::Err(
                                                     AnalysisError::StaticFnNotMethod {
                                                         info: context.info(),
@@ -641,7 +620,7 @@ impl Analyzer {
                                             }
                                             *need_self = true;
                                             *func = VarId::Index(*index, 0);
-                                            match &target_func.return_type {
+                                            match &target_func.info.return_type {
                                                 ReturnType::Void => {
                                                     if chain_idx != chains_len - 1 {
                                                         return Result::Err(
@@ -2038,7 +2017,7 @@ impl Analyzer {
             let body: Vec<Statement> = std::mem::replace(&mut func.body, Vec::with_capacity(0));
             class
                 .inner_mut()
-                .add_func(*is_pub, name.clone(), params, return_type, body);
+                .add_func(*is_pub, name.clone(), params, return_type, body)?;
         }
         // handle instance funcs
         class.inner().handle_instance_func(class.clone());
@@ -2065,7 +2044,7 @@ impl Analyzer {
                             .get(label.index as usize)
                             .unwrap()
                             .clone();
-                        class.inner_mut().add_impl(interface);
+                        class.inner_mut().add_impl(interface)?;
                     } else {
                         return Result::Err(AnalysisError::UsedPrivateType {
                             info: "".to_string(),
@@ -2166,12 +2145,16 @@ impl Analyzer {
         }
         for (name, param_types, return_type) in parsed_interface.funcs.iter() {
             let mut param_data_types = Vec::with_capacity(param_types.len());
-            let mut have_self = false;
+            let mut need_self = false;
+            let empty_name = Rc::new(String::with_capacity(0));
             for (idx, parsed_type) in param_types.iter().enumerate() {
                 param_data_types.push(if let ParsedType::MySelf = parsed_type {
                     if idx == 0 {
-                        have_self = true;
-                        DataType::Ref(RefType::Interface(interface.clone()))
+                        need_self = true;
+                        Param::new(
+                            empty_name.clone(),
+                            DataType::Ref(RefType::Interface(interface.clone()))
+                        )
                     } else {
                         return Result::Err(AnalysisError::UnexpectedSelf {
                             no: idx,
@@ -2180,7 +2163,10 @@ impl Analyzer {
                         });
                     }
                 } else {
-                    self.get_type(parsed_type, *file_index)?
+                    Param::new(
+                        empty_name.clone(),
+                        self.get_type(parsed_type, *file_index)?
+                    )
                 });
             }
             let return_type = match return_type {
@@ -2199,12 +2185,13 @@ impl Analyzer {
                     })
                 }
             }
-            interface.inner_mut().add_func(AbstractFunc {
-                name: name.clone(),
-                param_types: param_data_types,
+            interface.inner_mut().add_func(RefCount::new (GloomFunc::new_abstract_fn(
+                name.clone(),
+                param_data_types,
                 return_type,
-                have_self,
-            });
+                need_self,
+                *file_index
+            )))
         }
         Result::Ok(())
     }

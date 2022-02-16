@@ -4,7 +4,7 @@ use crate::builtin::classes::BuiltinClass;
 use crate::builtin::funcs::BuiltInFuncs;
 use crate::frontend::script::ScriptBody;
 use crate::obj::func::GloomFunc;
-use crate::obj::gloom_class::GloomClass;
+use crate::obj::class::GloomClass;
 use crate::obj::gloom_enum::GloomEnumClass;
 use crate::obj::interface::Interface;
 use crate::obj::refcount::RefCount;

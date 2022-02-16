@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 
 use crate::obj::func::ReturnType;
-use crate::obj::gloom_class::GloomClass;
+use crate::obj::class::GloomClass;
 use crate::obj::gloom_enum::GloomEnumClass;
 use crate::obj::interface::Interface;
 use crate::obj::refcount::RefCount;

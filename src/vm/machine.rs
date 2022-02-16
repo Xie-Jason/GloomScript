@@ -7,7 +7,7 @@ use crate::builtin::queue::{GloomQueue, RawQueue};
 use crate::bytecode::code::ByteCode;
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{FuncBody, GloomFunc, GloomFuncObj};
-use crate::obj::gloom_class::GloomClassObj;
+use crate::obj::class::GloomClassObj;
 use crate::obj::gloom_enum::GloomEnum;
 use crate::obj::gloom_object::GloomObject;
 use crate::obj::tuple::GloomTuple;

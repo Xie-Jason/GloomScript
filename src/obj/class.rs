@@ -8,6 +8,7 @@ use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
 
 use crate::frontend::ast::Statement;
+use crate::frontend::error::AnalysisError;
 use crate::frontend::index::SlotIndexer;
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{GloomFunc, GloomFuncObj, Param, ReturnType};
@@ -21,7 +22,7 @@ use crate::vm::value::Value;
 pub struct GloomClass {
     pub name: Rc<String>,
     parent: Option<RefCount<GloomClass>>,
-    impls: Vec<RefCount<Interface>>,
+    impls: Vec<InterfaceImpl>,
     pub map: HashMap<String, (u16, u8, IsPub, IsMemFunc)>,
     pub field_indexer: SlotIndexer,
     pub funcs: Vec<RefCount<GloomFunc>>,
@@ -34,6 +35,7 @@ pub struct GloomClass {
 pub type IsMemFunc = bool;
 pub type IsPub = bool;
 
+#[derive(Debug, Clone)]
 pub struct InterfaceImpl{
     interface : RefCount<Interface>,
     fn_table : Vec<u16>,
@@ -69,68 +71,76 @@ impl GloomClass {
 
     // 最后再调用，因为会检查接口抽象方法是否实现 last to call this function,
     // because this function will check the abstract functions declared in the interface are implemented by this class or not
-    pub fn add_impl(&mut self, interface: RefCount<Interface>) {
-        for abstract_func in &interface.inner().funcs {
-            let name = &abstract_func.name;
-            let param_types = &abstract_func.param_types;
-            let return_type = &abstract_func.return_type;
+    pub fn add_impl(&mut self, interface_rf: RefCount<Interface>) -> Result<(),AnalysisError> {
+        let interface = interface_rf.inner();
+        let mut fn_table = Vec::with_capacity(interface.funcs.len());
+        for abstract_func in interface.funcs.iter() {
+            let abstract_func = abstract_func.inner();
+            let name = &abstract_func.info.name;
+            let expect_params = &abstract_func.info.params;
+            let expect_return_type = &abstract_func.info.return_type;
             match self.map.get(name.as_str()) {
-                None => panic!(
-                    "function {} that declared at interface {} need be implemented by class {}",
-                    name,
-                    interface.inner().name,
-                    self.name
-                ),
+                None => return Result::Err(AnalysisError::FnNotImpl {
+                    class: self.name.to_string(),
+                    interface: interface.name.to_string(),
+                    func: name.to_string()
+                }),
                 Some((index, _, _, is_func)) => {
+                    fn_table.push(*index);
                     if !is_func {
-                        panic!(
-                            "{} in class {} is not a function but a field with type {:?}",
-                            name,
-                            self.name,
-                            self.field_indexer.get_type(*index)
-                        )
+                        return Result::Err(AnalysisError::FnNotImpl {
+                            class: self.name.to_string(),
+                            interface: interface.name.to_string(),
+                            func: name.to_string()
+                        })
                     }
                     // check param type and return type
                     let func = self.funcs.get(*index as usize).unwrap();
                     let func_ref = func.inner_mut();
-                    let params = &func_ref.info.params;
+                    let found_params = &func_ref.info.params;
                     let real_return_type = &func_ref.info.return_type;
-                    if !real_return_type.eq(return_type) {
-                        panic!("the return type of function {} that declared in interface {} is {:?} but in fact found {:?} in the implemented class {}",
-                               name,
-                               interface.inner().name,
-                               return_type,
-                               real_return_type,
-                               self.name)
+                    if !real_return_type.belongs_to(expect_return_type) {
+                        return Result::Err(AnalysisError::MismatchedImplReturnType {
+                            func: name.to_string(),
+                            inter: interface.name.to_string(),
+                            class: self.name.to_string(),
+                            expect: expect_return_type.clone(),
+                            found: real_return_type.clone()
+                        })
                     }
-                    if params.len() != param_types.len() {
-                        panic!("the params length of function {} that declared in interface {} is different from the implementation function in class {}",
-                               name,
-                               interface.inner().name,
-                               self.name)
+                    if found_params.len() != expect_params.len() {
+                        return Result::Err(AnalysisError::MismatchImplParamLen {
+                            func: name.to_string(),
+                            inter: interface.name.to_string(),
+                            class: self.name.to_string(),
+                            expect: expect_params.len(),
+                            found: found_params.len()
+                        })
                     }
-                    let mut equal = true;
-                    let mut index = 0;
-                    for param in params.iter() {
-                        let real_type = &param.data_type;
-                        let found_type = param_types.get(index).unwrap();
-                        index += 1;
-                        if !found_type.belong_to(real_type) {
-                            equal = false;
-                            break;
+                    let param_iter
+                        = found_params.iter().zip(expect_params.iter()).enumerate();
+                    for (idx, (found_param, expect_param)) in param_iter {
+                        let expect_type = &expect_param.data_type;
+                        let found_type = &found_param.data_type;
+                        if !found_type.belong_to(expect_type) {
+                            return Result::Err(AnalysisError::MismatchedImplParamType {
+                                idx: idx + 1,
+                                func: name.to_string(),
+                                inter: interface.name.to_string(),
+                                class: self.name.to_string(),
+                                expect: expect_type.clone(),
+                                found: found_type.clone()
+                            })
                         }
-                    }
-                    if !equal {
-                        panic!("the param types of function {} that declared in interface {} is {:?}, which different from the implemented function in class {}",
-                               name,
-                               interface.inner().name,
-                               param_types,
-                               self.name)
                     }
                 }
             }
         }
-        self.impls.push(interface);
+        self.impls.push(InterfaceImpl{
+            interface: interface_rf.clone(),
+            fn_table
+        });
+        Result::Ok(())
     }
 
     pub fn add_field(&mut self, is_pub: bool, field_name: String, data_type: DataType) {
@@ -147,17 +157,17 @@ impl GloomClass {
         params: Vec<Param>,
         return_type: ReturnType,
         body: Vec<Statement>,
-    ) {
+    ) -> Result<(),AnalysisError> {
         let index = self.funcs.len() as u16;
         match self.map.entry(func_name.deref().clone()) {
             Entry::Vacant(entry) => {
                 entry.insert((index, 0, is_pub, true));
             }
-            Entry::Occupied(entry) => {
-                panic!(
-                    "the function name {} of class {} is already occupied : {:?}",
-                    func_name, self.name, entry
-                )
+            Entry::Occupied(_) => {
+                return Result::Err(AnalysisError::FnAlreadyOccupied {
+                    symbol: func_name.to_string(),
+                    typ: self.name.to_string()
+                })
             }
         }
         // found drop fn
@@ -175,6 +185,7 @@ impl GloomClass {
             return_type,
             body,
         )));
+        Result::Ok(())
     }
 
     #[inline]
@@ -198,7 +209,7 @@ impl GloomClass {
     #[inline]
     pub fn is_impl_from(&self, interface: &RefCount<Interface>) -> bool {
         for real_impl in self.impls.iter() {
-            if real_impl.eq(interface) || real_impl.inner().derived_from(interface) {
+            if real_impl.interface.eq(interface) || real_impl.interface.inner().derived_from(interface) {
                 return true;
             }
         }
