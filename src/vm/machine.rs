@@ -1,5 +1,6 @@
-use std::collections::VecDeque;
-use std::mem::{transmute, ManuallyDrop};
+extern crate alloc;
+use alloc::collections::VecDeque;
+use core::mem::{transmute, ManuallyDrop};
 
 use crate::builtin::array::{GloomArray, RawArray};
 use crate::builtin::obj::BuiltinClassObj;
@@ -7,7 +8,7 @@ use crate::builtin::queue::{GloomQueue, RawQueue};
 use crate::bytecode::code::ByteCode;
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{FuncBody, GloomFunc, GloomFuncObj};
-use crate::obj::class::GloomClassObj;
+use crate::obj::gloom_class::GloomClassObj;
 use crate::obj::gloom_enum::GloomEnum;
 use crate::obj::gloom_object::GloomObject;
 use crate::obj::tuple::GloomTuple;

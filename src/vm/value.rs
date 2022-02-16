@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Formatter};
+use core::fmt::{Debug, Formatter};
 
 use crate::builtin::boxed::{GloomBool, GloomChar, GloomInt, GloomNum};
 use crate::obj::object::{GloomObjRef, ObjectType};

@@ -1,8 +1,9 @@
 use std::cell::{Ref, RefCell, RefMut};
-use std::fmt::{Debug, Formatter};
-use std::hash::{Hash, Hasher};
-use std::ops::Deref;
-use std::rc::Rc;
+use core::fmt::{Debug, Formatter};
+use core::hash::{Hash, Hasher};
+use core::ops::Deref;
+extern crate alloc;
+use alloc::rc::Rc;
 
 #[derive(Eq)]
 pub struct RefCount<T> {

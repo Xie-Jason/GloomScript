@@ -1,12 +1,13 @@
 use std::any::Any;
-use std::fmt::{Debug, Formatter};
-use std::mem::ManuallyDrop;
-use std::ops::Deref;
-use std::rc::Rc;
+use core::fmt::{Debug, Formatter};
+use core::mem::ManuallyDrop;
+use core::ops::Deref;
+extern crate alloc;
+use alloc::rc::Rc;
 
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::GloomFunc;
-use crate::obj::class::GloomClass;
+use crate::obj::gloom_class::GloomClass;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::table::Table;

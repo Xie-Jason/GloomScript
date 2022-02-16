@@ -1,7 +1,8 @@
+extern crate alloc;
 use std::any::Any;
 use std::cell::RefCell;
-use std::fmt::{Debug, Formatter};
-use std::rc::Rc;
+use core::fmt::{Debug, Formatter};
+use alloc::rc::Rc;
 use hashbrown::HashMap;
 use crate::builtin::classes::BuiltinClass;
 

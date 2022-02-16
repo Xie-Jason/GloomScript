@@ -1,7 +1,8 @@
 use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
+use core::fmt::{Debug, Display, Formatter};
+use core::ops::{Deref, DerefMut};
+extern crate alloc;
+use alloc::rc::Rc;
 
 use crate::frontend::ast::{
     BinOpVec, Chain, Construction, ExprType, Expression, ForIter, ForLoop, FuncExpr, IfBranch,
@@ -139,7 +140,10 @@ impl Parser {
                             if start_with_point {
                                 path.remove(0);
                                 let mut new_path = self.path.clone();
-                                let deli_location = new_path.rfind('\\').unwrap();
+                                let deli_location = match new_path.rfind('\\'){
+                                    Some(sth) => sth,
+                                    None => (String::from(".\\") + &new_path).rfind("\\").expect("file path is incorrect.")
+                                };
                                 let len = new_path.len();
                                 for _ in deli_location..len {
                                     new_path.remove(new_path.len() - 1);
@@ -148,7 +152,7 @@ impl Parser {
                                 path = new_path;
                             }
                             if let Some(parsed_file) =
-                                Importer::import_file(path, importer).unwrap()
+                                Importer::import_file(path, importer).expect(format!("failed in importing {}",path))
                             {
                                 self.imports.push(parsed_file);
                             }
@@ -259,7 +263,7 @@ impl Parser {
                 // while循环 while-loop
                 Token::While => {
                     let line = self.line();
-                    let condition = self.expr().unwrap();
+                    let condition = self.expr().expect(format!("failed in parsing the expression,line {}",line));
                     self.assert_next(Token::LBrace)?;
                     let statements = self.statements()?;
                     self.assert_next(Token::RBrace)?;
@@ -289,10 +293,14 @@ impl Parser {
                     let for_iter: ForIter = if let Expression::Tuple(mut tuple) = expr {
                         let vec = tuple.deref_mut();
                         if vec.len() == 2 {
-                            let end = vec.pop().unwrap();
+                            // there will never panic,because we have checked the len == 2
+                            // so we can call the pop twice without 'panic'
+                            let end = vec.pop().unwrap(); 
                             let start = vec.pop().unwrap();
                             ForIter::Range(start, end, Expression::Int(1))
                         } else if vec.len() == 3 {
+                            // there will never panic,because we have checked the len == 3
+                            // so we can call the pop three times without 'panic'
                             let step = vec.pop().unwrap();
                             let end = vec.pop().unwrap();
                             let start = vec.pop().unwrap();
@@ -318,7 +326,7 @@ impl Parser {
                 _ => {
                     self.backward();
                     let line = self.line();
-                    let expr = self.expr().unwrap();
+                    let expr = self.expr().expect(format!("failed in parsing expression,line {}",line));
                     if self.has_next() {
                         let token = self.next();
                         match token {
@@ -332,14 +340,12 @@ impl Parser {
                                     Expression::Var(var) => LeftValue::Var(*var),
                                     Expression::Chain(chain_box) => {
                                         let (_, chains) = chain_box.deref();
-                                        if let Chain::Access(_, _) = chains.last().unwrap() {
-                                        } else {
-                                            panic!()
-                                        }
+                                        // check chains.last().unwrap() is Chain::Access(_,_)
+                                        assert!(if let Chain::Access(_, _) = chains.last().unwrap(){true}else{false});
                                         let (expr, chains) = *chain_box;
                                         LeftValue::Chain(expr, chains)
                                     }
-                                    _ => panic!(),
+                                    _ => panic!("failed in parsing,line {}",line),
                                 };
                                 let left_value_op = match token {
                                     Token::Eq => LeftValueOp::Assign(self.expr().unwrap()),
@@ -347,7 +353,7 @@ impl Parser {
                                     Token::PlusEq => LeftValueOp::PlusEq(self.expr().unwrap()),
                                     Token::SubSub => LeftValueOp::SubOne,
                                     Token::PlusPlus => LeftValueOp::PlusOne,
-                                    _ => panic!(),
+                                    _ => panic!("unexpected Token {},expect one of '=','-=','+=','--','++',line {}",token,line),
                                 };
                                 if self.has_next() && self.test_next(Token::Semi) {
                                     // handle ';'
@@ -554,6 +560,7 @@ impl Parser {
                     }
                 }
                 if vec.len() == 1 {
+                    // it will never panic
                     vec.pop().unwrap()
                 } else {
                     Expression::Tuple(Box::new(vec))
@@ -903,17 +910,18 @@ impl Parser {
 
     #[inline]
     fn peek(&self) -> &Token {
+
         self.tokens.get(self.curr).unwrap()
     }
     #[inline]
     fn next(&mut self) -> &Token {
-        let token = self.tokens.get(self.curr).unwrap();
+        let token = self.tokens.get(self.curr).expect("failed in get next Token");
         self.curr += 1;
         token
     }
     #[inline]
     fn assert_next(&mut self, token: Token) -> Result<(),ParseError> {
-        let curr = self.tokens.get(self.curr).unwrap();
+        let curr = self.tokens.get(self.curr).expect("failed in get next Token");
         if token.eq(curr) {
             self.curr += 1;
             Result::Ok(())
@@ -926,7 +934,7 @@ impl Parser {
     }
     #[inline]
     fn test_next(&self, token: Token) -> bool {
-        token.eq(self.tokens.get(self.curr).unwrap())
+        token.eq(self.tokens.get(self.curr).expect("failed in get next Token"))
     }
     #[inline]
     fn has_next(&self) -> bool {

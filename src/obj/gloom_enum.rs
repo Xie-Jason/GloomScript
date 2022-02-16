@@ -1,15 +1,16 @@
 use std::any::Any;
 use std::cell::{Cell, RefCell};
-use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
-use std::rc::Rc;
+use core::fmt::{Debug, Display, Formatter};
+use core::ops::Deref;
+extern crate alloc;
+use alloc::rc::Rc;
 
 use hashbrown::HashMap;
 
 use crate::frontend::ast::Statement;
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::{FuncBody, FuncInfo, GloomFunc, Param, ReturnType};
-use crate::obj::class::IsPub;
+use crate::obj::gloom_class::IsPub;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};

@@ -1,4 +1,5 @@
-use std::rc::Rc;
+extern crate alloc;
+use alloc::rc::Rc;
 
 use crate::frontend::ast::{ParsedClass, ParsedEnum, ParsedFunc, ParsedInterface, Statement};
 use crate::obj::func::GloomFunc;

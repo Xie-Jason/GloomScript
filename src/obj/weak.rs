@@ -1,5 +1,6 @@
-use std::fmt::{Debug, Formatter};
-use std::rc::Weak;
+use core::fmt::{Debug, Formatter};
+extern crate alloc;
+use alloc::rc::Weak;
 
 use crate::obj::object::Object;
 use crate::obj::types::DataType;

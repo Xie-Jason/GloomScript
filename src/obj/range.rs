@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::cell::Cell;
-use std::rc::Rc;
+extern crate alloc;
+use alloc::rc::Rc;
 
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::GloomFunc;

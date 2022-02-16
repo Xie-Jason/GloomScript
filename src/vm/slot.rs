@@ -1,6 +1,6 @@
-use std::fmt::{Debug, Formatter};
-use std::mem::ManuallyDrop;
-use std::ops::{Deref, DerefMut};
+use core::fmt::{Debug, Formatter};
+use core::mem::ManuallyDrop;
+use core::ops::{Deref, DerefMut};
 
 use crate::obj::object::GloomObjRef;
 

@@ -1,5 +1,6 @@
-use std::fmt::{Debug, Display, Formatter};
-use std::rc::Rc;
+use core::fmt::{Debug, Display, Formatter};
+extern crate alloc;
+use alloc::rc::Rc;
 
 #[derive(PartialEq,Clone)]
 pub enum Token {

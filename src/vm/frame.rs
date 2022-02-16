@@ -1,5 +1,5 @@
-use std::fmt::{Debug, Formatter};
-use std::mem::ManuallyDrop;
+use core::fmt::{Debug, Formatter};
+use core::mem::ManuallyDrop;
 
 use crate::obj::func::{Capture, Param};
 use crate::obj::object::GloomObjRef;

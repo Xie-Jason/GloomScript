@@ -1,6 +1,6 @@
-use std::alloc;
-use std::alloc::Layout;
-use std::mem::{ManuallyDrop, MaybeUninit};
+extern crate alloc as alloc_crate;
+use alloc_crate::alloc::{self,Layout};
+use core::mem::{ManuallyDrop, MaybeUninit};
 
 use crate::obj::object::GloomObjRef;
 use crate::vm::slot::Slot;

@@ -1,9 +1,10 @@
-use std::fmt::{Debug, Display, Formatter};
-use std::rc::Rc;
+use core::fmt::{Debug, Display, Formatter};
+extern crate alloc;
+use alloc::rc::Rc;
 
 use hashbrown::HashMap;
 
-use crate::obj::func::{FuncBody, FuncInfo, GloomFunc, ReturnType};
+use crate::obj::func::ReturnType;
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
 
@@ -11,7 +12,7 @@ pub struct Interface {
     pub name: Rc<String>,
     pub parents: Vec<RefCount<Interface>>,
     //              func name    params type   return type  have self
-    pub funcs: Vec<RefCount<GloomFunc>>,
+    pub funcs: Vec<AbstractFunc>,
     pub map: HashMap<Rc<String>, u16>,
 }
 
@@ -33,9 +34,9 @@ impl Interface {
         }
     }
     #[inline]
-    pub fn add_func(&mut self, func: RefCount<GloomFunc>) {
+    pub fn add_func(&mut self, func: AbstractFunc) {
         for occupied_func in self.funcs.iter() {
-            if func.inner().info.name.eq(&occupied_func.inner().info.name) {
+            if func.name.eq(&occupied_func.name) {
                 return;
             }
         }
@@ -43,17 +44,17 @@ impl Interface {
     }
     pub fn add_parent(&mut self, myself: &RefCount<Interface>, parent: &RefCount<Interface>) {
         for func in parent.inner().funcs.iter() {
-            let func = func.inner();
-            let mut new_func = GloomFunc{
-                info: FuncInfo::clone(&func.info),
-                body: FuncBody::None
-            };
-            if func.info.need_self {
-                new_func.info.params.get_mut(0).unwrap().data_type =
+            let mut new_param_types = func.param_types.clone();
+            if func.have_self {
+                *new_param_types.get_mut(0).unwrap() =
                     DataType::Ref(RefType::Interface(myself.clone()));
             }
-            let new_func = RefCount::new(new_func);
-            self.add_func(new_func);
+            self.add_func(AbstractFunc {
+                name: func.name.clone(),
+                param_types: new_param_types,
+                return_type: func.return_type.clone(),
+                have_self: func.have_self,
+            });
         }
     }
     pub fn derived_from(&self, interface: &RefCount<Interface>) -> bool {

@@ -1,5 +1,5 @@
 pub mod func;
-pub mod class;
+pub mod gloom_class;
 pub mod gloom_enum;
 pub mod gloom_object;
 pub mod tuple;

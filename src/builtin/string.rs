@@ -1,7 +1,8 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::fmt::{Debug, Formatter};
-use std::rc::Rc;
+use core::fmt::{Debug, Formatter};
+extern crate alloc;
+use alloc::rc::Rc;
 
 use hashbrown::HashMap;
 

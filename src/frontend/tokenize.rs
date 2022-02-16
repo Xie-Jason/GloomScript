@@ -1,6 +1,7 @@
+extern crate alloc;
 use std::panic::panic_any;
-use std::rc::Rc;
-use std::str::FromStr;
+use alloc::rc::Rc;
+use core::str::FromStr;
 
 use crate::frontend::token::Token;
 

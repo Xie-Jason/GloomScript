@@ -1,4 +1,4 @@
-use std::mem::ManuallyDrop;
+use core::mem::ManuallyDrop;
 
 use crate::obj::object::GloomObjRef;
 use crate::obj::table::Table;

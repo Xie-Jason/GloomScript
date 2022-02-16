@@ -1,9 +1,10 @@
-use std::rc::Rc;
+extern crate alloc;
+use alloc::rc::Rc;
 
 use hashbrown::HashMap;
 
 use crate::obj::func::{GloomFunc, Param, ReturnType};
-use crate::obj::class::IsPub;
+use crate::obj::gloom_class::IsPub;
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
 use crate::vm::value::Value;

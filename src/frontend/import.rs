@@ -1,4 +1,4 @@
-use std::convert::TryFrom;
+use core::convert::TryFrom;
 use std::fs::File;
 use std::io::{Error, Read};
 

@@ -1,5 +1,6 @@
-use std::borrow::Borrow;
-use std::ops::Deref;
+extern crate alloc;
+use alloc::borrow::Borrow;
+use core::ops::Deref;
 
 use crate::builtin::string::GloomString;
 use crate::bytecode::code::ByteCode;

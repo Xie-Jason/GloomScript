@@ -275,40 +275,5 @@ pub enum AnalysisError {
     GenericError{
         info : String,
         error : String,
-    },
-
-    #[error("function {func} that declared at interface {interface} need be implemented by class {class}")]
-    FnNotImpl{
-        class : String,
-        interface : String,
-        func : String,
-    },
-
-    #[error("the return type of function {func} that declared in interface {inter} is {expect} but in fact found {found} in the implemented class {class}")]
-    MismatchedImplReturnType{
-        func : String,
-        inter : String,
-        class : String,
-        expect : ReturnType,
-        found : ReturnType
-    },
-
-    #[error("the {idx}st param type of function {func} that declared in interface {inter} is {expect} but in fact found {found} in the implemented class {class}")]
-    MismatchedImplParamType{
-        idx : usize,
-        func : String,
-        inter : String,
-        class : String,
-        expect : DataType,
-        found : DataType
-    },
-
-    #[error("the params length of function {func} that declared in interface {inter} is different from the implementation function in class {class}, expect {expect}, found {found}")]
-    MismatchImplParamLen{
-        func : String,
-        inter : String,
-        class : String,
-        expect : usize,
-        found : usize
     }
 }

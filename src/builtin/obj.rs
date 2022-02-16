@@ -1,6 +1,7 @@
 use std::any::Any;
-use std::fmt::{Debug, Formatter};
-use std::rc::Rc;
+use core::fmt::{Debug, Formatter};
+extern crate alloc;
+use alloc::rc::Rc;
 
 use crate::builtin::classes::BuiltinClass;
 use crate::frontend::status::GloomStatus;

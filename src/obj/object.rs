@@ -1,7 +1,8 @@
 use std::any::Any;
-use std::fmt::{Debug, Formatter};
-use std::ops::Deref;
-use std::rc::{Rc, Weak};
+use core::fmt::{Debug, Formatter};
+use core::ops::Deref;
+extern crate alloc;
+use alloc::rc::{Rc, Weak};
 
 use crate::frontend::status::GloomStatus;
 use crate::obj::func::GloomFunc;

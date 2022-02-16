@@ -1,4 +1,5 @@
-use std::rc::Rc;
+extern crate alloc;
+use alloc::rc::Rc;
 
 use hashbrown::HashMap;
 
