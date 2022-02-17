@@ -26,9 +26,9 @@ pub enum ByteCode {
     WriteLocalRef(u16),
 
     ReadStatic(u16),
-    JumpIfStaticInit{
-        label : u32,
-        static_idx : u16
+    JumpIfStaticInit {
+        label: u32,
+        static_idx: u16,
     },
 
     WriteStaticInt(u16),
@@ -207,7 +207,7 @@ impl ByteCode {
 
             ByteCode::RangeIter => -2,
 
-            ByteCode::JumpIfStaticInit {..} => 0,
+            ByteCode::JumpIfStaticInit { .. } => 0,
         }
     }
 }

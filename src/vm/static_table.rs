@@ -38,10 +38,10 @@ impl StaticTable {
         }
     }
     #[inline(always)]
-    pub fn is_init(&self, slot_idx : u16) -> bool{
+    pub fn is_init(&self, slot_idx: u16) -> bool {
         if let Slot::Null = self.table.slot(slot_idx) {
             false
-        }else {
+        } else {
             true
         }
     }
@@ -96,12 +96,12 @@ impl StaticTable {
     */
 }
 
-pub struct ListIndexer{
-    types : Vec<DataType>
+pub struct ListIndexer {
+    types: Vec<DataType>,
 }
 
 impl ListIndexer {
-    pub fn put(&mut self, typ : DataType) -> u16{
+    pub fn put(&mut self, typ: DataType) -> u16 {
         let i = self.types.len() as u16;
         self.types.push(typ);
         i
@@ -111,23 +111,21 @@ impl ListIndexer {
         self.types.get(index as usize).unwrap()
     }
 
-    pub fn new() -> Self{
-        ListIndexer{
-            types: vec![]
-        }
+    pub fn new() -> Self {
+        ListIndexer { types: vec![] }
     }
 
-    pub fn size(&self) -> u16{
+    pub fn size(&self) -> u16 {
         self.types.len() as u16
     }
 
-    pub fn drop_vec(&self) -> Vec<u16>{
-        let mut drop_vec =  Vec::new();
+    pub fn drop_vec(&self) -> Vec<u16> {
+        let mut drop_vec = Vec::new();
         for (idx, typ) in self.types.iter().enumerate() {
             if let DataType::Ref(_) = typ {
                 drop_vec.push(idx as u16);
             }
-        };
+        }
         drop_vec
     }
 }

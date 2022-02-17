@@ -76,18 +76,18 @@ impl CodeGenerator {
                 Statement::Static(static_info) | Statement::PubStatic(static_info) => {
                     let (var, _, expr) = static_info.deref();
                     let index = match var {
-                        Var::StaticInt(i) |
-                        Var::StaticNum(i) |
-                        Var::StaticChar(i) |
-                        Var::StaticBool(i) |
-                        Var::StaticRef(i) => *i,
-                        _ => panic!()
+                        Var::StaticInt(i)
+                        | Var::StaticNum(i)
+                        | Var::StaticChar(i)
+                        | Var::StaticBool(i)
+                        | Var::StaticRef(i) => *i,
+                        _ => panic!(),
                     };
 
                     let jump_if_init_idx = context.bytecodes.len();
                     context.push(ByteCode::JumpIfStaticInit {
                         label: Self::INVALID_LABEL,
-                        static_idx: index
+                        static_idx: index,
                     });
 
                     self.generate_expression(expr, context);
@@ -102,8 +102,10 @@ impl CodeGenerator {
                     context.push(code);
                     let end_idx = context.bytecodes.len();
                     if let ByteCode::JumpIfStaticInit {
-                        label, static_idx: _
-                    } = context.bytecodes.get_mut(jump_if_init_idx).unwrap(){
+                        label,
+                        static_idx: _,
+                    } = context.bytecodes.get_mut(jump_if_init_idx).unwrap()
+                    {
                         *label = end_idx as u32;
                     }
                 }
@@ -124,8 +126,8 @@ impl CodeGenerator {
                                     Var::StaticInt(i)
                                     | Var::StaticNum(i)
                                     | Var::StaticChar(i)
-                                    | Var::StaticBool(i) |
-                                    Var::StaticRef(i) => ByteCode::ReadStatic(*i),
+                                    | Var::StaticBool(i)
+                                    | Var::StaticRef(i) => ByteCode::ReadStatic(*i),
                                     _ => panic!(),
                                 };
                                 context.push(read_code);
@@ -532,8 +534,8 @@ impl CodeGenerator {
                 self.generate_func(&mut func.inner_mut());
             }
             Expression::Cast(cast) => {
-                let (expr,_,cast_type) = cast.deref();
-                self.generate_expression(expr,context);
+                let (expr, _, cast_type) = cast.deref();
+                self.generate_expression(expr, context);
                 context.push(match cast_type {
                     DataType::Int => ByteCode::AsInt,
                     DataType::Num => ByteCode::AsNum,
@@ -541,7 +543,7 @@ impl CodeGenerator {
                     DataType::Bool => ByteCode::AsBool,
                     DataType::Ref(_) => ByteCode::AsRef,
                 });
-            },
+            }
             Expression::Match(m) => panic!("not support now {:#?}", m),
         }
     }

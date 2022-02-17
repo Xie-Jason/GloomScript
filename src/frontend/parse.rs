@@ -90,8 +90,9 @@ impl Parser {
                             .map_err(|e| e.msg("expect a '=' after 'let' and variable name"))?;
                     } else {
                         parsed_type = Some(self.parse_type()?);
-                        self.assert_next(Token::Eq)
-                            .map_err(|e| e.msg("expect a '=' after variable type in 'let' statement"))?;
+                        self.assert_next(Token::Eq).map_err(|e| {
+                            e.msg("expect a '=' after variable type in 'let' statement")
+                        })?;
                     }
                     let expr = self.expr()?;
                     if self.has_next() && self.test_next(Token::Semi) {
@@ -111,8 +112,9 @@ impl Parser {
                             .map_err(|e| e.msg("expect a '=' after 'static' and variable name"))?;
                     } else {
                         parsed_type = Some(self.parse_type()?);
-                        self.assert_next(Token::Eq)
-                            .map_err(|e| e.msg("expect a '=' after variable type in 'static' statement"))?;
+                        self.assert_next(Token::Eq).map_err(|e| {
+                            e.msg("expect a '=' after variable type in 'static' statement")
+                        })?;
                     }
                     let expr = self.expr()?;
                     if self.has_next() && self.test_next(Token::Semi) {
@@ -143,7 +145,8 @@ impl Parser {
                             if start_with_point {
                                 path.remove(0);
                                 let mut new_path = self.path.clone();
-                                let deli_location = new_path.rfind('\\').unwrap_or(new_path.rfind('/').unwrap());
+                                let deli_location =
+                                    new_path.rfind('\\').unwrap_or(new_path.rfind('/').unwrap());
                                 let len = new_path.len();
                                 for _ in deli_location..len {
                                     new_path.remove(new_path.len() - 1);
@@ -159,8 +162,11 @@ impl Parser {
                         }
                         token => return Result::Err(ParseError::new(
                             self.line(),
-                            format!("expect a string literal or a identifier after 'import', found {}", token)
-                        ))
+                            format!(
+                                "expect a string literal or a identifier after 'import', found {}",
+                                token
+                            ),
+                        )),
                     }
                     continue;
                 }
@@ -195,12 +201,14 @@ impl Parser {
                         } else if self.test_next(Token::Colon) {
                             self.forward();
                             parsed_type = Some(self.parse_type()?);
-                            self.assert_next(Token::Eq)
-                                .map_err(|e| e.msg("expect a '=' after 'pub static' and variable name"))?;
+                            self.assert_next(Token::Eq).map_err(|e| {
+                                e.msg("expect a '=' after 'pub static' and variable name")
+                            })?;
                         } else {
                             parsed_type = Some(self.parse_type()?);
-                            self.assert_next(Token::Eq)
-                                .map_err(|e| e.msg("expect a '=' after variable type in 'pub static' statement"))?;
+                            self.assert_next(Token::Eq).map_err(|e| {
+                                e.msg("expect a '=' after variable type in 'pub static' statement")
+                            })?;
                         }
                         let expr = self.expr()?;
                         if self.has_next() && self.test_next(Token::Semi) {
@@ -776,8 +784,12 @@ impl Parser {
                 func_vec.push((is_public, func_name, parsed_func));
             } else {
                 // field
-                let parsed_type = self.parse_type().map_err(|e| e.msg("expect a field type"))?;
-                let name = self.identifier().map_err(|e| e.msg("expect a field name"))?;
+                let parsed_type = self
+                    .parse_type()
+                    .map_err(|e| e.msg("expect a field type"))?;
+                let name = self
+                    .identifier()
+                    .map_err(|e| e.msg("expect a field name"))?;
                 field_vec.push((is_public, parsed_type, name));
             }
         }
@@ -833,8 +845,11 @@ impl Parser {
                             Token::Comma => continue,
                             _ => {
                                 self.backward();
-                                let parsed_type = self.parse_type().map_err(|e| e.msg("expect a param type"))?;
-                                self.identifier().map_err(|e| e.msg("expect a param name"))?;
+                                let parsed_type = self
+                                    .parse_type()
+                                    .map_err(|e| e.msg("expect a param type"))?;
+                                self.identifier()
+                                    .map_err(|e| e.msg("expect a param name"))?;
                                 params.push(parsed_type);
                             }
                         }
@@ -876,7 +891,8 @@ impl Parser {
                     let value_name = id.clone();
                     if self.test_next(Token::LParen) {
                         // TODO 改语法
-                        self.assert_next(Token::LParen).map_err(|err| err.msg("expect a '('"))?;
+                        self.assert_next(Token::LParen)
+                            .map_err(|err| err.msg("expect a '('"))?;
                         let parsed_type = self.parse_type()?;
                         self.assert_next(Token::RParen)?;
                         enum_values.push((value_name, Some(parsed_type)));
@@ -961,7 +977,7 @@ impl Parser {
     }
 
     #[inline]
-    fn identifier(&mut self) -> Result<Rc<String>,ParseError> {
+    fn identifier(&mut self) -> Result<Rc<String>, ParseError> {
         let curr = self.tokens.get(self.curr).unwrap();
         self.curr += 1;
         if let Token::Id(name) = curr {
@@ -969,7 +985,7 @@ impl Parser {
         } else {
             Result::Err(ParseError::new(
                 self.line(),
-                format!("expect identifier in fact found token {:?}", curr)
+                format!("expect identifier in fact found token {:?}", curr),
             ))
         }
     }
@@ -984,7 +1000,7 @@ impl Parser {
         }
     }
 
-    fn parse_type(&mut self) -> Result<ParsedType,ParseError> {
+    fn parse_type(&mut self) -> Result<ParsedType, ParseError> {
         if self.test_next(Token::LParen) {
             self.forward();
             let mut vec = Vec::new();
@@ -1000,7 +1016,8 @@ impl Parser {
             }
             return Result::Ok(ParsedType::Tuple(TypeTuple { vec }));
         }
-        let type_name = self.identifier()
+        let type_name = self
+            .identifier()
             .map_err(|err| err.msg("expect a type identifier"))?;
         let mut generic: Option<Vec<ParsedType>> = Option::None;
         if self.has_next() && self.test_next(Token::Lt) {
@@ -1057,9 +1074,9 @@ impl ParseError {
 
     pub fn msg(mut self, msg: &'static str) -> ParseError {
         self.reason.push_str(msg);
-        ParseError{
-            line : self.line,
-            reason : self.reason
+        ParseError {
+            line: self.line,
+            reason: self.reason,
         }
     }
 }

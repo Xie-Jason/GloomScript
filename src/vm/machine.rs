@@ -582,10 +582,8 @@ impl GloomVM {
                     let rf = frame.pop().assert_into_ref();
                     frame.push(Value::Ref(rf));
                 }
-                ByteCode::JumpIfStaticInit{
-                    label, static_idx
-                } => {
-                    if self.static_table.is_init(static_idx){
+                ByteCode::JumpIfStaticInit { label, static_idx } => {
+                    if self.static_table.is_init(static_idx) {
                         pc = label as usize;
                     }
                 }

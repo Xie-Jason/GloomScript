@@ -193,11 +193,13 @@ impl Analyzer {
                             *var = Var::new_static(*slot_idx, data_type.as_basic());
                             data_type
                         }
-                        None => return Result::Err(AnalysisError::UndefinedVar {
-                            info: context.info(),
-                            line: 0,
-                            var: var_name_ref.deref().clone(),
-                        })
+                        None => {
+                            return Result::Err(AnalysisError::UndefinedVar {
+                                info: context.info(),
+                                line: 0,
+                                var: var_name_ref.deref().clone(),
+                            })
+                        }
                     },
                 }
             }
@@ -1003,10 +1005,8 @@ impl Analyzer {
                                             .inner()
                                             .get_type(*out_slot_idx)
                                             .clone();
-                                        *var_ref = Var::new_static(
-                                            *out_slot_idx,
-                                            data_type.as_basic(),
-                                        );
+                                        *var_ref =
+                                            Var::new_static(*out_slot_idx, data_type.as_basic());
                                         data_type
                                     }
                                 } else {

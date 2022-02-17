@@ -176,7 +176,7 @@ impl Value {
             Value::Char(i) => GloomChar::new(i),
             Value::Bool(i) => GloomBool::new(i),
             Value::Ref(obj) => obj,
-            Value::None => panic!()
+            Value::None => panic!(),
         }
     }
 
