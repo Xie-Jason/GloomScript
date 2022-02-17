@@ -22,7 +22,7 @@ impl Object for GloomTuple {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    #[inline]
+
     fn drop_by_vm(&self, vm: &GloomVM, _: &GloomObjRef) {
         for value in self.vec.borrow().iter() {
             if let Value::Ref(rf) = value {

@@ -2,6 +2,7 @@ use std::mem::ManuallyDrop;
 
 use crate::obj::object::GloomObjRef;
 use crate::obj::table::Table;
+use crate::obj::types::DataType;
 use crate::vm::slot::Slot;
 use crate::vm::value::Value;
 
@@ -86,4 +87,8 @@ impl StaticTable {
          self.table.slot(slot_idx).get_ref()
      }
     */
+}
+
+pub struct ListIndexer{
+    types : Vec<DataType>
 }

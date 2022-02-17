@@ -79,38 +79,42 @@ impl Parser {
                 // 局部变量声明 Let
                 Token::Let => {
                     let line = self.line();
-                    let var_name = self.identifier();
+                    let var_name = self.identifier()?;
                     let mut parsed_type: Option<ParsedType> = None;
                     if self.test_next(Token::Eq) {
                         self.forward();
                     } else if self.test_next(Token::Colon) {
                         self.forward();
-                        parsed_type = Some(self.parse_type());
-                        self.assert_next(Token::Eq)?;
+                        parsed_type = Some(self.parse_type()?);
+                        self.assert_next(Token::Eq)
+                            .map_err(|e| e.msg("expect a '=' after 'let' and variable name"))?;
                     } else {
-                        parsed_type = Some(self.parse_type());
-                        self.assert_next(Token::Eq)?;
+                        parsed_type = Some(self.parse_type()?);
+                        self.assert_next(Token::Eq)
+                            .map_err(|e| e.msg("expect a '=' after variable type in 'let' statement"))?;
                     }
-                    let expr = self.expr().unwrap();
+                    let expr = self.expr()?;
                     if self.has_next() && self.test_next(Token::Semi) {
                         self.forward();
                     }
                     Statement::Let(Box::new((Var::Name(var_name), parsed_type, expr, line)))
                 }
                 Token::Static => {
-                    let var_name = self.identifier();
+                    let var_name = self.identifier()?;
                     let mut parsed_type: Option<ParsedType> = None;
                     if self.test_next(Token::Eq) {
                         self.forward();
                     } else if self.test_next(Token::Colon) {
                         self.forward();
-                        parsed_type = Some(self.parse_type());
-                        self.assert_next(Token::Eq)?;
+                        parsed_type = Some(self.parse_type()?);
+                        self.assert_next(Token::Eq)
+                            .map_err(|e| e.msg("expect a '=' after 'static' and variable name"))?;
                     } else {
-                        parsed_type = Some(self.parse_type());
-                        self.assert_next(Token::Eq)?;
+                        parsed_type = Some(self.parse_type()?);
+                        self.assert_next(Token::Eq)
+                            .map_err(|e| e.msg("expect a '=' after variable type in 'static' statement"))?;
                     }
-                    let expr = self.expr().unwrap();
+                    let expr = self.expr()?;
                     if self.has_next() && self.test_next(Token::Semi) {
                         self.forward();
                     }
@@ -139,7 +143,7 @@ impl Parser {
                             if start_with_point {
                                 path.remove(0);
                                 let mut new_path = self.path.clone();
-                                let deli_location = new_path.rfind('\\').unwrap();
+                                let deli_location = new_path.rfind('\\').unwrap_or(new_path.rfind('/').unwrap());
                                 let len = new_path.len();
                                 for _ in deli_location..len {
                                     new_path.remove(new_path.len() - 1);
@@ -153,10 +157,10 @@ impl Parser {
                                 self.imports.push(parsed_file);
                             }
                         }
-                        token => panic!(
-                            "expect a string literal or a identifier after 'import', found {}",
-                            token
-                        ),
+                        token => return Result::Err(ParseError::new(
+                            self.line(),
+                            format!("expect a string literal or a identifier after 'import', found {}", token)
+                        ))
                     }
                     continue;
                 }
@@ -178,25 +182,27 @@ impl Parser {
                         continue;
                     }
                     Token::Func => {
-                        let func_name = self.identifier();
+                        let func_name = self.identifier()?;
                         let func = self.parse_func(false)?;
                         self.funcs.push((func_name, func, true));
                         continue;
                     }
                     Token::Static => {
-                        let var_name = self.identifier();
+                        let var_name = self.identifier()?;
                         let mut parsed_type: Option<ParsedType> = None;
                         if self.test_next(Token::Eq) {
                             self.forward();
                         } else if self.test_next(Token::Colon) {
                             self.forward();
-                            parsed_type = Some(self.parse_type());
-                            self.assert_next(Token::Eq)?;
+                            parsed_type = Some(self.parse_type()?);
+                            self.assert_next(Token::Eq)
+                                .map_err(|e| e.msg("expect a '=' after 'pub static' and variable name"))?;
                         } else {
-                            parsed_type = Some(self.parse_type());
-                            self.assert_next(Token::Eq)?;
+                            parsed_type = Some(self.parse_type()?);
+                            self.assert_next(Token::Eq)
+                                .map_err(|e| e.msg("expect a '=' after variable type in 'pub static' statement"))?;
                         }
-                        let expr = self.expr().unwrap();
+                        let expr = self.expr()?;
                         if self.has_next() && self.test_next(Token::Semi) {
                             self.forward();
                         }
@@ -241,7 +247,7 @@ impl Parser {
                         // let curr pointer to Token::Func
                         self.backward();
                         let line = self.line();
-                        let expr = self.expr().expect(format!("{:?}", statements).as_str());
+                        let expr = self.expr()?;
                         if self.has_next() && self.test_next(Token::Semi) {
                             self.forward();
                             Statement::Discard(expr, line)
@@ -250,7 +256,7 @@ impl Parser {
                         }
                     } else {
                         // function declaration
-                        let func_name = self.identifier();
+                        let func_name = self.identifier()?;
                         let func = self.parse_func(false)?;
                         self.funcs.push((func_name, func, false));
                         continue;
@@ -259,7 +265,7 @@ impl Parser {
                 // while循环 while-loop
                 Token::While => {
                     let line = self.line();
-                    let condition = self.expr().unwrap();
+                    let condition = self.expr()?;
                     self.assert_next(Token::LBrace)?;
                     let statements = self.statements()?;
                     self.assert_next(Token::RBrace)?;
@@ -273,7 +279,7 @@ impl Parser {
                 }
                 // for-循环 for-loop
                 Token::For => {
-                    let var_name = self.identifier();
+                    let var_name = self.identifier()?;
                     let line = self.line();
                     self.assert_next(Token::In)?;
                     let check_point = self.curr;
@@ -281,7 +287,7 @@ impl Parser {
                         Ok(expr) => expr,
                         Err(_) => {
                             self.rollback(check_point);
-                            Expression::Var(Box::new(Var::Name(self.identifier())))
+                            Expression::Var(Box::new(Var::Name(self.identifier()?)))
                         }
                     };
                     let for_iter: ForIter = if let Expression::Tuple(mut tuple) = expr {
@@ -319,7 +325,7 @@ impl Parser {
                 _ => {
                     self.backward();
                     let line = self.line();
-                    let expr = self.expr().unwrap();
+                    let expr = self.expr()?;
                     if self.has_next() {
                         let token = self.next();
                         match token {
@@ -343,9 +349,9 @@ impl Parser {
                                     _ => panic!(),
                                 };
                                 let left_value_op = match token {
-                                    Token::Eq => LeftValueOp::Assign(self.expr().unwrap()),
-                                    Token::SubEq => LeftValueOp::SubEq(self.expr().unwrap()),
-                                    Token::PlusEq => LeftValueOp::PlusEq(self.expr().unwrap()),
+                                    Token::Eq => LeftValueOp::Assign(self.expr()?),
+                                    Token::SubEq => LeftValueOp::SubEq(self.expr()?),
+                                    Token::PlusEq => LeftValueOp::PlusEq(self.expr()?),
                                     Token::SubSub => LeftValueOp::SubOne,
                                     Token::PlusPlus => LeftValueOp::PlusOne,
                                     _ => panic!(),
@@ -408,7 +414,7 @@ impl Parser {
         let mut expr = self.primary_expr()?;
         if self.has_next() && self.test_next(Token::As) {
             self.forward();
-            let parsed_type = self.parse_type();
+            let parsed_type = self.parse_type()?;
             expr = Expression::Cast(Box::new((expr, parsed_type, DataType::Ref(RefType::Any))));
         }
         let mut op_vec: Option<Vec<(BinOp, Expression)>> = Option::None;
@@ -471,7 +477,7 @@ impl Parser {
                             Token::Comma => continue,
                             _ => {
                                 self.backward();
-                                let field_name = self.identifier();
+                                let field_name = self.identifier()?;
                                 self.assert_next(Token::Colon)?;
                                 let expr = self.expr()?;
                                 fields.push((VarId::Name(field_name), BasicType::Ref, expr));
@@ -629,7 +635,7 @@ impl Parser {
                 match self.next() {
                     Token::Dot => {
                         // field access
-                        let field_name = self.identifier();
+                        let field_name = self.identifier()?;
                         if self.has_next() && self.test_next(Token::LParen) {
                             self.forward();
                             let mut args = Vec::new();
@@ -697,8 +703,8 @@ impl Parser {
                             continue;
                         }
                     }
-                    let param_type = self.parse_type();
-                    let param_name = self.identifier();
+                    let param_type = self.parse_type()?;
+                    let param_name = self.identifier()?;
                     param_vec.push((param_name, param_type));
                 }
             }
@@ -708,7 +714,7 @@ impl Parser {
         }
         let mut return_type = Option::None;
         if !self.test_next(Token::LBrace) {
-            return_type = Some(self.parse_type())
+            return_type = Some(self.parse_type()?)
         }
         self.assert_next(Token::LBrace)?;
         let statements = self.statements()?;
@@ -721,7 +727,7 @@ impl Parser {
     }
 
     fn parse_class(&mut self) -> Result<ParsedClass, ParseError> {
-        let name = self.identifier();
+        let name = self.identifier()?;
         let mut parent_class = None;
         let mut impl_vec = Vec::with_capacity(0);
         let mut field_vec = Vec::new();
@@ -729,13 +735,13 @@ impl Parser {
         // parse inherit
         if self.test_next(Token::Colon) {
             self.forward();
-            parent_class = Some(self.identifier());
+            parent_class = Some(self.identifier()?);
         }
         // parse implementation
         if self.test_next(Token::Impl) {
             self.forward();
             while self.has_next() {
-                impl_vec.push(self.identifier());
+                impl_vec.push(self.identifier()?);
                 if self.test_next(Token::Comma) {
                     self.forward();
                 }
@@ -765,13 +771,13 @@ impl Parser {
             if self.test_next(Token::Func) {
                 // function
                 self.forward();
-                let func_name = self.identifier();
+                let func_name = self.identifier()?;
                 let parsed_func = self.parse_func(true)?;
                 func_vec.push((is_public, func_name, parsed_func));
             } else {
                 // field
-                let parsed_type = self.parse_type();
-                let name = self.identifier();
+                let parsed_type = self.parse_type().map_err(|e| e.msg("expect a field type"))?;
+                let name = self.identifier().map_err(|e| e.msg("expect a field name"))?;
                 field_vec.push((is_public, parsed_type, name));
             }
         }
@@ -785,7 +791,7 @@ impl Parser {
     }
 
     fn parse_interface(&mut self) -> Result<ParsedInterface, ParseError> {
-        let name = self.identifier();
+        let name = self.identifier()?;
         let mut parents = Vec::new();
         if self.test_next(Token::Colon) {
             self.forward();
@@ -809,9 +815,10 @@ impl Parser {
                     break;
                 }
                 Token::Func => {
-                    let func_name = self.identifier();
+                    let func_name = self.identifier()?;
                     let mut params = Vec::new();
-                    self.assert_next(Token::LParen)?;
+                    self.assert_next(Token::LParen)
+                        .map_err(|err| err.msg("need a '(' after 'func'"))?;
                     // gloom self
                     if let Token::Id(name) = self.peek() {
                         if name.as_str().eq("self") {
@@ -826,8 +833,8 @@ impl Parser {
                             Token::Comma => continue,
                             _ => {
                                 self.backward();
-                                let parsed_type = self.parse_type();
-                                self.identifier();
+                                let parsed_type = self.parse_type().map_err(|e| e.msg("expect a param type"))?;
+                                self.identifier().map_err(|e| e.msg("expect a param name"))?;
                                 params.push(parsed_type);
                             }
                         }
@@ -838,7 +845,7 @@ impl Parser {
                         self.forward();
                     }
                     if !self.test_next(Token::Func) && !self.test_next(Token::RBrace) {
-                        return_type = Option::Some(self.parse_type());
+                        return_type = Option::Some(self.parse_type()?);
                     }
                     funcs.push((func_name, params, return_type));
                 }
@@ -858,7 +865,7 @@ impl Parser {
     }
 
     fn parse_enum(&mut self) -> Result<ParsedEnum, ParseError> {
-        let enum_name = self.identifier();
+        let enum_name = self.identifier()?;
         let mut enum_values = Vec::new();
         let mut funcs = Vec::new();
         self.assert_next(Token::LBrace)?;
@@ -868,8 +875,9 @@ impl Parser {
                 Token::Id(id) => {
                     let value_name = id.clone();
                     if self.test_next(Token::LParen) {
-                        self.assert_next(Token::LParen)?;
-                        let parsed_type = self.parse_type();
+                        // TODO 改语法
+                        self.assert_next(Token::LParen).map_err(|err| err.msg("expect a '('"))?;
+                        let parsed_type = self.parse_type()?;
                         self.assert_next(Token::RParen)?;
                         enum_values.push((value_name, Some(parsed_type)));
                     } else {
@@ -878,7 +886,7 @@ impl Parser {
                 }
                 Token::Pub => {
                     if let Token::Func = self.next() {
-                        let name = self.identifier();
+                        let name = self.identifier()?;
                         let func = self.parse_func(true)?;
                         funcs.push((name, true, func));
                     } else {
@@ -889,7 +897,7 @@ impl Parser {
                     }
                 }
                 Token::Func => {
-                    let name = self.identifier();
+                    let name = self.identifier()?;
                     let func = self.parse_func(true)?;
                     funcs.push((name, false, func));
                 }
@@ -953,13 +961,16 @@ impl Parser {
     }
 
     #[inline]
-    fn identifier(&mut self) -> Rc<String> {
+    fn identifier(&mut self) -> Result<Rc<String>,ParseError> {
         let curr = self.tokens.get(self.curr).unwrap();
         self.curr += 1;
         if let Token::Id(name) = curr {
-            return name.clone();
+            Result::Ok(name.clone())
         } else {
-            panic!("expect identifier in fact found token {:?}", curr)
+            Result::Err(ParseError::new(
+                self.line(),
+                format!("expect identifier in fact found token {:?}", curr)
+            ))
         }
     }
 
@@ -973,7 +984,7 @@ impl Parser {
         }
     }
 
-    fn parse_type(&mut self) -> ParsedType {
+    fn parse_type(&mut self) -> Result<ParsedType,ParseError> {
         if self.test_next(Token::LParen) {
             self.forward();
             let mut vec = Vec::new();
@@ -983,19 +994,20 @@ impl Parser {
                     Token::RParen => break,
                     _ => {
                         self.backward();
-                        vec.push(self.parse_type())
+                        vec.push(self.parse_type()?)
                     }
                 }
             }
-            return ParsedType::Tuple(TypeTuple { vec });
+            return Result::Ok(ParsedType::Tuple(TypeTuple { vec }));
         }
-        let type_name = self.identifier();
+        let type_name = self.identifier()
+            .map_err(|err| err.msg("expect a type identifier"))?;
         let mut generic: Option<Vec<ParsedType>> = Option::None;
         if self.has_next() && self.test_next(Token::Lt) {
             let mut vec: Vec<ParsedType> = Vec::new();
             self.forward();
             while self.has_next() {
-                vec.push(self.parse_type());
+                vec.push(self.parse_type()?);
                 if self.test_next(Token::Gt) {
                     self.forward();
                     break;
@@ -1006,10 +1018,10 @@ impl Parser {
             }
             generic = Some(vec)
         }
-        ParsedType::Single(SingleType {
+        Result::Ok(ParsedType::Single(SingleType {
             name: type_name,
             generic,
-        })
+        }))
     }
 
     pub fn new(
@@ -1041,6 +1053,14 @@ pub struct ParseError {
 impl ParseError {
     pub fn new(line: u16, reason: String) -> ParseError {
         ParseError { line, reason }
+    }
+
+    pub fn msg(mut self, msg: &'static str) -> ParseError {
+        self.reason.push_str(msg);
+        ParseError{
+            line : self.line,
+            reason : self.reason
+        }
     }
 }
 

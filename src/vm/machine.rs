@@ -583,8 +583,6 @@ impl GloomVM {
                     frame.push(Value::Ref(rf));
                 }
             }
-            /*println!("{:?}",frame);
-            println!("---");*/
         }
         result
     }
