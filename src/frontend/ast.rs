@@ -214,21 +214,30 @@ impl Debug for BinOpVec {
 pub enum VarId {
     Index(u16, u8),
     Name(Rc<String>),
+    DoubleIndex(u16, u16),
 }
 
 impl VarId {
     #[inline]
     pub fn name(&self) -> Rc<String> {
         match self {
-            VarId::Index(_, _) => panic!(),
             VarId::Name(name) => name.clone(),
+            _ => panic!()
         }
     }
     #[inline]
     pub fn index(&self) -> (u16, u8) {
         match self {
             VarId::Index(i1, i2) => (*i1, *i2),
-            VarId::Name(_) => panic!(),
+            _ => panic!(),
+        }
+    }
+
+    #[inline]
+    pub fn double_index(&self) -> (u16, u16){
+        match self {
+            VarId::DoubleIndex(i1, i2) => (*i1, *i2),
+            _ => panic!(),
         }
     }
 }
@@ -370,8 +379,9 @@ pub enum Chain {
     // non-static func, caller : object
     FnCall {
         func: VarId,
-        need_self: bool,
         args: Vec<Expression>,
+        need_self: bool,
+        is_dyn : bool
     },
 
     // expr is func type
@@ -388,6 +398,7 @@ impl Debug for Chain {
                 func,
                 need_self: _need_self,
                 args,
+                is_dyn : _is_dyn
             } => {
                 write!(f, "func[{:?}] {:?}", func, args)
             }

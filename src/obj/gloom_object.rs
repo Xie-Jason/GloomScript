@@ -142,7 +142,9 @@ impl Debug for GloomObject {
                 string.push_str(" , ");
             }
         }
-        string.remove(string.len() - 2);
+        if string.len() > class.name.len() + 3 {
+            string.remove(string.len() - 2);
+        }
         string.push_str("}");
         write!(f, "{}", string.as_str())
     }

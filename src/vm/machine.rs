@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::mem::{transmute, ManuallyDrop};
+use std::ops::Deref;
 
 use crate::builtin::array::{GloomArray, RawArray};
 use crate::builtin::obj::BuiltinClassObj;
@@ -413,6 +414,24 @@ impl GloomVM {
                     args.push(obj_val);
                     args.reverse();
                     let result = self.call_fn(&*func.inner(), GloomArgs::new(args));
+                    frame.push(result);
+                }
+                ByteCode::CallMethodDyn {
+                    interface_idx, fn_idx, nargs
+                } => {
+                    let mut args = Vec::with_capacity((nargs + 1) as usize);
+                    for _ in 0..nargs {
+                        args.push(frame.pop());
+                    }
+                    let obj_val = frame.pop();
+                    let func = {
+                        let obj = obj_val.as_ref().downcast::<GloomObject>();
+                        let class = obj.class.inner();
+                        class.dynamic_dispatch(interface_idx, fn_idx).clone()
+                    };
+                    args.push(obj_val);
+                    args.reverse();
+                    let result = self.call_fn(func.inner().deref(),GloomArgs::new(args));
                     frame.push(result);
                 }
                 ByteCode::Jump(label) => {

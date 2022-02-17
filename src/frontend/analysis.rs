@@ -25,7 +25,7 @@ use crate::{
     obj::func::{Capture, FuncBody, GloomFunc, Param, ReturnType},
     obj::class::{GloomClass, IsPub},
     obj::gloom_enum::GloomEnumClass,
-    obj::interface::{AbstractFunc, Interface},
+    obj::interface::{Interface},
     obj::refcount::RefCount,
     obj::types::{BreakType, BuiltinType, DataType, DeclaredType, RefType},
 };
@@ -480,6 +480,7 @@ impl Analyzer {
                     func,
                     need_self,
                     args,
+                    is_dyn,
                 } => {
                     let func_name = func.name();
                     let function: RefCount<GloomFunc>;
@@ -619,7 +620,8 @@ impl Analyzer {
                                                 );
                                             }
                                             *need_self = true;
-                                            *func = VarId::Index(*index, 0);
+                                            *is_dyn = true;
+                                            *func = VarId::DoubleIndex(class_ref.interface_index,*index);
                                             match &target_func.info.return_type {
                                                 ReturnType::Void => {
                                                     if chain_idx != chains_len - 1 {
@@ -1955,7 +1957,9 @@ impl Analyzer {
     fn fill_class(&self, class: RefCount<GloomClass>, index: usize) -> Result<(), AnalysisError> {
         let (parsed_class, file_index) = self.parsed_classes.get(index).unwrap();
         let parsed_class = parsed_class.clone();
-        // handle parent class
+        let mut class_mut = class.inner_mut();
+        class_mut.is_filled = true;
+        // handle parent class_mut
         if let Option::Some(parent_name) = &parsed_class.inner().parent {
             match self.type_map.get(parent_name.as_str()) {
                 None => {
@@ -1967,7 +1971,7 @@ impl Analyzer {
                     if label.tp != MetaType::Class {
                         return Result::Err(AnalysisError::ParentNotAClass {
                             info: "".to_string(),
-                            class: class.inner().to_string(),
+                            class: class_mut.to_string(),
                             parent: parent_name.to_string(),
                         });
                     }
@@ -1978,11 +1982,12 @@ impl Analyzer {
                             .get(label.index as usize)
                             .unwrap()
                             .clone();
-                        if parent_class.inner().len() == 0 {
-                            // means parent class is not uninitialized, fill it recursively
+                        // 没有被填充过
+                        if ! parent_class.inner().is_filled {
+                            // means parent class_mut is not uninitialized, fill it recursively
                             self.fill_class(parent_class.clone(), label.index as usize)?;
                         }
-                        class.inner_mut().set_parent(parent_class);
+                        class_mut.set_parent(parent_class);
                     } else {
                         return Result::Err(AnalysisError::UsedPrivateType {
                             info: "".to_string(),
@@ -1994,7 +1999,7 @@ impl Analyzer {
         }
         // fill fields
         for (is_pub, parsed_type, name) in parsed_class.inner().fields.iter() {
-            class.inner_mut().add_field(
+            class_mut.add_field(
                 *is_pub,
                 name.deref().clone(),
                 self.get_type(parsed_type, *file_index)?,
@@ -2015,13 +2020,12 @@ impl Analyzer {
             };
             // 在不需要move ParsedFunc 的情况下，仅使用ParsedFunc的可变引用将函数体的Vec<Statement> move至status中的GloomClass中
             let body: Vec<Statement> = std::mem::replace(&mut func.body, Vec::with_capacity(0));
-            class
-                .inner_mut()
-                .add_func(*is_pub, name.clone(), params, return_type, body)?;
+            class_mut.add_func(*is_pub, name.clone(), params, return_type, body)?;
         }
         // handle instance funcs
-        class.inner().handle_instance_func(class.clone());
+        class_mut.handle_instance_func(class.clone());
         // handle implemented interface
+        std::mem::drop(class_mut);
         for interface_name in parsed_class.inner().impl_interfaces.iter() {
             match self.type_map.get(interface_name.as_str()) {
                 None => {
@@ -2044,7 +2048,7 @@ impl Analyzer {
                             .get(label.index as usize)
                             .unwrap()
                             .clone();
-                        class.inner_mut().add_impl(interface)?;
+                        class.inner().add_impl(interface)?;
                     } else {
                         return Result::Err(AnalysisError::UsedPrivateType {
                             info: "".to_string(),
@@ -2054,6 +2058,11 @@ impl Analyzer {
                 }
             }
         }
+        class.inner_mut().impls.sort_by(|imp1, imp2| {
+            imp1.interface.inner().interface_index.cmp(
+                &imp2.interface.inner().interface_index
+            )
+        });
         Result::Ok(())
     }
 
@@ -2231,7 +2240,7 @@ impl Analyzer {
             };
             self.status
                 .interfaces
-                .push(RefCount::new(Interface::new(parsed_inter.name.clone())));
+                .push(RefCount::new(Interface::new(parsed_inter.name.clone(),index as u16)));
         }
         // load empty class
         for (class, is_pub) in script.classes.iter() {
@@ -2550,6 +2559,7 @@ impl<'a> AnalyzeContext<'a> {
                 .add(format!("{:?} line {}", frame_type, line).as_str())
                 .add(" > ");
         }
+        info.push_str(":");
         info
     }
 }

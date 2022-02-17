@@ -525,14 +525,24 @@ impl CodeGenerator {
                 func,
                 need_self,
                 args,
+                is_dyn,
             } => {
                 for arg_expr in args.iter() {
                     self.generate_expression(arg_expr, context);
                 }
                 let call_code = if *need_self {
-                    ByteCode::CallMethod {
-                        index: func.index().0,
-                        nargs: args.len() as u16,
+                    if *is_dyn {
+                        let (interface_idx,fn_idx) = func.double_index();
+                        ByteCode::CallMethodDyn {
+                            interface_idx,
+                            fn_idx,
+                            nargs: args.len() as u16
+                        }
+                    }else {
+                        ByteCode::CallMethod {
+                            index: func.index().0,
+                            nargs: args.len() as u16,
+                        }
                     }
                 } else {
                     ByteCode::CallStaticFn {

@@ -645,8 +645,9 @@ impl Parser {
                             }
                             chains.push(Chain::FnCall {
                                 func: VarId::Name(field_name),
-                                need_self: false,
                                 args,
+                                need_self: false,
+                                is_dyn: false
                             })
                         } else {
                             chains.push(Chain::Access(VarId::Name(field_name), BasicType::Ref));
@@ -802,7 +803,7 @@ impl Parser {
         }
         let mut funcs = Vec::new();
         while self.has_next() {
-            match self.next() {
+            match self.next().clone() {
                 Token::RBrace => {
                     break;
                 }
@@ -813,10 +814,7 @@ impl Parser {
                     // gloom self
                     if let Token::Id(name) = self.peek() {
                         if name.as_str().eq("self") {
-                            params.push(ParsedType::Single(SingleType {
-                                name: name.clone(),
-                                generic: None,
-                            }));
+                            params.push(ParsedType::MySelf);
                             self.forward();
                         }
                     }
@@ -835,13 +833,19 @@ impl Parser {
                     }
                     // parse return type
                     let mut return_type = Option::None;
+                    if self.test_next(Token::SingleArrow) {
+                        self.forward();
+                    }
                     if !self.test_next(Token::Func) && !self.test_next(Token::RBrace) {
                         return_type = Option::Some(self.parse_type());
                     }
                     funcs.push((func_name, params, return_type));
                 }
                 token => {
-                    panic!("expect token 'func', found {:?}", token);
+                    return Result::Err(ParseError::new(
+                        self.line(),
+                        format!("expect token 'func', found {:?}", token)
+                    ))
                 }
             }
         }

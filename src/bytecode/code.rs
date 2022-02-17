@@ -73,6 +73,8 @@ pub enum ByteCode {
     CallStaticFn { index: u16, nargs: u16 },
     // call a fn in the class of obj, need self
     CallMethod { index: u16, nargs: u16 },
+    // call a fn that impls from a interface in a class by dynamic dispatch, need self
+    CallMethodDyn{ interface_idx : u16, fn_idx : u16, nargs : u16 },
 
     CollectTuple(u16),
     CollectArray(BasicType, u16),
@@ -144,7 +146,8 @@ impl ByteCode {
 
             ByteCode::CallTopFn { nargs }
             | ByteCode::CallStaticFn { index: _, nargs }
-            | ByteCode::CallMethod { index: _, nargs } => -(nargs as i16),
+            | ByteCode::CallMethod { index: _, nargs }
+            | ByteCode::CallMethodDyn { nargs, .. } => -(nargs as i16),
 
             ByteCode::Return => 0,
 

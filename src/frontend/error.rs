@@ -310,5 +310,7 @@ pub enum AnalysisError {
         class : String,
         expect : usize,
         found : usize
-    }
+    },
+
+
 }

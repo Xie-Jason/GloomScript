@@ -22,7 +22,7 @@ use crate::vm::value::Value;
 pub struct GloomClass {
     pub name: Rc<String>,
     parent: Option<RefCount<GloomClass>>,
-    impls: Vec<InterfaceImpl>,
+    pub impls: Vec<InterfaceImpl>,
     pub map: HashMap<String, (u16, u8, IsPub, IsMemFunc)>,
     pub field_indexer: SlotIndexer,
     pub funcs: Vec<RefCount<GloomFunc>>,
@@ -30,6 +30,7 @@ pub struct GloomClass {
     pub class_index: u16,
     pub field_count: u16,
     pub fn_drop_idx: u16,
+    pub is_filled : bool
 }
 
 pub type IsMemFunc = bool;
@@ -37,7 +38,7 @@ pub type IsPub = bool;
 
 #[derive(Debug, Clone)]
 pub struct InterfaceImpl{
-    interface : RefCount<Interface>,
+    pub interface : RefCount<Interface>,
     fn_table : Vec<u16>,
     // index : interface_fn_index, elem : class_fn_index
 }
@@ -55,6 +56,7 @@ impl GloomClass {
             fn_drop_idx: u16::MAX,
             field_count: 0,
             class_index,
+            is_filled: false
         }
     }
 
@@ -65,13 +67,16 @@ impl GloomClass {
         self.map = parent_ref.map.clone();
         self.funcs = parent_ref.funcs.clone();
         self.field_indexer = parent_ref.field_indexer.clone();
+        self.field_count = parent_ref.field_count;
+        self.fn_drop_idx = parent_ref.fn_drop_idx;
+
         std::mem::drop(parent_ref);
         self.parent = Some(parent);
     }
 
     // 最后再调用，因为会检查接口抽象方法是否实现 last to call this function,
     // because this function will check the abstract functions declared in the interface are implemented by this class or not
-    pub fn add_impl(&mut self, interface_rf: RefCount<Interface>) -> Result<(),AnalysisError> {
+    pub fn add_impl(&self, interface_rf: RefCount<Interface>,) -> Result<(),AnalysisError> {
         let interface = interface_rf.inner();
         let mut fn_table = Vec::with_capacity(interface.funcs.len());
         for abstract_func in interface.funcs.iter() {
@@ -117,8 +122,11 @@ impl GloomClass {
                             found: found_params.len()
                         })
                     }
-                    let param_iter
+                    let mut param_iter
                         = found_params.iter().zip(expect_params.iter()).enumerate();
+                    if func_ref.info.need_self {
+                        param_iter.next();
+                    }
                     for (idx, (found_param, expect_param)) in param_iter {
                         let expect_type = &expect_param.data_type;
                         let found_type = &found_param.data_type;
@@ -136,7 +144,11 @@ impl GloomClass {
                 }
             }
         }
-        self.impls.push(InterfaceImpl{
+
+        let mut vec = unsafe {
+            &mut *(&(self.impls) as *const Vec<InterfaceImpl> as *mut Vec<InterfaceImpl>)
+        };
+        vec.push(InterfaceImpl{
             interface: interface_rf.clone(),
             fn_table
         });
@@ -159,17 +171,6 @@ impl GloomClass {
         body: Vec<Statement>,
     ) -> Result<(),AnalysisError> {
         let index = self.funcs.len() as u16;
-        match self.map.entry(func_name.deref().clone()) {
-            Entry::Vacant(entry) => {
-                entry.insert((index, 0, is_pub, true));
-            }
-            Entry::Occupied(_) => {
-                return Result::Err(AnalysisError::FnAlreadyOccupied {
-                    symbol: func_name.to_string(),
-                    typ: self.name.to_string()
-                })
-            }
-        }
         // found drop fn
         if func_name.deref().eq("drop")
             && return_type.is_void()
@@ -178,13 +179,33 @@ impl GloomClass {
         {
             self.fn_drop_idx = index;
         }
-        self.funcs.push(RefCount::new(GloomFunc::new(
-            func_name,
-            self.file_index,
-            params,
-            return_type,
-            body,
-        )));
+        match self.map.entry(func_name.deref().clone()) {
+            Entry::Vacant(entry) => {
+                entry.insert((index, 0, is_pub, true));
+                self.funcs.push(RefCount::new(GloomFunc::new(
+                    func_name,
+                    self.file_index,
+                    params,
+                    return_type,
+                    body,
+                )));
+            }
+            Entry::Occupied(mut entry) => {
+                /*return Result::Err(AnalysisError::FnAlreadyOccupied {
+                    symbol: func_name.to_string(),
+                    typ: self.name.to_string()
+                })*/
+                let (fn_idx,_,_,_) = *entry.get();
+                *self.funcs.get_mut(fn_idx as usize).unwrap() = RefCount::new(GloomFunc::new(
+                    func_name,
+                    self.file_index,
+                    params,
+                    return_type,
+                    body,
+                ));
+                entry.replace_entry((fn_idx, 0, is_pub, true));
+            }
+        }
         Result::Ok(())
     }
 
@@ -209,7 +230,8 @@ impl GloomClass {
     #[inline]
     pub fn is_impl_from(&self, interface: &RefCount<Interface>) -> bool {
         for real_impl in self.impls.iter() {
-            if real_impl.interface.eq(interface) || real_impl.interface.inner().derived_from(interface) {
+            if real_impl.interface.eq(interface)
+                || real_impl.interface.inner().derived_from(interface) {
                 return true;
             }
         }
@@ -224,6 +246,16 @@ impl GloomClass {
     #[inline]
     pub fn ref_index_iter(&self) -> Iter<'_, u16> {
         self.field_indexer.curr_drop_vec().iter()
+    }
+
+    #[inline]
+    pub fn dynamic_dispatch(&self, interface_idx : u16, fn_idx : u16) -> &RefCount<GloomFunc>{
+        let result = self.impls.binary_search_by(|impl_table| {
+            impl_table.interface.inner().interface_index.cmp(&interface_idx)
+        });
+        let real_fn_idx = *self.impls.get(result.unwrap()).unwrap()
+            .fn_table.get(fn_idx as usize).unwrap();
+        self.funcs.get(real_fn_idx as usize).unwrap()
     }
 }
 

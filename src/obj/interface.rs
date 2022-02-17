@@ -13,23 +13,17 @@ pub struct Interface {
     //              func name    params type   return type  have self
     pub funcs: Vec<RefCount<GloomFunc>>,
     pub map: HashMap<Rc<String>, u16>,
-}
-
-#[derive(Debug)]
-pub struct AbstractFunc {
-    pub name: Rc<String>,
-    pub param_types: Vec<DataType>,
-    pub return_type: ReturnType,
-    pub have_self: bool,
+    pub interface_index : u16
 }
 
 impl Interface {
-    pub fn new(name: Rc<String>) -> Interface {
+    pub fn new(name: Rc<String>, index: u16) -> Interface {
         Interface {
             name,
             parents: Vec::new(),
             funcs: Vec::new(),
             map: HashMap::new(),
+            interface_index: index
         }
     }
     #[inline]
@@ -66,16 +60,6 @@ impl Interface {
     }
     pub fn len(&self) -> usize {
         self.funcs.len()
-    }
-}
-
-impl AbstractFunc {
-    pub fn func_type(&self) -> DataType {
-        DataType::Ref(RefType::Func(Box::new((
-            self.param_types.clone(),
-            self.return_type.clone(),
-            false,
-        ))))
     }
 }
 
