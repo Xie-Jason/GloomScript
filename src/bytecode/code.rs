@@ -25,12 +25,16 @@ pub enum ByteCode {
     WriteLocalBool(u16, u8),
     WriteLocalRef(u16),
 
-    ReadStatic(u16, u8),
+    ReadStatic(u16),
+    JumpIfStaticInit{
+        label : u32,
+        static_idx : u16
+    },
 
-    WriteStaticInt(u16, u8),
-    WriteStaticNum(u16, u8),
-    WriteStaticChar(u16, u8),
-    WriteStaticBool(u16, u8),
+    WriteStaticInt(u16),
+    WriteStaticNum(u16),
+    WriteStaticChar(u16),
+    WriteStaticBool(u16),
     WriteStaticRef(u16),
 
     ReadField(u16, u8),
@@ -132,7 +136,7 @@ impl ByteCode {
             | ByteCode::LoadDirectBool(_)
             | ByteCode::LoadClass(_)
             | ByteCode::LoadEnum(_)
-            | ByteCode::ReadStatic(_, _)
+            | ByteCode::ReadStatic(_)
             | ByteCode::LoadBuiltinType(_)
             | ByteCode::ReadField(_, _)
             | ByteCode::LoadDirectDefFn(_)
@@ -147,10 +151,10 @@ impl ByteCode {
             | ByteCode::WriteLocalChar(_, _)
             | ByteCode::WriteLocalBool(_, _)
             | ByteCode::WriteLocalRef(_)
-            | ByteCode::WriteStaticInt(_, _)
-            | ByteCode::WriteStaticNum(_, _)
-            | ByteCode::WriteStaticChar(_, _)
-            | ByteCode::WriteStaticBool(_, _)
+            | ByteCode::WriteStaticInt(_)
+            | ByteCode::WriteStaticNum(_)
+            | ByteCode::WriteStaticChar(_)
+            | ByteCode::WriteStaticBool(_)
             | ByteCode::WriteStaticRef(_)
             | ByteCode::WriteFieldInt(_, _)
             | ByteCode::WriteFieldNum(_, _)
@@ -202,6 +206,8 @@ impl ByteCode {
             ByteCode::InvokeNext => 1,
 
             ByteCode::RangeIter => -2,
+
+            ByteCode::JumpIfStaticInit {..} => 0,
         }
     }
 }

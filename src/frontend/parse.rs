@@ -133,7 +133,7 @@ impl Parser {
                 }
                 Token::Import => {
                     let importer = self.importer.clone();
-                    match self.next() {
+                    match self.next().clone() {
                         Token::Id(lib) => {
                             Importer::import_std_lib(lib.as_str(), importer).unwrap();
                         }

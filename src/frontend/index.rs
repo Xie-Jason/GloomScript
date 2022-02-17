@@ -23,7 +23,6 @@ impl SlotIndexer {
     const CHAR_MAX_SUB_IDX: i16 = 3;
     const BOOL_MAX_SUB_IDX: i16 = 15;
 
-    #[inline]
     fn put_int(&mut self) -> (u16, u8) {
         if self.int_curr_slot_idx < 0 || self.int_curr_sub_idx >= SlotIndexer::INT_MAX_SUB_IDX {
             // have no int slot yet or current int slot is full, need alloc a new int slot
@@ -38,7 +37,6 @@ impl SlotIndexer {
         (self.int_curr_slot_idx as u16, self.int_curr_sub_idx as u8)
     }
 
-    #[inline]
     fn put_num(&mut self) -> (u16, u8) {
         if self.num_curr_slot_idx < 0 || self.num_curr_sub_idx >= SlotIndexer::NUM_MAX_SUB_IDX {
             self.max_idx += 1;
@@ -51,7 +49,6 @@ impl SlotIndexer {
         (self.num_curr_slot_idx as u16, self.num_curr_sub_idx as u8)
     }
 
-    #[inline]
     fn put_char(&mut self) -> (u16, u8) {
         if self.char_curr_slot_idx < 0 || self.char_curr_sub_idx >= SlotIndexer::CHAR_MAX_SUB_IDX {
             self.max_idx += 1;
@@ -64,7 +61,6 @@ impl SlotIndexer {
         (self.char_curr_slot_idx as u16, self.char_curr_sub_idx as u8)
     }
 
-    #[inline]
     fn put_bool(&mut self) -> (u16, u8) {
         if self.bool_curr_slot_idx < 0 || self.bool_curr_sub_idx >= SlotIndexer::BOOL_MAX_SUB_IDX {
             self.max_idx += 1;
@@ -77,7 +73,6 @@ impl SlotIndexer {
         (self.bool_curr_slot_idx as u16, self.bool_curr_sub_idx as u8)
     }
 
-    #[inline]
     pub fn put(&mut self, data_type: DataType) -> (u16, u8) {
         match data_type {
             DataType::Int => self.put_int(),
@@ -103,17 +98,14 @@ impl SlotIndexer {
         self.drop_vec_stack.pop().unwrap()
     }
 
-    #[inline]
     pub fn get_type(&self, index: u16) -> &DataType {
         self.types.get(index as usize).unwrap()
     }
 
-    #[inline]
     pub fn size(&self) -> u16 {
         (self.max_idx + 1) as u16
     }
 
-    #[inline]
     pub fn curr_drop_vec(&self) -> &Vec<u16> {
         self.drop_vec_stack.last().unwrap()
     }

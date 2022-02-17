@@ -11,7 +11,7 @@ use crate::frontend::error::AnalysisError;
 use crate::frontend::ops::LeftValueOp;
 use crate::frontend::token::Token;
 use crate::obj::func::FuncInfo;
-use crate::vm::static_table::StaticTable;
+use crate::vm::static_table::{ListIndexer, StaticTable};
 use crate::{
     builtin::classes::BuiltinClass,
     builtin::funcs::{BuiltInFuncs, IsBuiltIn},
@@ -41,9 +41,9 @@ pub struct Analyzer {
     parsed_enums: Vec<(RefCount<ParsedEnum>, u16)>,
     pub func_map: HashMap<String, (u16, IsBuiltIn, IsPub, u16)>,
     pub type_map: HashMap<String, TypeIndex>,
-    pub static_map: RefCount<HashMap<String, (u16, u8)>>,
+    pub static_map: RefCount<HashMap<String, u16>>,
     builtin_map: HashMap<BuiltinType, u16>,
-    static_indexer: RefCount<SlotIndexer>,
+    static_indexer: RefCount<ListIndexer>,
     paths: Vec<String>,
 }
 
@@ -182,18 +182,23 @@ impl Analyzer {
                         } else {
                             let static_indexer = self.static_indexer.inner();
                             let data_type = static_indexer.get_type(*slot_idx).clone();
-                            *var = Var::new_static(*slot_idx, *sub_idx, data_type.as_basic());
+                            *var = Var::new_static(*slot_idx, data_type.as_basic());
                             data_type
                         }
                     }
-                    // TODO captured left value
-                    None => {
-                        return Result::Err(AnalysisError::UndefinedVar {
+                    None => match self.static_map.inner().get(var_name_ref.as_str()) {
+                        Some(slot_idx) => {
+                            let static_indexer = self.static_indexer.inner();
+                            let data_type = static_indexer.get_type(*slot_idx).clone();
+                            *var = Var::new_static(*slot_idx, data_type.as_basic());
+                            data_type
+                        }
+                        None => return Result::Err(AnalysisError::UndefinedVar {
                             info: context.info(),
                             line: 0,
                             var: var_name_ref.deref().clone(),
                         })
-                    }
+                    },
                 }
             }
             LeftValue::Chain(_, _) => DataType::Int,
@@ -952,15 +957,15 @@ impl Analyzer {
                         } else {
                             // local variable
                             let data_type = self.static_indexer.inner().get_type(*slot_idx).clone();
-                            *var_ref = Var::new_static(*slot_idx, *sub_idx, data_type.as_basic());
+                            *var_ref = Var::new_static(*slot_idx, data_type.as_basic());
                             data_type
                         }
                     }
                     None => match self.static_map.inner().get(var_name.as_str()) {
-                        Some((slot_idx, sub_idx)) => {
+                        Some(slot_idx) => {
                             // public static variable
                             let data_type = self.static_indexer.inner().get_type(*slot_idx).clone();
-                            *var_ref = Var::new_static(*slot_idx, *sub_idx, data_type.as_basic());
+                            *var_ref = Var::new_static(*slot_idx, data_type.as_basic());
                             data_type
                         }
                         None => match context.out_context {
@@ -1000,7 +1005,6 @@ impl Analyzer {
                                             .clone();
                                         *var_ref = Var::new_static(
                                             *out_slot_idx,
-                                            *out_sub_idx,
                                             data_type.as_basic(),
                                         );
                                         data_type
@@ -1715,10 +1719,9 @@ impl Analyzer {
                                     found: expr_type,
                                 });
                             }
-                            let (slot_idx, sub_idx) =
-                                self.static_indexer.inner_mut().put(marked_type);
+                            let slot_idx = self.static_indexer.inner_mut().put(marked_type);
                             match context.symbol_table.entry(var.name().deref().clone()) {
-                                Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, false)),
+                                Entry::Vacant(entry) => entry.insert((slot_idx, 0, false)),
                                 Entry::Occupied(_) => {
                                     return Result::Err(AnalysisError::VarAlreadyOccupied {
                                         info: context.info(),
@@ -1726,15 +1729,14 @@ impl Analyzer {
                                     })
                                 }
                             };
-                            *var = Var::new_static(slot_idx, sub_idx, basic_type);
+                            *var = Var::new_static(slot_idx, basic_type);
                         }
                         None => {
                             let expr_type = self.deduce_type(expr, context)?;
                             let basic_type = expr_type.as_basic();
-                            let (slot_idx, sub_idx) =
-                                self.static_indexer.inner_mut().put(expr_type);
+                            let slot_idx = self.static_indexer.inner_mut().put(expr_type);
                             match context.symbol_table.entry(var.name().deref().clone()) {
-                                Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx, false)),
+                                Entry::Vacant(entry) => entry.insert((slot_idx, 0, false)),
                                 Entry::Occupied(_) => {
                                     return Result::Err(AnalysisError::VarAlreadyOccupied {
                                         info: context.info(),
@@ -1742,7 +1744,7 @@ impl Analyzer {
                                     })
                                 }
                             };
-                            *var = Var::new_static(slot_idx, sub_idx, basic_type);
+                            *var = Var::new_static(slot_idx, basic_type);
                         }
                     };
                 }
@@ -1769,13 +1771,12 @@ impl Analyzer {
                                     found: expr_type,
                                 });
                             }
-                            let (slot_idx, sub_idx) =
-                                self.static_indexer.inner_mut().put(marked_type);
+                            let slot_idx = self.static_indexer.inner_mut().put(marked_type);
                             match pub_static_symbol_table
                                 .inner_mut()
                                 .entry(var.name().deref().clone())
                             {
-                                Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx)),
+                                Entry::Vacant(entry) => entry.insert(slot_idx),
                                 Entry::Occupied(_) => {
                                     return Result::Err(AnalysisError::VarAlreadyOccupied {
                                         info: context.info(),
@@ -1783,18 +1784,17 @@ impl Analyzer {
                                     })
                                 }
                             };
-                            *var = Var::new_static(slot_idx, sub_idx, basic_type);
+                            *var = Var::new_static(slot_idx, basic_type);
                         }
                         None => {
                             let expr_type = self.deduce_type(expr, context)?;
                             let basic_type = expr_type.as_basic();
-                            let (slot_idx, sub_idx) =
-                                self.static_indexer.inner_mut().put(expr_type);
+                            let slot_idx = self.static_indexer.inner_mut().put(expr_type);
                             match pub_static_symbol_table
                                 .inner_mut()
                                 .entry(var.name().deref().clone())
                             {
-                                Entry::Vacant(entry) => entry.insert((slot_idx, sub_idx)),
+                                Entry::Vacant(entry) => entry.insert(slot_idx),
                                 Entry::Occupied(_) => {
                                     return Result::Err(AnalysisError::VarAlreadyOccupied {
                                         info: context.info(),
@@ -1802,7 +1802,7 @@ impl Analyzer {
                                     })
                                 }
                             };
-                            *var = Var::new_static(slot_idx, sub_idx, basic_type);
+                            *var = Var::new_static(slot_idx, basic_type);
                         }
                     };
                 }
@@ -2471,7 +2471,7 @@ impl Analyzer {
     pub fn result(self) -> (GloomStatus, StaticTable) {
         let mut indexer = self.static_indexer.inner_mut();
         let static_len = indexer.size();
-        let static_drop_vec = indexer.basic_drop_vec();
+        let static_drop_vec = indexer.drop_vec();
         let static_table = StaticTable::new(static_len, static_drop_vec);
         (self.status, static_table)
     }
@@ -2487,7 +2487,7 @@ impl Analyzer {
             status: GloomStatus::new(),
             static_map: RefCount::new(HashMap::new()),
             builtin_map: BuiltinClass::builtin_type_map(),
-            static_indexer: RefCount::new(SlotIndexer::new()),
+            static_indexer: RefCount::new(ListIndexer::new()),
             paths: Vec::new(),
         }
     }

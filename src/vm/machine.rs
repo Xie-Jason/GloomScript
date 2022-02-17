@@ -173,24 +173,24 @@ impl GloomVM {
                     let option = frame.write_ref(rf, slot_idx);
                     self.drop_option_manually(option);
                 }
-                ByteCode::ReadStatic(slot_idx, sub_idx) => {
-                    frame.push(self.static_table.read(slot_idx, sub_idx));
+                ByteCode::ReadStatic(slot_idx) => {
+                    frame.push(self.static_table.read(slot_idx));
                 }
-                ByteCode::WriteStaticInt(slot_idx, sub_idx) => {
+                ByteCode::WriteStaticInt(slot_idx) => {
                     self.static_table
-                        .write_int(slot_idx, sub_idx, frame.pop().assert_int());
+                        .write_int(slot_idx, frame.pop().assert_int());
                 }
-                ByteCode::WriteStaticNum(slot_idx, sub_idx) => {
+                ByteCode::WriteStaticNum(slot_idx) => {
                     self.static_table
-                        .write_num(slot_idx, sub_idx, frame.pop().assert_num());
+                        .write_num(slot_idx, frame.pop().assert_num());
                 }
-                ByteCode::WriteStaticChar(slot_idx, sub_idx) => {
+                ByteCode::WriteStaticChar(slot_idx) => {
                     self.static_table
-                        .write_char(slot_idx, sub_idx, frame.pop().assert_char());
+                        .write_char(slot_idx, frame.pop().assert_char());
                 }
-                ByteCode::WriteStaticBool(slot_idx, sub_idx) => {
+                ByteCode::WriteStaticBool(slot_idx) => {
                     self.static_table
-                        .write_bool(slot_idx, sub_idx, frame.pop().assert_bool());
+                        .write_bool(slot_idx, frame.pop().assert_bool());
                 }
                 ByteCode::WriteStaticRef(slot_idx) => {
                     let rf = self
@@ -581,6 +581,13 @@ impl GloomVM {
                 ByteCode::AsRef => {
                     let rf = frame.pop().assert_into_ref();
                     frame.push(Value::Ref(rf));
+                }
+                ByteCode::JumpIfStaticInit{
+                    label, static_idx
+                } => {
+                    if self.static_table.is_init(static_idx){
+                        pc = label as usize;
+                    }
                 }
             }
         }

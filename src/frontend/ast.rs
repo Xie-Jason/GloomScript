@@ -135,10 +135,10 @@ pub enum Var {
     LocalBool(u16, u8),
     LocalRef(u16),
 
-    StaticInt(u16, u8),
-    StaticNum(u16, u8),
-    StaticChar(u16, u8),
-    StaticBool(u16, u8),
+    StaticInt(u16),
+    StaticNum(u16),
+    StaticChar(u16),
+    StaticBool(u16),
     StaticRef(u16),
 
     Class(u16),
@@ -167,12 +167,12 @@ impl Var {
         }
     }
     #[inline]
-    pub fn new_static(slot_idx: u16, sub_idx: u8, basic_type: BasicType) -> Var {
+    pub fn new_static(slot_idx: u16, basic_type: BasicType) -> Var {
         match basic_type {
-            BasicType::Int => Var::StaticInt(slot_idx, sub_idx),
-            BasicType::Num => Var::StaticNum(slot_idx, sub_idx),
-            BasicType::Char => Var::StaticChar(slot_idx, sub_idx),
-            BasicType::Bool => Var::StaticBool(slot_idx, sub_idx),
+            BasicType::Int => Var::StaticInt(slot_idx),
+            BasicType::Num => Var::StaticNum(slot_idx),
+            BasicType::Char => Var::StaticChar(slot_idx),
+            BasicType::Bool => Var::StaticBool(slot_idx),
             BasicType::Ref => Var::StaticRef(slot_idx),
         }
     }

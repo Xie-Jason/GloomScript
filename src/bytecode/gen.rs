@@ -75,16 +75,37 @@ impl CodeGenerator {
                 }
                 Statement::Static(static_info) | Statement::PubStatic(static_info) => {
                     let (var, _, expr) = static_info.deref();
+                    let index = match var {
+                        Var::StaticInt(i) |
+                        Var::StaticNum(i) |
+                        Var::StaticChar(i) |
+                        Var::StaticBool(i) |
+                        Var::StaticRef(i) => *i,
+                        _ => panic!()
+                    };
+
+                    let jump_if_init_idx = context.bytecodes.len();
+                    context.push(ByteCode::JumpIfStaticInit {
+                        label: Self::INVALID_LABEL,
+                        static_idx: index
+                    });
+
                     self.generate_expression(expr, context);
                     let code = match var {
-                        Var::StaticInt(i1, i2) => ByteCode::WriteStaticInt(*i1, *i2),
-                        Var::StaticNum(i1, i2) => ByteCode::WriteStaticNum(*i1, *i2),
-                        Var::StaticChar(i1, i2) => ByteCode::WriteStaticChar(*i1, *i2),
-                        Var::StaticBool(i1, i2) => ByteCode::WriteStaticBool(*i1, *i2),
+                        Var::StaticInt(i) => ByteCode::WriteStaticInt(*i),
+                        Var::StaticNum(i) => ByteCode::WriteStaticNum(*i),
+                        Var::StaticChar(i) => ByteCode::WriteStaticChar(*i),
+                        Var::StaticBool(i) => ByteCode::WriteStaticBool(*i),
                         Var::StaticRef(i) => ByteCode::WriteStaticRef(*i),
                         _ => panic!(),
                     };
                     context.push(code);
+                    let end_idx = context.bytecodes.len();
+                    if let ByteCode::JumpIfStaticInit {
+                        label, static_idx: _
+                    } = context.bytecodes.get_mut(jump_if_init_idx).unwrap(){
+                        *label = end_idx as u32;
+                    }
                 }
                 Statement::LeftValueOp(op_info) => {
                     let (left_value, operation) = op_info.deref();
@@ -100,11 +121,11 @@ impl CodeGenerator {
                                     | Var::LocalChar(i1, i2)
                                     | Var::LocalBool(i1, i2) => ByteCode::ReadLocal(*i1, *i2),
                                     Var::LocalRef(i) => ByteCode::ReadLocal(*i, 0),
-                                    Var::StaticInt(i1, i2)
-                                    | Var::StaticNum(i1, i2)
-                                    | Var::StaticChar(i1, i2)
-                                    | Var::StaticBool(i1, i2) => ByteCode::ReadStatic(*i1, *i2),
-                                    Var::StaticRef(i) => ByteCode::ReadStatic(*i, 0),
+                                    Var::StaticInt(i)
+                                    | Var::StaticNum(i)
+                                    | Var::StaticChar(i)
+                                    | Var::StaticBool(i) |
+                                    Var::StaticRef(i) => ByteCode::ReadStatic(*i),
                                     _ => panic!(),
                                 };
                                 context.push(read_code);
@@ -134,11 +155,11 @@ impl CodeGenerator {
                                 Var::LocalChar(i1, i2) => ByteCode::WriteLocalChar(*i1, *i2),
                                 Var::LocalBool(i1, i2) => ByteCode::WriteLocalBool(*i1, *i2),
                                 Var::LocalRef(i) => ByteCode::WriteLocalRef(*i),
-                                Var::StaticInt(i1, i2) => ByteCode::WriteStaticInt(*i1, *i2),
-                                Var::StaticNum(i1, i2) => ByteCode::WriteLocalNum(*i1, *i2),
-                                Var::StaticChar(i1, i2) => ByteCode::WriteLocalChar(*i1, *i2),
-                                Var::StaticBool(i1, i2) => ByteCode::WriteLocalBool(*i1, *i2),
-                                Var::StaticRef(i) => ByteCode::WriteLocalRef(*i),
+                                Var::StaticInt(i) => ByteCode::WriteStaticInt(*i),
+                                Var::StaticNum(i) => ByteCode::WriteStaticNum(*i),
+                                Var::StaticChar(i) => ByteCode::WriteStaticChar(*i),
+                                Var::StaticBool(i) => ByteCode::WriteStaticBool(*i),
+                                Var::StaticRef(i) => ByteCode::WriteStaticRef(*i),
                                 _ => panic!(),
                             };
                             context.push(write_code);
@@ -367,11 +388,11 @@ impl CodeGenerator {
                     | Var::LocalChar(i1, i2)
                     | Var::LocalBool(i1, i2) => ByteCode::ReadLocal(*i1, *i2),
                     Var::LocalRef(i) => ByteCode::ReadLocal(*i, 0),
-                    Var::StaticInt(i1, i2)
-                    | Var::StaticNum(i1, i2)
-                    | Var::StaticChar(i1, i2)
-                    | Var::StaticBool(i1, i2) => ByteCode::ReadStatic(*i1, *i2),
-                    Var::StaticRef(i) => ByteCode::ReadStatic(*i, 0),
+                    Var::StaticInt(i)
+                    | Var::StaticNum(i)
+                    | Var::StaticChar(i)
+                    | Var::StaticBool(i)
+                    | Var::StaticRef(i) => ByteCode::ReadStatic(*i),
                     Var::Class(i) => ByteCode::LoadClass(*i),
                     Var::Enum(i) => ByteCode::LoadEnum(*i),
                     Var::BuiltinType(i) => ByteCode::LoadBuiltinType(*i),

@@ -19,21 +19,21 @@
   // basic type
   let i1 int = 1;
   println(i1) // 1
-
+  
   // boxing by type mark
   let i2 Int = 2;
   println(i2) // Int(2)
-
+  
   // unboxing by type mark
   let i3 int = i1;
   println(i3) // 1
-
+  
   // boxing and un boxing by 'as' operator
   let i4 = 10 as Int;
   println(i4) // Int(10)
   let i5 = i4 as int;
   println(i5) // 10
-
+  
   // auto boxing when array lietral have a ref type
   println([100]) // [100]
   println([100,"233"]) // [Int(100), "233"]
@@ -43,10 +43,10 @@
   // auto boxing and unboxing when func call
   let fn1 = func(int i){ println(i) }
   fn1(i2) // i2 is a object of Int type
-
+  
   let fn2 = func(Int i){ println(i) }
   fn2(1111) // 1111 is a value of int type
-    ```
+  ```
 
 #### Expression & Statement
 
@@ -62,7 +62,19 @@
     // 其中Type是可选的，不写也可由类型推导出来
     let variable = Type.factoryFunc()
     ```
-    
+    静态变量声明：
+    ```c++
+  func get_counter() -> int{
+     static counter int = 0;
+     counter ++;
+     counter
+  }
+  for i in (0,5){
+      println(get_counter())
+  }
+  // 依次打印 0 1 2 3 4 5
+  ```
+  
 - 条件控制|*condition control* 
 
     是表达式*expression*而非语句*statement* ，这意味着有如下用法：
@@ -83,7 +95,7 @@
 - 循环控制|*loop control*
 
   ```js
-  let n = 0;
+  let n = 1;
   while(n < 1000){
       n = n * 2;
   }
@@ -133,7 +145,7 @@
         n
     }
     // 因为函数的最后一个表达式将被返回  
-  
+    
     // 调用
     let n = printInt(111)
     ```
