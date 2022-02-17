@@ -15,28 +15,37 @@
 
 - 除了基本数据类型，不提供值类型，对象全部为引用类型。在少量情况（下面会详细讨论），需要将基本数据类型以对象的形式保存，Gloom提供了包装类，并提供了自动装箱和拆箱。
 
-    ```go
-    // basic type
-    let i1 int = 1;
-    // auto boxing
-    let i2 Int = 2;
-    // auto unboxing
-    let i3 int = i1;
-    
-    println(i1) // 1
-    println(i2) // Int(2)
-    println(i3) // 1
-    
-    println([100]) // [100]
-    // which is Array<int> 
-    println([100,"233"]) // [Int(100), "233"]
-    // which in fact is Array<Any> 
-    
-    let fn1 = func(int i){ println(i) }
-    fn1(i2) // i2 is a object of Int type
-    
-    let fn2 = func(Int i){ println(i) }
-    fn2(1111) // 1111 is a value of int type
+  ```rust
+  // basic type
+  let i1 int = 1;
+  println(i1) // 1
+
+  // boxing by type mark
+  let i2 Int = 2;
+  println(i2) // Int(2)
+
+  // unboxing by type mark
+  let i3 int = i1;
+  println(i3) // 1
+
+  // boxing and un boxing by 'as' operator
+  let i4 = 10 as Int;
+  println(i4) // Int(10)
+  let i5 = i4 as int;
+  println(i5) // 10
+
+  // auto boxing when array lietral have a ref type
+  println([100]) // [100]
+  println([100,"233"]) // [Int(100), "233"]
+  // which will not happended in tuple
+  println((100,"233")) // (100, "233")
+  
+  // auto boxing and unboxing when func call
+  let fn1 = func(int i){ println(i) }
+  fn1(i2) // i2 is a object of Int type
+
+  let fn2 = func(Int i){ println(i) }
+  fn2(1111) // 1111 is a value of int type
     ```
 
 #### Expression & Statement

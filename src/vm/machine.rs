@@ -562,6 +562,26 @@ impl GloomVM {
                     let next = frame.top().as_ref().next();
                     frame.push(next);
                 }
+                ByteCode::AsInt => {
+                    let int = frame.pop().assert_int_form_num_liked();
+                    frame.push(Value::Int(int));
+                }
+                ByteCode::AsNum => {
+                    let num = frame.pop().assert_num_include_int();
+                    frame.push(Value::Num(num));
+                }
+                ByteCode::AsChar => {
+                    let char = frame.pop().assert_char_include_int();
+                    frame.push(Value::Char(char));
+                }
+                ByteCode::AsBool => {
+                    let bool = frame.pop().assert_bool();
+                    frame.push(Value::Bool(bool));
+                }
+                ByteCode::AsRef => {
+                    let rf = frame.pop().assert_into_ref();
+                    frame.push(Value::Ref(rf));
+                }
             }
             /*println!("{:?}",frame);
             println!("---");*/

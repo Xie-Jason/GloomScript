@@ -100,6 +100,12 @@ pub enum ByteCode {
     // do not pop the source iter obj
     InvokeNext,
 
+    AsInt,
+    AsNum,
+    AsChar,
+    AsBool,
+    AsRef,
+
     Construct(u16),
 
     // pop the condition after jump
@@ -162,6 +168,12 @@ impl ByteCode {
             | ByteCode::CallMethodDyn { nargs, .. } => -(nargs as i16),
 
             ByteCode::Return => 0,
+
+            ByteCode::AsInt
+            | ByteCode::AsNum
+            | ByteCode::AsChar
+            | ByteCode::AsBool
+            | ByteCode::AsRef => 0,
 
             ByteCode::Plus
             | ByteCode::Sub

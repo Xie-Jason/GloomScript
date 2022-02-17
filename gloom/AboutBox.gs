@@ -1,13 +1,20 @@
 // basic type
 let i1 int = 1;
+println(i1) // 1
+
 // auto boxing
 let i2 Int = 2;
+println(i2) // Int(2)
+
 // auto unboxing
 let i3 int = i1;
-
-println(i1) // 1
-println(i2) // Int(2)
 println(i3) // 1
+
+// boxing and un boxing by 'as' operator
+let i4 = 10 as Int;
+println(i4) // Int(10)
+let i5 = i4 as int;
+println(i5) // 10
 
 println([100]) // [100]
 

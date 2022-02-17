@@ -64,10 +64,12 @@ impl Value {
             Value::Int(int) => *int,
             Value::Num(num) => *num as i64,
             Value::Char(ch) => *ch as i64,
+            Value::Bool(bl) => *bl as i64,
             Value::Ref(obj_ref) => match obj_ref.obj_type() {
                 ObjectType::Int => obj_ref.downcast::<GloomInt>().0.get(),
                 ObjectType::Num => obj_ref.downcast::<GloomNum>().0.get() as i64,
                 ObjectType::Char => obj_ref.downcast::<GloomChar>().0.get() as i64,
+                ObjectType::Bool => obj_ref.downcast::<GloomBool>().0.get() as i64,
                 _ => panic!("{:?} as i64 ?", self),
             },
             _ => panic!("{:?} as i64 ?", self),
@@ -167,19 +169,15 @@ impl Value {
     }
 
     #[inline(always)]
-    pub fn into_ref(self) -> Option<GloomObjRef> {
-        match self {
-            Value::Int(i) => Option::Some(GloomInt::new(i)),
-            Value::Num(i) => Option::Some(GloomNum::new(i)),
-            Value::Char(i) => Option::Some(GloomChar::new(i)),
-            Value::Bool(i) => Option::Some(GloomBool::new(i)),
-            Value::Ref(obj) => Option::Some(obj),
-            Value::None => Option::None,
-        }
-    }
-    #[inline(always)]
     pub fn assert_into_ref(self) -> GloomObjRef {
-        self.into_ref().unwrap()
+        match self {
+            Value::Int(i) => GloomInt::new(i),
+            Value::Num(i) => GloomNum::new(i),
+            Value::Char(i) => GloomChar::new(i),
+            Value::Bool(i) => GloomBool::new(i),
+            Value::Ref(obj) => obj,
+            Value::None => panic!()
+        }
     }
 
     #[inline(always)]

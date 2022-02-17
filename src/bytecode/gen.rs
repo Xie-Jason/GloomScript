@@ -510,7 +510,17 @@ impl CodeGenerator {
 
                 self.generate_func(&mut func.inner_mut());
             }
-            Expression::Cast(cast) => panic!("not support now : {:#?}", cast),
+            Expression::Cast(cast) => {
+                let (expr,_,cast_type) = cast.deref();
+                self.generate_expression(expr,context);
+                context.push(match cast_type {
+                    DataType::Int => ByteCode::AsInt,
+                    DataType::Num => ByteCode::AsNum,
+                    DataType::Char => ByteCode::AsChar,
+                    DataType::Bool => ByteCode::AsBool,
+                    DataType::Ref(_) => ByteCode::AsRef,
+                });
+            },
             Expression::Match(m) => panic!("not support now {:#?}", m),
         }
     }
