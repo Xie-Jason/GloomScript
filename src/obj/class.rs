@@ -30,16 +30,16 @@ pub struct GloomClass {
     pub class_index: u16,
     pub field_count: u16,
     pub fn_drop_idx: u16,
-    pub is_filled : bool
+    pub is_filled: bool,
 }
 
 pub type IsMemFunc = bool;
 pub type IsPub = bool;
 
 #[derive(Debug, Clone)]
-pub struct InterfaceImpl{
-    pub interface : RefCount<Interface>,
-    fn_table : Vec<u16>,
+pub struct InterfaceImpl {
+    pub interface: RefCount<Interface>,
+    fn_table: Vec<u16>,
     // index : interface_fn_index, elem : class_fn_index
 }
 
@@ -56,7 +56,7 @@ impl GloomClass {
             fn_drop_idx: u16::MAX,
             field_count: 0,
             class_index,
-            is_filled: false
+            is_filled: false,
         }
     }
 
@@ -76,7 +76,7 @@ impl GloomClass {
 
     // 最后再调用，因为会检查接口抽象方法是否实现 last to call this function,
     // because this function will check the abstract functions declared in the interface are implemented by this class or not
-    pub fn add_impl(&self, interface_rf: RefCount<Interface>,) -> Result<(),AnalysisError> {
+    pub fn add_impl(&self, interface_rf: RefCount<Interface>) -> Result<(), AnalysisError> {
         let interface = interface_rf.inner();
         let mut fn_table = Vec::with_capacity(interface.funcs.len());
         for abstract_func in interface.funcs.iter() {
@@ -85,19 +85,21 @@ impl GloomClass {
             let expect_params = &abstract_func.info.params;
             let expect_return_type = &abstract_func.info.return_type;
             match self.map.get(name.as_str()) {
-                None => return Result::Err(AnalysisError::FnNotImpl {
-                    class: self.name.to_string(),
-                    interface: interface.name.to_string(),
-                    func: name.to_string()
-                }),
+                None => {
+                    return Result::Err(AnalysisError::FnNotImpl {
+                        class: self.name.to_string(),
+                        interface: interface.name.to_string(),
+                        func: name.to_string(),
+                    })
+                }
                 Some((index, _, _, is_func)) => {
                     fn_table.push(*index);
                     if !is_func {
                         return Result::Err(AnalysisError::FnNotImpl {
                             class: self.name.to_string(),
                             interface: interface.name.to_string(),
-                            func: name.to_string()
-                        })
+                            func: name.to_string(),
+                        });
                     }
                     // check param type and return type
                     let func = self.funcs.get(*index as usize).unwrap();
@@ -110,8 +112,8 @@ impl GloomClass {
                             inter: interface.name.to_string(),
                             class: self.name.to_string(),
                             expect: expect_return_type.clone(),
-                            found: real_return_type.clone()
-                        })
+                            found: real_return_type.clone(),
+                        });
                     }
                     if found_params.len() != expect_params.len() {
                         return Result::Err(AnalysisError::MismatchImplParamLen {
@@ -119,11 +121,10 @@ impl GloomClass {
                             inter: interface.name.to_string(),
                             class: self.name.to_string(),
                             expect: expect_params.len(),
-                            found: found_params.len()
-                        })
+                            found: found_params.len(),
+                        });
                     }
-                    let mut param_iter
-                        = found_params.iter().zip(expect_params.iter()).enumerate();
+                    let mut param_iter = found_params.iter().zip(expect_params.iter()).enumerate();
                     if func_ref.info.need_self {
                         param_iter.next();
                     }
@@ -137,8 +138,8 @@ impl GloomClass {
                                 inter: interface.name.to_string(),
                                 class: self.name.to_string(),
                                 expect: expect_type.clone(),
-                                found: found_type.clone()
-                            })
+                                found: found_type.clone(),
+                            });
                         }
                     }
                 }
@@ -148,9 +149,9 @@ impl GloomClass {
         let mut vec = unsafe {
             &mut *(&(self.impls) as *const Vec<InterfaceImpl> as *mut Vec<InterfaceImpl>)
         };
-        vec.push(InterfaceImpl{
+        vec.push(InterfaceImpl {
             interface: interface_rf.clone(),
-            fn_table
+            fn_table,
         });
         Result::Ok(())
     }
@@ -169,7 +170,7 @@ impl GloomClass {
         params: Vec<Param>,
         return_type: ReturnType,
         body: Vec<Statement>,
-    ) -> Result<(),AnalysisError> {
+    ) -> Result<(), AnalysisError> {
         let index = self.funcs.len() as u16;
         // found drop fn
         if func_name.deref().eq("drop")
@@ -195,7 +196,7 @@ impl GloomClass {
                     symbol: func_name.to_string(),
                     typ: self.name.to_string()
                 })*/
-                let (fn_idx,_,_,_) = *entry.get();
+                let (fn_idx, _, _, _) = *entry.get();
                 *self.funcs.get_mut(fn_idx as usize).unwrap() = RefCount::new(GloomFunc::new(
                     func_name,
                     self.file_index,
@@ -231,7 +232,8 @@ impl GloomClass {
     pub fn is_impl_from(&self, interface: &RefCount<Interface>) -> bool {
         for real_impl in self.impls.iter() {
             if real_impl.interface.eq(interface)
-                || real_impl.interface.inner().derived_from(interface) {
+                || real_impl.interface.inner().derived_from(interface)
+            {
                 return true;
             }
         }
@@ -249,12 +251,21 @@ impl GloomClass {
     }
 
     #[inline]
-    pub fn dynamic_dispatch(&self, interface_idx : u16, fn_idx : u16) -> &RefCount<GloomFunc>{
+    pub fn dynamic_dispatch(&self, interface_idx: u16, fn_idx: u16) -> &RefCount<GloomFunc> {
         let result = self.impls.binary_search_by(|impl_table| {
-            impl_table.interface.inner().interface_index.cmp(&interface_idx)
+            impl_table
+                .interface
+                .inner()
+                .interface_index
+                .cmp(&interface_idx)
         });
-        let real_fn_idx = *self.impls.get(result.unwrap()).unwrap()
-            .fn_table.get(fn_idx as usize).unwrap();
+        let real_fn_idx = *self
+            .impls
+            .get(result.unwrap())
+            .unwrap()
+            .fn_table
+            .get(fn_idx as usize)
+            .unwrap();
         self.funcs.get(real_fn_idx as usize).unwrap()
     }
 }

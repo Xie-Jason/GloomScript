@@ -60,11 +60,11 @@ impl Debug for GloomTuple {
         let mut string = String::with_capacity(16);
         string.push_str("(");
         for val in self.vec.borrow().iter() {
-            string.push_str(format!("{:?}, ",val).as_str())
+            string.push_str(format!("{:?}, ", val).as_str())
         }
         if string.len() > 1 {
-            string.remove(string.len()-1);
-            string.remove(string.len()-1);
+            string.remove(string.len() - 1);
+            string.remove(string.len() - 1);
         }
         string.push_str(")");
         write!(f, "{}", string)

@@ -170,9 +170,9 @@ impl GloomFunc {
         params: Vec<Param>,
         return_type: ReturnType,
         need_self: bool,
-        file_index : u16
+        file_index: u16,
     ) -> GloomFunc {
-        GloomFunc{
+        GloomFunc {
             info: FuncInfo {
                 name,
                 params,
@@ -182,9 +182,9 @@ impl GloomFunc {
                 need_self,
                 file_index,
                 local_size: 0,
-                stack_size: 0
+                stack_size: 0,
             },
-            body: FuncBody::None
+            body: FuncBody::None,
         }
     }
     #[inline]
@@ -298,7 +298,7 @@ impl ReturnType {
         }
     }
 
-    pub fn belongs_to(&self, other : &ReturnType) -> bool{
+    pub fn belongs_to(&self, other: &ReturnType) -> bool {
         match self {
             ReturnType::Void => match other {
                 ReturnType::Void => true,

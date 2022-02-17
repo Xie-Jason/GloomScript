@@ -5,8 +5,8 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::frontend::status::GloomStatus;
-use crate::obj::func::GloomFunc;
 use crate::obj::class::GloomClass;
+use crate::obj::func::GloomFunc;
 use crate::obj::object::{GloomObjRef, Object, ObjectType};
 use crate::obj::refcount::RefCount;
 use crate::obj::table::Table;

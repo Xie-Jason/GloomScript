@@ -7,14 +7,14 @@ use crate::builtin::obj::BuiltinClassObj;
 use crate::builtin::queue::{GloomQueue, RawQueue};
 use crate::bytecode::code::ByteCode;
 use crate::frontend::status::GloomStatus;
-use crate::obj::func::{FuncBody, GloomFunc, GloomFuncObj};
 use crate::obj::class::GloomClassObj;
+use crate::obj::func::{FuncBody, GloomFunc, GloomFuncObj};
 use crate::obj::gloom_enum::GloomEnum;
 use crate::obj::gloom_object::GloomObject;
-use crate::obj::tuple::GloomTuple;
 use crate::obj::object::{GloomObjRef, ObjectType};
 use crate::obj::range::RangeIter;
 use crate::obj::refcount::RefCount;
+use crate::obj::tuple::GloomTuple;
 use crate::obj::types::BasicType;
 use crate::vm::constant::ConstantPool;
 use crate::vm::frame::Frame;
@@ -417,7 +417,9 @@ impl GloomVM {
                     frame.push(result);
                 }
                 ByteCode::CallMethodDyn {
-                    interface_idx, fn_idx, nargs
+                    interface_idx,
+                    fn_idx,
+                    nargs,
                 } => {
                     let mut args = Vec::with_capacity((nargs + 1) as usize);
                     for _ in 0..nargs {
@@ -431,7 +433,7 @@ impl GloomVM {
                     };
                     args.push(obj_val);
                     args.reverse();
-                    let result = self.call_fn(func.inner().deref(),GloomArgs::new(args));
+                    let result = self.call_fn(func.inner().deref(), GloomArgs::new(args));
                     frame.push(result);
                 }
                 ByteCode::Jump(label) => {

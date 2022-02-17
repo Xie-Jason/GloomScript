@@ -68,13 +68,25 @@ pub enum ByteCode {
 
     // the arg of fn call is reversed, the first popped value if the last arg
     // pop the fn obj of stack top and call it, push result
-    CallTopFn { nargs: u16 },
+    CallTopFn {
+        nargs: u16,
+    },
     // call a fn in the class of obj
-    CallStaticFn { index: u16, nargs: u16 },
+    CallStaticFn {
+        index: u16,
+        nargs: u16,
+    },
     // call a fn in the class of obj, need self
-    CallMethod { index: u16, nargs: u16 },
+    CallMethod {
+        index: u16,
+        nargs: u16,
+    },
     // call a fn that impls from a interface in a class by dynamic dispatch, need self
-    CallMethodDyn{ interface_idx : u16, fn_idx : u16, nargs : u16 },
+    CallMethodDyn {
+        interface_idx: u16,
+        fn_idx: u16,
+        nargs: u16,
+    },
 
     CollectTuple(u16),
     CollectArray(BasicType, u16),

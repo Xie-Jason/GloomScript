@@ -22,10 +22,10 @@ use crate::{
         script::{ParsedFile, ScriptBody},
         status::{GloomStatus, MetaType, TypeIndex},
     },
-    obj::func::{Capture, FuncBody, GloomFunc, Param, ReturnType},
     obj::class::{GloomClass, IsPub},
+    obj::func::{Capture, FuncBody, GloomFunc, Param, ReturnType},
     obj::gloom_enum::GloomEnumClass,
-    obj::interface::{Interface},
+    obj::interface::Interface,
     obj::refcount::RefCount,
     obj::types::{BreakType, BuiltinType, DataType, DeclaredType, RefType},
 };
@@ -99,21 +99,13 @@ impl Analyzer {
         for func in self.status.funcs.iter() {
             let func = func.clone();
             let mut func_ref = func.inner_mut();
-            self.analysis_func(
-                &mut *func_ref,
-                Option::None,
-                DeclaredType::IsNot,
-            )?;
+            self.analysis_func(&mut *func_ref, Option::None, DeclaredType::IsNot)?;
         }
         // script executable body
         for script_body in self.status.script_bodies.iter() {
             let script_body_rc = script_body.clone();
             let mut script_body_ref = script_body_rc.inner_mut();
-            self.analysis_func(
-                &mut script_body_ref.func,
-                Option::None,
-                DeclaredType::IsNot,
-            )?;
+            self.analysis_func(&mut script_body_ref.func, Option::None, DeclaredType::IsNot)?;
         }
         if debug {
             println!("{:?}", self.status)
@@ -134,7 +126,10 @@ impl Analyzer {
             belonged_type,
             func_return_type.clone(),
             func.info.file_index,
-            self.paths.get(func.info.file_index as usize).unwrap().as_str(),
+            self.paths
+                .get(func.info.file_index as usize)
+                .unwrap()
+                .as_str(),
             out_env,
         );
         // load param into symbol table and allocate local slot for parameters
@@ -607,9 +602,16 @@ impl Analyzer {
                                     let class_ref = class.inner();
                                     match class_ref.map.get(func_name.deref()) {
                                         Some(index) => {
-                                            let target_func =
-                                                class_ref.funcs.get(*index as usize).unwrap().inner();
-                                            function = class_ref.funcs.get(*index as usize).unwrap().clone();
+                                            let target_func = class_ref
+                                                .funcs
+                                                .get(*index as usize)
+                                                .unwrap()
+                                                .inner();
+                                            function = class_ref
+                                                .funcs
+                                                .get(*index as usize)
+                                                .unwrap()
+                                                .clone();
                                             if !target_func.info.need_self {
                                                 return Result::Err(
                                                     AnalysisError::StaticFnNotMethod {
@@ -621,7 +623,10 @@ impl Analyzer {
                                             }
                                             *need_self = true;
                                             *is_dyn = true;
-                                            *func = VarId::DoubleIndex(class_ref.interface_index,*index);
+                                            *func = VarId::DoubleIndex(
+                                                class_ref.interface_index,
+                                                *index,
+                                            );
                                             match &target_func.info.return_type {
                                                 ReturnType::Void => {
                                                     if chain_idx != chains_len - 1 {
@@ -1983,7 +1988,7 @@ impl Analyzer {
                             .unwrap()
                             .clone();
                         // 没有被填充过
-                        if ! parent_class.inner().is_filled {
+                        if !parent_class.inner().is_filled {
                             // means parent class_mut is not uninitialized, fill it recursively
                             self.fill_class(parent_class.clone(), label.index as usize)?;
                         }
@@ -2059,9 +2064,10 @@ impl Analyzer {
             }
         }
         class.inner_mut().impls.sort_by(|imp1, imp2| {
-            imp1.interface.inner().interface_index.cmp(
-                &imp2.interface.inner().interface_index
-            )
+            imp1.interface
+                .inner()
+                .interface_index
+                .cmp(&imp2.interface.inner().interface_index)
         });
         Result::Ok(())
     }
@@ -2162,7 +2168,7 @@ impl Analyzer {
                         need_self = true;
                         Param::new(
                             empty_name.clone(),
-                            DataType::Ref(RefType::Interface(interface.clone()))
+                            DataType::Ref(RefType::Interface(interface.clone())),
                         )
                     } else {
                         return Result::Err(AnalysisError::UnexpectedSelf {
@@ -2172,10 +2178,7 @@ impl Analyzer {
                         });
                     }
                 } else {
-                    Param::new(
-                        empty_name.clone(),
-                        self.get_type(parsed_type, *file_index)?
-                    )
+                    Param::new(empty_name.clone(), self.get_type(parsed_type, *file_index)?)
                 });
             }
             let return_type = match return_type {
@@ -2194,13 +2197,15 @@ impl Analyzer {
                     })
                 }
             }
-            interface.inner_mut().add_func(RefCount::new (GloomFunc::new_abstract_fn(
-                name.clone(),
-                param_data_types,
-                return_type,
-                need_self,
-                *file_index
-            )))
+            interface
+                .inner_mut()
+                .add_func(RefCount::new(GloomFunc::new_abstract_fn(
+                    name.clone(),
+                    param_data_types,
+                    return_type,
+                    need_self,
+                    *file_index,
+                )))
         }
         Result::Ok(())
     }
@@ -2238,9 +2243,10 @@ impl Analyzer {
                     });
                 }
             };
-            self.status
-                .interfaces
-                .push(RefCount::new(Interface::new(parsed_inter.name.clone(),index as u16)));
+            self.status.interfaces.push(RefCount::new(Interface::new(
+                parsed_inter.name.clone(),
+                index as u16,
+            )));
         }
         // load empty class
         for (class, is_pub) in script.classes.iter() {
@@ -2317,7 +2323,8 @@ impl Analyzer {
             self.parsed_interfaces.push((interface, file_index));
         }
         for (enum_class, _) in script.enums.into_iter() {
-            self.parsed_enums.push((RefCount::new(enum_class), file_index));
+            self.parsed_enums
+                .push((RefCount::new(enum_class), file_index));
         }
         for (name, func, is_pub) in script.funcs.into_iter() {
             let func_index = self.status.funcs.len() as u16;
@@ -2440,12 +2447,10 @@ impl Analyzer {
                                 .unwrap()
                                 .inner()
                                 .get_ref_type(generic)
-                                .map_err(|err| {
-                                    AnalysisError::GenericError{
-                                        info: "".to_string(),
-                                        error: err
-                                    }
-                                })?
+                                .map_err(|err| AnalysisError::GenericError {
+                                    info: "".to_string(),
+                                    error: err,
+                                })?,
                         ),
                     })
                 } else {

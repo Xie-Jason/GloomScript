@@ -29,7 +29,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn parse(mut self) -> Result<ParsedFile,ParseError> {
+    pub fn parse(mut self) -> Result<ParsedFile, ParseError> {
         let vec = self.statements()?;
         Result::Ok(ParsedFile {
             imports: self.imports,
@@ -43,7 +43,7 @@ impl Parser {
         })
     }
 
-    fn statements(&mut self) -> Result<Vec<Statement>,ParseError> {
+    fn statements(&mut self) -> Result<Vec<Statement>, ParseError> {
         let mut statements = Vec::new();
         while self.has_next() && !self.test_next(Token::RBrace) {
             let token = self.next();
@@ -206,9 +206,9 @@ impl Parser {
                         let line = *self.lines.get(self.curr).unwrap();
                         return Result::Err(ParseError::new(
                             line,
-                            format!("expect class interface enum or func, found {:?}", token)
-                        ))
-                    },
+                            format!("expect class interface enum or func, found {:?}", token),
+                        ));
+                    }
                 },
                 // private declaration
                 Token::Class => {
@@ -281,9 +281,7 @@ impl Parser {
                         Ok(expr) => expr,
                         Err(_) => {
                             self.rollback(check_point);
-                            Expression::Var(Box::new(Var::Name(
-                                self.identifier()
-                            )))
+                            Expression::Var(Box::new(Var::Name(self.identifier())))
                         }
                     };
                     let for_iter: ForIter = if let Expression::Tuple(mut tuple) = expr {
@@ -297,8 +295,11 @@ impl Parser {
                             let end = vec.pop().unwrap();
                             let start = vec.pop().unwrap();
                             ForIter::Range(start, end, step)
-                        }else {
-                            ForIter::Iter(Expression::Tuple(std::mem::replace(&mut tuple,Box::new(Vec::with_capacity(0)))))
+                        } else {
+                            ForIter::Iter(Expression::Tuple(std::mem::replace(
+                                &mut tuple,
+                                Box::new(Vec::with_capacity(0)),
+                            )))
                         }
                     } else {
                         ForIter::Iter(expr)
@@ -647,7 +648,7 @@ impl Parser {
                                 func: VarId::Name(field_name),
                                 args,
                                 need_self: false,
-                                is_dyn: false
+                                is_dyn: false,
                             })
                         } else {
                             chains.push(Chain::Access(VarId::Name(field_name), BasicType::Ref));
@@ -680,7 +681,7 @@ impl Parser {
         Result::Ok(expr)
     }
 
-    fn parse_func(&mut self, is_mem_func: bool) -> Result<ParsedFunc,ParseError> {
+    fn parse_func(&mut self, is_mem_func: bool) -> Result<ParsedFunc, ParseError> {
         self.assert_next(Token::LParen)?;
         let mut param_vec = Vec::new();
         while self.has_next() {
@@ -844,7 +845,7 @@ impl Parser {
                 token => {
                     return Result::Err(ParseError::new(
                         self.line(),
-                        format!("expect token 'func', found {:?}", token)
+                        format!("expect token 'func', found {:?}", token),
                     ))
                 }
             }
@@ -883,8 +884,8 @@ impl Parser {
                     } else {
                         return Result::Err(ParseError::new(
                             self.line(),
-                            format!("expect 'func' after 'pub', found token {:?}", self.peek())
-                        ))
+                            format!("expect 'func' after 'pub', found token {:?}", self.peek()),
+                        ));
                     }
                 }
                 Token::Func => {
@@ -892,10 +893,12 @@ impl Parser {
                     let func = self.parse_func(true)?;
                     funcs.push((name, false, func));
                 }
-                token => return Result::Err(ParseError::new(
-                    self.line(),
-                    format!("expect identifier as enum value, found {:?}", token)
-                ))
+                token => {
+                    return Result::Err(ParseError::new(
+                        self.line(),
+                        format!("expect identifier as enum value, found {:?}", token),
+                    ))
+                }
             }
         }
         Result::Ok(ParsedEnum {
@@ -916,7 +919,7 @@ impl Parser {
         token
     }
     #[inline]
-    fn assert_next(&mut self, token: Token) -> Result<(),ParseError> {
+    fn assert_next(&mut self, token: Token) -> Result<(), ParseError> {
         let curr = self.tokens.get(self.curr).unwrap();
         if token.eq(curr) {
             self.curr += 1;
@@ -924,7 +927,7 @@ impl Parser {
         } else {
             Result::Err(ParseError::new(
                 self.line(),
-                format!("[assert_next] expect token {:?} in fact {:?}", token, curr)
+                format!("[assert_next] expect token {:?} in fact {:?}", token, curr),
             ))
         }
     }

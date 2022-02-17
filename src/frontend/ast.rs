@@ -2,8 +2,8 @@ use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
 use crate::frontend::ops::{BinOp, LeftValueOp};
-use crate::obj::func::GloomFunc;
 use crate::obj::class::IsPub;
+use crate::obj::func::GloomFunc;
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{BasicType, DataType};
 
@@ -222,7 +222,7 @@ impl VarId {
     pub fn name(&self) -> Rc<String> {
         match self {
             VarId::Name(name) => name.clone(),
-            _ => panic!()
+            _ => panic!(),
         }
     }
     #[inline]
@@ -234,7 +234,7 @@ impl VarId {
     }
 
     #[inline]
-    pub fn double_index(&self) -> (u16, u16){
+    pub fn double_index(&self) -> (u16, u16) {
         match self {
             VarId::DoubleIndex(i1, i2) => (*i1, *i2),
             _ => panic!(),
@@ -381,7 +381,7 @@ pub enum Chain {
         func: VarId,
         args: Vec<Expression>,
         need_self: bool,
-        is_dyn : bool
+        is_dyn: bool,
     },
 
     // expr is func type
@@ -398,7 +398,7 @@ impl Debug for Chain {
                 func,
                 need_self: _need_self,
                 args,
-                is_dyn : _is_dyn
+                is_dyn: _is_dyn,
             } => {
                 write!(f, "func[{:?}] {:?}", func, args)
             }

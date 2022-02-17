@@ -13,7 +13,7 @@ pub struct Interface {
     //              func name    params type   return type  have self
     pub funcs: Vec<RefCount<GloomFunc>>,
     pub map: HashMap<Rc<String>, u16>,
-    pub interface_index : u16
+    pub interface_index: u16,
 }
 
 impl Interface {
@@ -23,7 +23,7 @@ impl Interface {
             parents: Vec::new(),
             funcs: Vec::new(),
             map: HashMap::new(),
-            interface_index: index
+            interface_index: index,
         }
     }
     #[inline]
@@ -38,9 +38,9 @@ impl Interface {
     pub fn add_parent(&mut self, myself: &RefCount<Interface>, parent: &RefCount<Interface>) {
         for func in parent.inner().funcs.iter() {
             let func = func.inner();
-            let mut new_func = GloomFunc{
+            let mut new_func = GloomFunc {
                 info: FuncInfo::clone(&func.info),
-                body: FuncBody::None
+                body: FuncBody::None,
             };
             if func.info.need_self {
                 new_func.info.params.get_mut(0).unwrap().data_type =

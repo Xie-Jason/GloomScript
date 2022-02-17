@@ -1,9 +1,9 @@
+use crate::builtin::classes::BuiltinClass;
+use hashbrown::HashMap;
 use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
-use hashbrown::HashMap;
-use crate::builtin::classes::BuiltinClass;
 
 use crate::builtin::iter::GloomListIter;
 use crate::frontend::status::GloomStatus;
@@ -101,7 +101,7 @@ impl Debug for RawArray {
 }
 
 impl BuiltinClass {
-    pub fn gloom_array_class() -> BuiltinClass{
+    pub fn gloom_array_class() -> BuiltinClass {
         let map = HashMap::new();
         let funcs = Vec::new();
 
@@ -109,15 +109,16 @@ impl BuiltinClass {
             name: "Array".to_string(),
             map,
             funcs,
-            get_ref_type_fn: Box::new(|option| {
-                match option {
-                    None => Result::Ok(RefType::Array(Box::new(DataType::Ref(RefType::Any)))),
-                    Some(mut vec) => {
-                        if vec.len() == 1 {
-                            Result::Ok(RefType::Array(Box::new(vec.pop().unwrap())))
-                        }else {
-                            Result::Err(format!("type Array<T> need only one generic type, found {:?}",vec))
-                        }
+            get_ref_type_fn: Box::new(|option| match option {
+                None => Result::Ok(RefType::Array(Box::new(DataType::Ref(RefType::Any)))),
+                Some(mut vec) => {
+                    if vec.len() == 1 {
+                        Result::Ok(RefType::Array(Box::new(vec.pop().unwrap())))
+                    } else {
+                        Result::Err(format!(
+                            "type Array<T> need only one generic type, found {:?}",
+                            vec
+                        ))
                     }
                 }
             }),

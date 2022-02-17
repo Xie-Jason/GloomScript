@@ -532,13 +532,13 @@ impl CodeGenerator {
                 }
                 let call_code = if *need_self {
                     if *is_dyn {
-                        let (interface_idx,fn_idx) = func.double_index();
+                        let (interface_idx, fn_idx) = func.double_index();
                         ByteCode::CallMethodDyn {
                             interface_idx,
                             fn_idx,
-                            nargs: args.len() as u16
+                            nargs: args.len() as u16,
                         }
-                    }else {
+                    } else {
                         ByteCode::CallMethod {
                             index: func.index().0,
                             nargs: args.len() as u16,

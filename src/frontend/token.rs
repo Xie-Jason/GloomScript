@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
-#[derive(PartialEq,Clone)]
+#[derive(PartialEq, Clone)]
 pub enum Token {
     Int(i64),
     Num(f64),
