@@ -214,7 +214,7 @@
 
 - 简化OOP，仅有类和接口。
 - 单继承，多实现，内置类型不能被继承，因为它们是用Rust而非GloomScript实现的。
-- 无构造函数，无重载（静态工厂函数代替）
+- 无构造函数，无重载（静态工厂函数代替），可以重写父类方法。
 
 ```rust
 class Person{
@@ -229,6 +229,7 @@ class Person{
     pub func olderThan(self, Person other) bool {
         self.age > other.age
     }
+    // drop函数在对象回收时会被调用，类似C++的析构或Java中的finalize函数。与Java不同的是，由于GC是引用计数，drop会被及时调用。
     func drop(self){
         println([self.name, self.age,"Drop"])
     }
@@ -242,4 +243,8 @@ func(){
 // Person{ name : "haha", age : 11 }
 // ["haha", 11, "Drop"]
 ```
-
+继承与实现：
+```c++
+class MyClass : MyParentClass impl MyInterface {}
+```
+更多关于继承和实现的示例请参看：[DynTest.gs](https://github.com/Xie-Jason/GloomScript/blob/master/gloom/DynTest.gs)

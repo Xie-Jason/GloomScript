@@ -16,10 +16,10 @@ class Worker impl Person{
 
 class Teacher : Worker{
     pub func speak(self) -> String{
-        "可能有点啰嗦"
+        "教别人知识或者仅仅是做题"
     }
     pub func work(self){
-        println("上课好麻烦")
+        println("上课可能有点麻烦")
     }
 }
 
@@ -32,6 +32,15 @@ func showPerson(Person person){
 showPerson(Worker{ name : "worker", age : 18 })
 showPerson(Teacher{ name : "teacher", age : 23 })
 
+/*
+"无产阶级的朴素语言"
+"劳动最光荣"
+Worker { name : "worker" , age : 18  }
+"教别人知识或者仅仅是做题"
+"上课可能有点麻烦"
+Teacher { name : "teacher" , age : 23  }
+*/
+
 func showWorker(Worker worker){
     println(worker.speak())
     worker.work()
@@ -39,3 +48,9 @@ func showWorker(Worker worker){
 }
 
 showWorker(Teacher{ name : "another teacher", age : 25 })
+
+/*
+"教别人知识或者仅仅是做题"
+"上课可能有点麻烦"
+Teacher { name : "another teacher" , age : 25  }
+*/
