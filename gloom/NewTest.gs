@@ -20,4 +20,6 @@ while n > 0 {
     n --
     count ++
 }
-println([count,n])
+print(count)
+println(n)
+println(input())

@@ -145,8 +145,16 @@ impl Parser {
                             if start_with_point {
                                 path.remove(0);
                                 let mut new_path = self.path.clone();
-                                let deli_location =
-                                    new_path.rfind('\\').unwrap_or(new_path.rfind('/').unwrap());
+                                let deli_location = if let Some(idx) = new_path.rfind('\\') {
+                                    idx
+                                }else if let Some(idx) = new_path.rfind('/') {
+                                    idx
+                                }else {
+                                    return Result::Err(ParseError::new(
+                                        self.line(),
+                                        format!("imported file path {:?} not formatted path",path)
+                                    ))
+                                };
                                 let len = new_path.len();
                                 for _ in deli_location..len {
                                     new_path.remove(new_path.len() - 1);
