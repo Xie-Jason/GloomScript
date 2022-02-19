@@ -31,7 +31,7 @@ impl BuiltInFuncs {
     fn func_print(empty: Rc<String>) -> RefCount<GloomFunc> {
         let params = vec![Param::new(empty, DataType::Ref(RefType::Any))];
         RefCount::new(GloomFunc::new_builtin_fn(
-            Rc::new(String::from("println")),
+            Rc::new(String::from("print")),
             params,
             ReturnType::Void,
             false,
