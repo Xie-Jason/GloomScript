@@ -14,6 +14,23 @@ pub struct BuiltInFuncs;
 pub type IsBuiltIn = bool;
 
 impl BuiltInFuncs {
+    fn func_format(empty: Rc<String>) -> RefCount<GloomFunc>{
+        let params = vec![Param::new(empty, DataType::Ref(RefType::Any))];
+        RefCount::new(GloomFunc::new_builtin_fn(
+            Rc::new(String::from("format")),
+            params,
+            ReturnType::Have(DataType::Ref(RefType::String)),
+            false,
+            Rc::new(|_, mut args| {
+                let arg = args.vec.pop().unwrap();
+                let mode =arg.as_ref().downcast::<GloomString>().0.borrow().to_string();
+                while let Some(obj) = args.vec.pop(){
+                    let mode = format!(format!("{}",mode),obj);
+                }
+                Value::Ref(GloomString::new(mode))
+            }),
+        ))
+    }
     fn func_println(empty: Rc<String>) -> RefCount<GloomFunc> {
         let params = vec![Param::new(empty, DataType::Ref(RefType::Any))];
         RefCount::new(GloomFunc::new_builtin_fn(
@@ -22,8 +39,9 @@ impl BuiltInFuncs {
             ReturnType::Void,
             false,
             Rc::new(|_, mut args| {
-                let obj = args.vec.pop().unwrap();
-                println!("{:?}", obj);
+                while let Some(obj) = args.vec.pop(){
+                print!("{:?}", obj);
+                }
                 Value::None
             }),
         ))
@@ -36,8 +54,9 @@ impl BuiltInFuncs {
             ReturnType::Void,
             false,
             Rc::new(|_, mut args| {
-                let obj = args.vec.pop().unwrap();
+                while let Some(obj) = args.vec.pop(){
                 print!("{:?}", obj);
+                }
                 std::io::stdout().flush().unwrap();
                 Value::None
             }),
@@ -93,16 +112,18 @@ impl BuiltInFuncs {
         Self::func_print(empty_name.clone()),
         Self::func_to_int(empty_name.clone()),
         Self::func_to_num(empty_name.clone()),
+        Self::func_format(empty_name.clone()),
         Self::func_input()
         ]
     }
     pub fn func_map() -> HashMap<String, (u16, IsBuiltIn, IsPub, u16)> {
         let mut map = HashMap::new();
         map.insert(String::from("println"), (0, true, true, 0));
-        map.insert(String::from("print"), (0, true, true, 0));
+        map.insert(String::from("print"  ), (0, true, true, 0));
         map.insert(String::from("input"  ), (0, true, true, 0));
         map.insert(String::from("to_int" ), (0, true, true, 0));
         map.insert(String::from("to_num" ), (0, true, true, 0));
+        map.insert(String::from("format" ), (0, true, true, 0));
         map
     }
 }
