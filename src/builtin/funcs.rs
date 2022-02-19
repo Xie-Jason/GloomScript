@@ -38,14 +38,14 @@ impl BuiltInFuncs {
             Rc::new(|_, mut args| {
                 let obj = args.vec.pop().unwrap();
                 print!("{:?}", obj);
-                std::io::stdout().flush();
+                std::io::stdout().flush().unwrap();
                 Value::None
             }),
         ))
     }
     pub fn func_list() -> Vec<RefCount<GloomFunc>> {
         let empty_name = Rc::new(String::from(""));
-        vec![Self::func_println(empty_name.clone()),Self::func_println(empty_name)]
+        vec![Self::func_println(empty_name.clone()),Self::func_print(empty_name)]
     }
     pub fn func_map() -> HashMap<String, (u16, IsBuiltIn, IsPub, u16)> {
         let mut map = HashMap::new();
