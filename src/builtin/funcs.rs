@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::io::prelude::*;
 
 use hashbrown::HashMap;
 
@@ -27,13 +28,29 @@ impl BuiltInFuncs {
             }),
         ))
     }
+    fn func_print(empty: Rc<String>) -> RefCount<GloomFunc> {
+        let params = vec![Param::new(empty, DataType::Ref(RefType::Any))];
+        RefCount::new(GloomFunc::new_builtin_fn(
+            Rc::new(String::from("println")),
+            params,
+            ReturnType::Void,
+            false,
+            Rc::new(|_, mut args| {
+                let obj = args.vec.pop().unwrap();
+                print!("{:?}", obj);
+                std::io::stdout().flush();
+                Value::None
+            }),
+        ))
+    }
     pub fn func_list() -> Vec<RefCount<GloomFunc>> {
         let empty_name = Rc::new(String::from(""));
-        vec![Self::func_println(empty_name)]
+        vec![Self::func_println(empty_name.clone()),Self::func_println(empty_name)]
     }
     pub fn func_map() -> HashMap<String, (u16, IsBuiltIn, IsPub, u16)> {
         let mut map = HashMap::new();
         map.insert(String::from("println"), (0, true, true, 0));
+        map.insert(String::from("print"), (0, true, true, 0));
         map
     }
 }
