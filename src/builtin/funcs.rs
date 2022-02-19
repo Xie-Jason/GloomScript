@@ -52,7 +52,7 @@ impl BuiltInFuncs {
             Rc::new(|_, _| {
                 let mut buf = String::new();
                 std::io::stdin().read_line(&mut buf).unwrap();
-                Value::Ref(GloomString::new(buf))
+                Value::Ref(GloomString::new(buf.trim_end().to_string()))
             }),
         ))
     }
