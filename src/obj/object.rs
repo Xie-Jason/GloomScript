@@ -114,4 +114,5 @@ pub enum ObjectType {
     Tuple,
     ListIter,
     RangeIter,
+    Result,
 }
