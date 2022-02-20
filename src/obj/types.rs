@@ -179,6 +179,7 @@ pub enum RefType {
     Char,
     Bool,
     String,
+    Result
 }
 
 pub struct FuncType {
@@ -234,7 +235,8 @@ impl RefType {
             RefType::Char => BuiltinType::Char,
             RefType::Bool => BuiltinType::Bool,
             RefType::String => BuiltinType::String,
-            _ => panic!(),
+            RefType::Result => BuiltinType::Result,
+            _ => raise_exception(GloomException::new_empty_exception()),
         }
     }
 }
@@ -270,6 +272,7 @@ pub enum BuiltinType {
     Weak,
     Array,
     Queue,
+    Result
 }
 
 impl BuiltinType {
