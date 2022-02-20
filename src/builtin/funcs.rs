@@ -9,7 +9,6 @@ use crate::obj::func::{GloomFunc, Param, ReturnType};
 use crate::obj::refcount::RefCount;
 use crate::obj::types::{DataType, RefType};
 use crate::vm::value::Value;
-use crate::builtin::string::GloomString;
 
 pub struct BuiltInFuncs;
 
@@ -28,7 +27,6 @@ impl BuiltInFuncs {
                     print!("{:?}", obj);
                 }
                 print!("\r\n");
-                std::io::stdout().flush().unwrap();
                 Value::None
             }),
         ))
