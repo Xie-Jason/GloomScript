@@ -288,6 +288,7 @@ impl BuiltinType {
             "Queue" => BuiltinType::Queue,
             "Func" => BuiltinType::Func,
             "Weak" => BuiltinType::Weak,
+            "Result" => BuiltinType::Result,
             _ => return Option::None,
         };
         Option::Some(builtin_type)
@@ -303,6 +304,7 @@ impl BuiltinType {
             BuiltinType::Weak => "Weak",
             BuiltinType::Array => "Array",
             BuiltinType::Queue => "Queue",
+            BuiltinType::Result => "Result"
         }
     }
 }
