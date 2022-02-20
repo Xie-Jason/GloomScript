@@ -7,3 +7,4 @@ pub mod iter;
 pub mod obj;
 pub mod queue;
 pub mod string;
+pub mod result;
