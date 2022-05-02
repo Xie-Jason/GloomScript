@@ -1,4 +1,3 @@
-
 class Test {
     pub String name
     pub int age
